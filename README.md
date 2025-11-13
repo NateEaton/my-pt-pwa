@@ -1,4 +1,4 @@
-# My Physical Therapy PWA
+# My PT PWA
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-4.x-orange.svg)](https://kit.svelte.dev/)
