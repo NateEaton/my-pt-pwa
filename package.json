@@ -1,0 +1,34 @@
+{
+  "name": "my-pt-tracker",
+  "version": "1.0.0",
+  "description": "A physical therapy home exercise tracker PWA",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.9",
+    "@sveltejs/kit": "^2.5.12",
+    "@sveltejs/vite-plugin-svelte": "^3.1.0",
+    "@vite-pwa/sveltekit": "^1.0.0",
+    "svelte": "^4.2.19",
+    "svelte-check": "^3.6.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.2.11",
+    "vite-plugin-pwa": "^0.20.5"
+  },
+  "type": "module",
+  "keywords": [
+    "physical-therapy",
+    "exercise-tracker",
+    "pwa",
+    "svelte",
+    "healthcare"
+  ],
+  "author": "Your Name",
+  "license": "GPL-3.0-or-later"
+}
