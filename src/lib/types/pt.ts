@@ -116,6 +116,7 @@ export interface AppSettings {
   defaultRepDuration: number; // Default seconds per rep
   startCountdownDuration: number; // Countdown before exercise starts
   endCountdownDuration: number; // Countdown shown at end of exercise
+  endSessionDelay: number; // Delay before session player closes after completion
   restBetweenSets: number; // Rest period between sets
   restBetweenExercises: number; // Rest period between exercises
 

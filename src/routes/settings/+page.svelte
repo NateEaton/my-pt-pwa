@@ -57,6 +57,7 @@
     defaultRepDuration: 2,
     startCountdownDuration: 10,
     endCountdownDuration: 10,
+    endSessionDelay: 5,
     restBetweenSets: 30,
     restBetweenExercises: 15,
     theme: 'auto' as 'light' | 'dark' | 'auto',
@@ -328,6 +329,7 @@
         defaultRepDuration: $ptState.settings.defaultRepDuration,
         startCountdownDuration: $ptState.settings.startCountdownDuration,
         endCountdownDuration: $ptState.settings.endCountdownDuration,
+        endSessionDelay: $ptState.settings.endSessionDelay,
         restBetweenSets: $ptState.settings.restBetweenSets,
         restBetweenExercises: $ptState.settings.restBetweenExercises,
         theme: $ptState.settings.theme,
@@ -825,6 +827,7 @@
           <label for="default-rep-duration">
             Default Rep Duration (seconds)
           </label>
+          <p class="help-text">Default time for each repetition</p>
           <input
             id="default-rep-duration"
             type="number"
@@ -832,13 +835,13 @@
             max="30"
             bind:value={appSettingsFormData.defaultRepDuration}
           />
-          <p class="help-text">Default time for each repetition</p>
         </div>
 
         <div class="form-group">
           <label for="start-countdown">
             Start Countdown (seconds)
           </label>
+          <p class="help-text">Countdown before each exercise begins</p>
           <input
             id="start-countdown"
             type="number"
@@ -846,13 +849,13 @@
             max="30"
             bind:value={appSettingsFormData.startCountdownDuration}
           />
-          <p class="help-text">Countdown before each exercise begins</p>
         </div>
 
         <div class="form-group">
           <label for="end-countdown">
             End Countdown (seconds)
           </label>
+          <p class="help-text">Warning countdown at end of exercise</p>
           <input
             id="end-countdown"
             type="number"
@@ -860,13 +863,27 @@
             max="30"
             bind:value={appSettingsFormData.endCountdownDuration}
           />
-          <p class="help-text">Warning countdown at end of exercise</p>
+        </div>
+
+        <div class="form-group">
+          <label for="end-session-delay">
+            End Session Delay (seconds)
+          </label>
+          <p class="help-text">Delay before session player closes after completion</p>
+          <input
+            id="end-session-delay"
+            type="number"
+            min="0"
+            max="30"
+            bind:value={appSettingsFormData.endSessionDelay}
+          />
         </div>
 
         <div class="form-group">
           <label for="rest-between-sets">
             Rest Between Sets (seconds)
           </label>
+          <p class="help-text">Rest period between sets within an exercise</p>
           <input
             id="rest-between-sets"
             type="number"
@@ -874,13 +891,13 @@
             max="300"
             bind:value={appSettingsFormData.restBetweenSets}
           />
-          <p class="help-text">Rest period between sets within an exercise</p>
         </div>
 
         <div class="form-group">
           <label for="rest-between-exercises">
             Rest Between Exercises (seconds)
           </label>
+          <p class="help-text">Rest period between different exercises</p>
           <input
             id="rest-between-exercises"
             type="number"
@@ -888,7 +905,6 @@
             max="300"
             bind:value={appSettingsFormData.restBetweenExercises}
           />
-          <p class="help-text">Rest period between different exercises</p>
         </div>
       </div>
 

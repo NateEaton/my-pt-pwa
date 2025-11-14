@@ -32,7 +32,7 @@
   let countdownSeconds = 10; // Start countdown
   let restCountdown = 0; // Rest period countdown
   let currentSet = 1;
-  let currentRep = 0;
+  let currentRep = 1;
 
   // Intervals
   let totalTimerInterval: number | undefined;
@@ -41,6 +41,7 @@
   // Settings
   let startCountdownDuration = 10;
   let endCountdownDuration = 10;
+  let endSessionDelay = 5;
   let restBetweenSets = 30;
   let restBetweenExercises = 30;
 
@@ -77,6 +78,7 @@
     if ($ptState.settings) {
       startCountdownDuration = $ptState.settings.startCountdownDuration;
       endCountdownDuration = $ptState.settings.endCountdownDuration;
+      endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
       restBetweenExercises = $ptState.settings.restBetweenExercises;
     }
@@ -223,7 +225,7 @@
     timerState = 'active';
     exerciseElapsedSeconds = 0;
     currentSet = 1;
-    currentRep = 0;
+    currentRep = 1;
 
     if (currentExercise.type === 'duration') {
       startDurationExercise();
@@ -355,7 +357,7 @@
     toastStore.show('Session completed!', 'success');
     setTimeout(() => {
       goto('/');
-    }, 2000);
+    }, endSessionDelay * 1000);
   }
 
   function togglePause() {
@@ -488,12 +490,6 @@
       <span class="timer-value">{formatTime(totalElapsedSeconds)}</span>
     </div>
 
-    <button class="pause-btn" on:click={togglePause}>
-      <span class="material-icons">
-        {isPaused ? 'play_arrow' : 'pause'}
-      </span>
-    </button>
-
     {#if timerState === 'countdown'}
       <div class="countdown-display">
         <div class="countdown-number">{countdownSeconds}</div>
@@ -515,7 +511,15 @@
           <h2 class="exercise-name">{currentExercise.name}</h2>
         </div>
 
-        {#if currentExercise.type === 'duration'}
+        {#if timerState === 'rest'}
+          <div class="rest-indicator">
+            <span class="material-icons">self_improvement</span>
+            <div class="rest-content">
+              <div class="rest-label">Rest</div>
+              <div class="rest-timer">{formatTime(restCountdown)}</div>
+            </div>
+          </div>
+        {:else if currentExercise.type === 'duration'}
           <div class="exercise-timer">
             <div class="timer-display">{currentExerciseTimeDisplay}</div>
             <div class="timer-label-small">Remaining</div>
@@ -526,23 +530,23 @@
             <div class="rep-info">Rep {currentRep} of {currentExercise.defaultReps || 10}</div>
           </div>
         {/if}
-
-        {#if timerState === 'rest'}
-          <div class="rest-indicator">
-            <span class="material-icons">self_improvement</span>
-            <div class="rest-content">
-              <div class="rest-label">Rest</div>
-              <div class="rest-timer">{formatTime(restCountdown)}</div>
-            </div>
-          </div>
-        {/if}
       </div>
-
-      <button class="skip-btn" on:click={skipExercise}>
-        <span class="material-icons">skip_next</span>
-        Skip
-      </button>
     {/if}
+
+    <div class="control-buttons">
+      <button class="pause-btn" on:click={togglePause}>
+        <span class="material-icons">
+          {isPaused ? 'play_arrow' : 'pause'}
+        </span>
+        {isPaused ? 'Resume' : 'Pause'}
+      </button>
+      {#if currentExercise && timerState !== 'countdown' && timerState !== 'completed'}
+        <button class="skip-btn" on:click={skipExercise}>
+          <span class="material-icons">skip_next</span>
+          Skip
+        </button>
+      {/if}
+    </div>
 
     <div class="exit-buttons">
       <button class="btn btn-secondary" on:click={saveProgressAndExit}>
@@ -633,29 +637,29 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .control-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+  }
+
   .pause-btn {
-    position: absolute;
-    top: var(--spacing-lg);
-    right: var(--spacing-lg);
     background-color: rgba(255, 255, 255, 0.2);
     border: none;
-    border-radius: 50%;
-    width: 3rem;
-    height: 3rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-sm) var(--spacing-md);
     color: white;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-base);
     transition: background-color 0.2s;
   }
 
   .pause-btn:hover {
     background-color: rgba(255, 255, 255, 0.3);
-  }
-
-  .pause-btn .material-icons {
-    font-size: 2rem;
   }
 
   .countdown-display {
@@ -774,8 +778,7 @@
     padding: var(--spacing-lg);
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: var(--border-radius);
-    margin-top: var(--spacing-md);
-    margin-bottom: 4rem; /* Make room for skip button */
+    margin: var(--spacing-xl) 0;
   }
 
   .rest-content {
@@ -796,9 +799,6 @@
   }
 
   .skip-btn {
-    position: absolute;
-    bottom: calc(var(--spacing-lg) * 4);
-    right: var(--spacing-lg);
     background-color: rgba(255, 255, 255, 0.2);
     border: none;
     border-radius: var(--border-radius);
