@@ -2,7 +2,7 @@
  * My PT - Physical Therapy Tracker PWA
  * Copyright (C) 2025 Your Name
  *
- * Today Screen - Main landing page showing daily session
+ * Today Screen - Main landing page showing daily session with session selection
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -11,11 +11,13 @@
 -->
 
 <script lang="ts">
-  import { ptState, ptService, defaultExercises } from '$lib/stores/pt';
+  import { onMount } from 'svelte';
+  import { ptState, ptService, defaultSessionDefinition } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
   import ExerciseCard from '$lib/components/ExerciseCard.svelte';
   import Modal from '$lib/components/Modal.svelte';
+  import type { Exercise, SessionDefinition } from '$lib/types/pt';
 
   // Format today's date
   const today = new Date();
@@ -27,12 +29,53 @@
   });
   const formattedDate = dateFormatter.format(today);
 
+  // Modal states
   let showExerciseListModal = false;
+  let showSessionSelectModal = false;
+
+  // Selected session for today (defaults to default session)
+  let selectedSession: SessionDefinition | null = null;
+  let sessionExercises: Exercise[] = [];
+
+  // Initialize selected session on mount
+  onMount(async () => {
+    await loadSelectedSession();
+  });
+
+  // Load the selected session (default or previously selected)
+  async function loadSelectedSession() {
+    // For now, just use the default session
+    // In future, could load from today's session instance if one exists
+    if ($defaultSessionDefinition) {
+      selectedSession = $defaultSessionDefinition;
+      await loadSessionExercises();
+    } else if ($ptState.sessionDefinitions.length > 0) {
+      // If no default, use first session
+      selectedSession = $ptState.sessionDefinitions[0];
+      await loadSessionExercises();
+    }
+  }
+
+  // Load exercises for the selected session
+  async function loadSessionExercises() {
+    if (!selectedSession) {
+      sessionExercises = [];
+      return;
+    }
+
+    const exerciseIds = selectedSession.exercises.map(e => e.exerciseId);
+    sessionExercises = $ptState.exercises.filter(e => exerciseIds.includes(e.id));
+  }
+
+  // Reactively reload exercises when session changes
+  $: if (selectedSession) {
+    loadSessionExercises();
+  }
 
   function calculateTotalDuration(): string {
     let totalSeconds = 0;
 
-    $defaultExercises.forEach((exercise) => {
+    sessionExercises.forEach((exercise) => {
       if (exercise.type === 'duration') {
         totalSeconds += exercise.defaultDuration || 0;
       } else {
@@ -60,6 +103,22 @@
   function viewExercises() {
     showExerciseListModal = true;
   }
+
+  function openSessionSelect() {
+    showSessionSelectModal = true;
+  }
+
+  async function selectSession(session: SessionDefinition) {
+    selectedSession = session;
+    await loadSessionExercises();
+    showSessionSelectModal = false;
+    toastStore.show(`Switched to "${session.name}"`, 'success');
+  }
+
+  function formatSessionBadge(): string {
+    if (!selectedSession) return 'Default';
+    return selectedSession.isDefault ? 'Default' : 'Custom';
+  }
 </script>
 
 <div class="page-container">
@@ -72,44 +131,65 @@
     <!-- Session overview section -->
     <section class="session-section">
       {#if $ptState.initialized}
-        {#if $defaultExercises.length === 0}
+        {#if sessionExercises.length === 0}
           <!-- Empty state -->
           <div class="empty-state">
             <div class="empty-icon">
               <span class="material-icons">self_improvement</span>
             </div>
-            <h2>No Exercises Yet</h2>
-            <p class="empty-text">
-              Get started by adding your first exercise in the Settings tab.
-            </p>
-            <p class="empty-hint">
-              Your physical therapist can help you determine which exercises to include.
-            </p>
+            <h2>No Session Available</h2>
+            {#if $ptState.sessionDefinitions.length === 0}
+              <p class="empty-text">
+                Create a session definition in Settings to get started.
+              </p>
+              <p class="empty-hint">
+                Sessions let you organize which exercises to do each day.
+              </p>
+            {:else}
+              <p class="empty-text">
+                The selected session has no exercises.
+              </p>
+              <button class="btn btn-primary" on:click={openSessionSelect}>
+                <span class="material-icons">playlist_play</span>
+                Choose Different Session
+              </button>
+            {/if}
           </div>
         {:else}
           <!-- Session overview card -->
           <div class="session-card">
             <div class="session-header">
               <div class="session-title">
-                <h2>Today's Session</h2>
-                <span class="session-badge">Default</span>
+                <h2>{selectedSession?.name || 'Session'}</h2>
+                <span class="session-badge">{formatSessionBadge()}</span>
               </div>
-              <button
-                class="view-exercises-btn"
-                on:click={viewExercises}
-                aria-label="View exercises"
-              >
-                <span class="material-icons">visibility</span>
-              </button>
+              <div class="session-header-actions">
+                <button
+                  class="icon-button"
+                  on:click={openSessionSelect}
+                  aria-label="Change session"
+                  title="Change session"
+                >
+                  <span class="material-icons">swap_horiz</span>
+                </button>
+                <button
+                  class="icon-button"
+                  on:click={viewExercises}
+                  aria-label="View exercises"
+                  title="View all exercises"
+                >
+                  <span class="material-icons">visibility</span>
+                </button>
+              </div>
             </div>
 
             <div class="session-stats">
               <div class="stat-item">
                 <span class="material-icons stat-icon">fitness_center</span>
                 <div class="stat-content">
-                  <span class="stat-value">{$defaultExercises.length}</span>
+                  <span class="stat-value">{sessionExercises.length}</span>
                   <span class="stat-label">
-                    {$defaultExercises.length === 1 ? 'Exercise' : 'Exercises'}
+                    {sessionExercises.length === 1 ? 'Exercise' : 'Exercises'}
                   </span>
                 </div>
               </div>
@@ -137,15 +217,15 @@
 
           <!-- Quick preview of exercises -->
           <div class="exercise-preview">
-            <h3 class="preview-title">Exercises ({$defaultExercises.length})</h3>
+            <h3 class="preview-title">Exercises ({sessionExercises.length})</h3>
             <div class="exercise-list-preview">
-              {#each $defaultExercises.slice(0, 3) as exercise (exercise.id)}
+              {#each sessionExercises.slice(0, 3) as exercise (exercise.id)}
                 <ExerciseCard {exercise} compact={true} />
               {/each}
-              {#if $defaultExercises.length > 3}
+              {#if sessionExercises.length > 3}
                 <button class="show-more-btn" on:click={viewExercises}>
                   <span class="material-icons">expand_more</span>
-                  Show {$defaultExercises.length - 3} more exercises
+                  Show {sessionExercises.length - 3} more exercises
                 </button>
               {/if}
             </div>
@@ -163,14 +243,67 @@
   <BottomTabs currentTab="today" />
 </div>
 
+<!-- Session Selection Modal -->
+{#if showSessionSelectModal}
+  <Modal
+    title="Select Session"
+    on:close={() => (showSessionSelectModal = false)}
+  >
+    {#if $ptState.sessionDefinitions.length === 0}
+      <div class="modal-empty-state">
+        <p>No session definitions available.</p>
+        <p class="empty-hint">Create a session in Settings first.</p>
+      </div>
+    {:else}
+      <div class="session-select-list">
+        {#each $ptState.sessionDefinitions as session (session.id)}
+          <button
+            class="session-select-item"
+            class:selected={selectedSession?.id === session.id}
+            on:click={() => selectSession(session)}
+          >
+            <div class="session-select-info">
+              <div class="session-select-header">
+                <span class="session-select-name">{session.name}</span>
+                {#if session.isDefault}
+                  <span class="default-badge-small">
+                    <span class="material-icons">check_circle</span>
+                    Default
+                  </span>
+                {/if}
+              </div>
+              <div class="session-select-meta">
+                <span class="material-icons meta-icon">fitness_center</span>
+                {session.exercises.length} {session.exercises.length === 1 ? 'exercise' : 'exercises'}
+              </div>
+            </div>
+            {#if selectedSession?.id === session.id}
+              <span class="material-icons selected-icon">check</span>
+            {/if}
+          </button>
+        {/each}
+      </div>
+    {/if}
+
+    <div slot="footer" class="modal-actions">
+      <button
+        class="btn btn-secondary"
+        on:click={() => (showSessionSelectModal = false)}
+      >
+        Cancel
+      </button>
+    </div>
+  </Modal>
+{/if}
+
 <!-- Exercise List Modal -->
 {#if showExerciseListModal}
   <Modal
-    title="Today's Exercises"
+    title="{selectedSession?.name || 'Session'} Exercises"
     on:close={() => (showExerciseListModal = false)}
   >
     <div class="exercise-list-full">
-      {#each $defaultExercises as exercise, index (exercise.id)}
+      {#each sessionExercises as exercise, index (exercise.id)}
         <div class="exercise-number-wrapper">
           <span class="exercise-number">{index + 1}</span>
           <ExerciseCard {exercise} />
@@ -254,7 +387,7 @@
   }
 
   .empty-hint {
-    margin: 0;
+    margin: 0 0 var(--spacing-lg) 0;
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
     line-height: 1.5;
@@ -280,6 +413,7 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
+    flex-wrap: wrap;
   }
 
   .session-title h2 {
@@ -298,7 +432,12 @@
     font-weight: 500;
   }
 
-  .view-exercises-btn {
+  .session-header-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+  }
+
+  .icon-button {
     background: none;
     border: none;
     cursor: pointer;
@@ -313,7 +452,7 @@
     transition: all 0.2s ease;
   }
 
-  .view-exercises-btn:hover {
+  .icon-button:hover {
     background-color: var(--hover-overlay);
     color: var(--text-primary);
   }
@@ -446,6 +585,92 @@
 
   .show-more-btn .material-icons {
     font-size: var(--icon-size-md);
+  }
+
+  /* Session Selection Modal */
+  .modal-empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+  }
+
+  .session-select-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .session-select-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    background-color: var(--surface-variant);
+    border: 2px solid transparent;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+  }
+
+  .session-select-item:hover {
+    background-color: var(--divider);
+  }
+
+  .session-select-item.selected {
+    border-color: var(--primary-color);
+    background-color: var(--primary-alpha-10);
+  }
+
+  .session-select-info {
+    flex: 1;
+  }
+
+  .session-select-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .session-select-name {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .default-badge-small {
+    font-size: var(--font-size-xs);
+    padding: 2px var(--spacing-xs);
+    border-radius: calc(var(--border-radius) / 2);
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--success-color);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .default-badge-small .material-icons {
+    font-size: 12px;
+  }
+
+  .session-select-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  .meta-icon {
+    font-size: var(--icon-size-sm);
+  }
+
+  .selected-icon {
+    color: var(--primary-color);
+    font-size: var(--icon-size-lg);
   }
 
   /* Exercise List Modal */
