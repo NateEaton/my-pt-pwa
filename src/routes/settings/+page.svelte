@@ -343,7 +343,7 @@
       enableNotifications: $ptState.settings?.enableNotifications || false
     };
 
-    await ptService.updateSettings(newSettings);
+    await ptService.saveSettings(newSettings);
 
     // Reload settings into state
     const settings = await ptService.getSettings();
