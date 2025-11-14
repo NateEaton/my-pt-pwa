@@ -33,7 +33,6 @@
   let restCountdown = 0; // Rest period countdown
   let currentSet = 1;
   let currentRep = 0;
-  let completedSet = 0; // Track which set just completed for rest display
 
   // Intervals
   let totalTimerInterval: number | undefined;
@@ -224,7 +223,6 @@
     exerciseElapsedSeconds = 0;
     currentSet = 1;
     currentRep = 0;
-    completedSet = 0; // Reset for new exercise
 
     if (currentExercise.type === 'duration') {
       startDurationExercise();
@@ -265,15 +263,12 @@
 
       // Check if set is complete
       if (exerciseElapsedSeconds % (reps * repDuration) === 0 && exerciseElapsedSeconds > 0) {
-        // Set just completed
-        completedSet = currentSet;
-
         if (currentSet >= sets) {
           // Exercise complete - all sets done
           clearInterval(exerciseTimerInterval);
           completeCurrentExercise();
         } else {
-          // Rest between sets (rest AFTER the set that just completed)
+          // Rest between sets (not before first set, not after last set)
           startRestBetweenSets();
         }
       }
@@ -317,23 +312,30 @@
 
     // Move to next exercise
     if (currentExerciseIndex < exercises.length - 1) {
+      const completedExerciseType = currentExercise?.type;
       currentExerciseIndex++;
       currentExercise = exercises[currentExerciseIndex];
       exerciseElapsedSeconds = 0;
 
-      // Rest between exercises
-      timerState = 'rest';
-      restCountdown = restBetweenExercises;
+      // Only rest between exercises for reps/sets exercises
+      // Duration exercises go straight to next exercise countdown
+      if (completedExerciseType === 'reps') {
+        timerState = 'rest';
+        restCountdown = restBetweenExercises;
 
-      exerciseTimerInterval = window.setInterval(() => {
-        if (isPaused) return;
+        exerciseTimerInterval = window.setInterval(() => {
+          if (isPaused) return;
 
-        restCountdown--;
-        if (restCountdown <= 0) {
-          clearInterval(exerciseTimerInterval);
-          startExerciseCountdown();
-        }
-      }, 1000);
+          restCountdown--;
+          if (restCountdown <= 0) {
+            clearInterval(exerciseTimerInterval);
+            startExerciseCountdown();
+          }
+        }, 1000);
+      } else {
+        // Duration exercise - go straight to countdown for next exercise
+        startExerciseCountdown();
+      }
     } else {
       // Session complete
       await completeSession();
@@ -528,13 +530,7 @@
           <div class="rest-indicator">
             <span class="material-icons">self_improvement</span>
             <div class="rest-content">
-              <div class="rest-label">
-                {#if completedSet > 0}
-                  Rest after Set {completedSet}
-                {:else}
-                  Rest
-                {/if}
-              </div>
+              <div class="rest-label">Rest</div>
               <div class="rest-timer">{formatTime(restCountdown)}</div>
             </div>
           </div>
