@@ -30,6 +30,7 @@
   let totalElapsedSeconds = 0;
   let exerciseElapsedSeconds = 0;
   let countdownSeconds = 10; // Start countdown
+  let restCountdown = 0; // Rest period countdown
   let currentSet = 1;
   let currentRep = 0;
 
@@ -79,12 +80,20 @@
       restBetweenExercises = $ptState.settings.restBetweenExercises;
     }
 
-    // Create session instance
-    await createSessionInstance();
+    // Check for existing in-progress session for today
+    const existingSession = await ptService.getTodaySessionInstance();
+    if (existingSession && existingSession.status === 'in-progress' &&
+        existingSession.sessionDefinitionId === sessionId) {
+      // Resume existing session
+      await resumeSession(existingSession);
+    } else {
+      // Create new session instance
+      await createSessionInstance();
 
-    // Start first exercise
-    currentExercise = exercises[0];
-    startExerciseCountdown();
+      // Start first exercise
+      currentExercise = exercises[0];
+      startExerciseCountdown();
+    }
   });
 
   onDestroy(() => {
@@ -120,6 +129,53 @@
         totalElapsedSeconds++;
       }
     }, 1000);
+  }
+
+  async function resumeSession(existing: SessionInstance) {
+    sessionInstance = existing;
+
+    // Calculate total elapsed time from start
+    if (existing.startTime) {
+      const start = new Date(existing.startTime).getTime();
+      const now = Date.now();
+      totalElapsedSeconds = Math.floor((now - start) / 1000);
+    }
+
+    // Find first incomplete exercise
+    let resumeIndex = 0;
+    for (let i = 0; i < exercises.length; i++) {
+      const completed = existing.completedExercises.find(
+        ce => ce.exerciseId === exercises[i].id
+      );
+      if (!completed || (!completed.completed && !completed.skipped)) {
+        resumeIndex = i;
+        break;
+      }
+      if (completed.completed || completed.skipped) {
+        resumeIndex = i + 1;
+      }
+    }
+
+    // Check if session is already complete
+    if (resumeIndex >= exercises.length) {
+      toastStore.show('Session already completed', 'info');
+      await completeSession();
+      return;
+    }
+
+    currentExerciseIndex = resumeIndex;
+    currentExercise = exercises[currentExerciseIndex];
+
+    // Start total timer
+    totalTimerInterval = window.setInterval(() => {
+      if (!isPaused && timerState !== 'completed') {
+        totalElapsedSeconds++;
+      }
+    }, 1000);
+
+    // Resume from current exercise
+    toastStore.show(`Resuming from exercise #${resumeIndex + 1}`, 'info');
+    startExerciseCountdown();
   }
 
   function clearTimers() {
@@ -206,7 +262,7 @@
   function startRestBetweenSets() {
     clearInterval(exerciseTimerInterval);
     timerState = 'rest';
-    let restCountdown = restBetweenSets;
+    restCountdown = restBetweenSets;
 
     exerciseTimerInterval = window.setInterval(() => {
       if (isPaused) return;
@@ -244,7 +300,7 @@
 
       // Rest between exercises
       timerState = 'rest';
-      let restCountdown = restBetweenExercises;
+      restCountdown = restBetweenExercises;
 
       exerciseTimerInterval = window.setInterval(() => {
         if (isPaused) return;
@@ -283,6 +339,12 @@
     } else {
       timerState = 'active';
     }
+  }
+
+  function skipCountdown() {
+    if (timerState !== 'countdown') return;
+    clearInterval(exerciseTimerInterval);
+    startExercise();
   }
 
   async function skipExercise() {
@@ -391,6 +453,10 @@
       <div class="countdown-display">
         <div class="countdown-number">{countdownSeconds}</div>
         <div class="countdown-label">Get Ready</div>
+        <button class="btn btn-primary skip-countdown-btn" on:click={skipCountdown}>
+          <span class="material-icons">play_arrow</span>
+          Start Now
+        </button>
       </div>
     {:else if timerState === 'completed'}
       <div class="completion-display">
@@ -419,7 +485,10 @@
         {#if timerState === 'rest'}
           <div class="rest-indicator">
             <span class="material-icons">self_improvement</span>
-            Rest
+            <div class="rest-content">
+              <div class="rest-label">Rest</div>
+              <div class="rest-timer">{formatTime(restCountdown)}</div>
+            </div>
           </div>
         {/if}
       </div>
@@ -505,6 +574,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--spacing-md);
+    padding-right: 4rem; /* Make room for pause button */
   }
 
   .timer-label {
@@ -560,7 +630,14 @@
   .countdown-label {
     font-size: var(--font-size-xl);
     margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
     opacity: 0.9;
+  }
+
+  .skip-countdown-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
   }
 
   .completion-display {
@@ -648,12 +725,29 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--spacing-sm);
-    font-size: var(--font-size-lg);
-    padding: var(--spacing-md);
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: var(--border-radius);
     margin-top: var(--spacing-md);
+    margin-bottom: 4rem; /* Make room for skip button */
+  }
+
+  .rest-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .rest-label {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .rest-timer {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
   }
 
   .skip-btn {
