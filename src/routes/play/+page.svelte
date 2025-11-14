@@ -33,6 +33,7 @@
   let restCountdown = 0; // Rest period countdown
   let currentSet = 1;
   let currentRep = 0;
+  let completedSet = 0; // Track which set just completed for rest display
 
   // Intervals
   let totalTimerInterval: number | undefined;
@@ -223,6 +224,7 @@
     exerciseElapsedSeconds = 0;
     currentSet = 1;
     currentRep = 0;
+    completedSet = 0; // Reset for new exercise
 
     if (currentExercise.type === 'duration') {
       startDurationExercise();
@@ -263,14 +265,15 @@
 
       // Check if set is complete
       if (exerciseElapsedSeconds % (reps * repDuration) === 0 && exerciseElapsedSeconds > 0) {
-        currentSet++;
+        // Set just completed
+        completedSet = currentSet;
 
-        if (currentSet > sets) {
-          // Exercise complete
+        if (currentSet >= sets) {
+          // Exercise complete - all sets done
           clearInterval(exerciseTimerInterval);
           completeCurrentExercise();
         } else {
-          // Rest between sets
+          // Rest between sets (rest AFTER the set that just completed)
           startRestBetweenSets();
         }
       }
@@ -289,6 +292,8 @@
       if (restCountdown <= 0) {
         clearInterval(exerciseTimerInterval);
         timerState = 'active';
+        // Increment to next set AFTER rest completes
+        currentSet++;
         startRepsExercise();
       }
     }, 1000);
@@ -523,7 +528,13 @@
           <div class="rest-indicator">
             <span class="material-icons">self_improvement</span>
             <div class="rest-content">
-              <div class="rest-label">Rest</div>
+              <div class="rest-label">
+                {#if completedSet > 0}
+                  Rest after Set {completedSet}
+                {:else}
+                  Rest
+                {/if}
+              </div>
               <div class="rest-timer">{formatTime(restCountdown)}</div>
             </div>
           </div>
