@@ -36,28 +36,53 @@
   // Selected session for today (defaults to default session)
   let selectedSession: SessionDefinition | null = null;
   let sessionExercises: Exercise[] = [];
+  let initialized = false;
 
-  // Initialize selected session on mount
-  onMount(async () => {
-    await loadSelectedSession();
-  });
+  // Load persisted session selection from localStorage
+  const STORAGE_KEY = 'pt-today-session-id';
+
+  function loadPersistedSessionId(): number | null {
+    if (typeof window === 'undefined') return null;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? parseInt(stored, 10) : null;
+  }
+
+  function persistSessionId(id: number | null) {
+    if (typeof window === 'undefined') return;
+    if (id === null) {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, id.toString());
+    }
+  }
 
   // Load the selected session (default or previously selected)
-  async function loadSelectedSession() {
-    // For now, just use the default session
-    // In future, could load from today's session instance if one exists
+  function loadSelectedSession() {
+    if (!$ptState.initialized || $ptState.sessionDefinitions.length === 0) {
+      selectedSession = null;
+      return;
+    }
+
+    // Try to restore previously selected session
+    const persistedId = loadPersistedSessionId();
+    if (persistedId !== null) {
+      const persisted = $ptState.sessionDefinitions.find(s => s.id === persistedId);
+      if (persisted) {
+        selectedSession = persisted;
+        return;
+      }
+    }
+
+    // Fall back to default session or first available
     if ($defaultSessionDefinition) {
       selectedSession = $defaultSessionDefinition;
-      await loadSessionExercises();
     } else if ($ptState.sessionDefinitions.length > 0) {
-      // If no default, use first session
       selectedSession = $ptState.sessionDefinitions[0];
-      await loadSessionExercises();
     }
   }
 
   // Load exercises for the selected session
-  async function loadSessionExercises() {
+  function loadSessionExercises() {
     if (!selectedSession) {
       sessionExercises = [];
       return;
@@ -67,10 +92,27 @@
     sessionExercises = $ptState.exercises.filter(e => exerciseIds.includes(e.id));
   }
 
-  // Reactively reload exercises when session changes
+  // Reactive: Load session when store is initialized or session definitions change
+  $: if ($ptState.initialized && !initialized) {
+    loadSelectedSession();
+    initialized = true;
+  }
+
+  // Reactive: Update session if it was modified in settings
+  $: if ($ptState.sessionDefinitions.length > 0 && selectedSession) {
+    const updated = $ptState.sessionDefinitions.find(s => s.id === selectedSession?.id);
+    if (updated && JSON.stringify(updated) !== JSON.stringify(selectedSession)) {
+      selectedSession = updated;
+    }
+  }
+
+  // Reactive: Reload exercises when selected session changes
   $: if (selectedSession) {
     loadSessionExercises();
   }
+
+  // Reactive: Compute session badge
+  $: sessionBadge = selectedSession?.isDefault ? 'Default' : 'Custom';
 
   function calculateTotalDuration(): string {
     let totalSeconds = 0;
@@ -108,16 +150,12 @@
     showSessionSelectModal = true;
   }
 
-  async function selectSession(session: SessionDefinition) {
+  function selectSession(session: SessionDefinition) {
     selectedSession = session;
-    await loadSessionExercises();
+    persistSessionId(session.id);
+    loadSessionExercises();
     showSessionSelectModal = false;
     toastStore.show(`Switched to "${session.name}"`, 'success');
-  }
-
-  function formatSessionBadge(): string {
-    if (!selectedSession) return 'Default';
-    return selectedSession.isDefault ? 'Default' : 'Custom';
   }
 </script>
 
@@ -161,7 +199,7 @@
             <div class="session-header">
               <div class="session-title">
                 <h2>{selectedSession?.name || 'Session'}</h2>
-                <span class="session-badge">{formatSessionBadge()}</span>
+                <span class="session-badge">{sessionBadge}</span>
               </div>
               <div class="session-header-actions">
                 <button
