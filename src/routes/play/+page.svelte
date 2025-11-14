@@ -396,6 +396,24 @@
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
+  // Reactive: Current exercise timer display
+  $: currentExerciseTimeDisplay = (() => {
+    if (!currentExercise) return '0:00';
+
+    if (currentExercise.type === 'duration') {
+      const total = currentExercise.defaultDuration || 60;
+      const remaining = Math.max(0, total - exerciseElapsedSeconds);
+      return formatTime(remaining);
+    } else {
+      const reps = currentExercise.defaultReps || 10;
+      const sets = currentExercise.defaultSets || 3;
+      const repDuration = currentExercise.defaultRepDuration || 2;
+      const total = reps * sets * repDuration;
+      const remaining = Math.max(0, total - exerciseElapsedSeconds);
+      return formatTime(remaining);
+    }
+  })();
+
   function getExerciseProgress(exerciseIndex: number): number {
     if (exerciseIndex < currentExerciseIndex) return 100;
     if (exerciseIndex > currentExerciseIndex) return 0;
@@ -415,23 +433,6 @@
 
   function isExerciseCompleted(exerciseIndex: number): boolean {
     return exerciseIndex < currentExerciseIndex;
-  }
-
-  function getRemainingTime(): string {
-    if (!currentExercise) return '0:00';
-
-    if (currentExercise.type === 'duration') {
-      const total = currentExercise.defaultDuration || 60;
-      const remaining = Math.max(0, total - exerciseElapsedSeconds);
-      return formatTime(remaining);
-    } else {
-      const reps = currentExercise.defaultReps || 10;
-      const sets = currentExercise.defaultSets || 3;
-      const repDuration = currentExercise.defaultRepDuration || 2;
-      const total = reps * sets * repDuration;
-      const remaining = Math.max(0, total - exerciseElapsedSeconds);
-      return formatTime(remaining);
-    }
   }
 </script>
 
@@ -472,7 +473,7 @@
 
         {#if currentExercise.type === 'duration'}
           <div class="exercise-timer">
-            <div class="timer-display">{getRemainingTime()}</div>
+            <div class="timer-display">{currentExerciseTimeDisplay}</div>
             <div class="timer-label-small">Remaining</div>
           </div>
         {:else}
