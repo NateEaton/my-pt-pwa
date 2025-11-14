@@ -12,6 +12,7 @@
 
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
   import { ptState, ptService, defaultSessionDefinition } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
@@ -135,7 +136,16 @@
   }
 
   function handlePlaySession() {
-    toastStore.show('Session player coming in Phase 5!', 'info');
+    if (!selectedSession) {
+      toastStore.show('No session selected', 'error');
+      return;
+    }
+
+    // Store session ID in localStorage for player to read
+    localStorage.setItem('pt-active-session-id', selectedSession.id.toString());
+
+    // Navigate to player
+    goto('/play');
   }
 
   function handleLogSession() {
