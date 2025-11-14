@@ -917,12 +917,17 @@
 
     <div slot="footer" class="modal-actions">
       <button
+        type="button"
         class="btn btn-secondary"
         on:click={() => (showAppSettingsModal = false)}
       >
         Cancel
       </button>
-      <button class="btn btn-primary" on:click={saveAppSettings}>
+      <button
+        type="button"
+        class="btn btn-primary"
+        on:click={saveAppSettings}
+      >
         Save Settings
       </button>
     </div>

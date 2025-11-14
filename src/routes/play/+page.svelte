@@ -82,12 +82,22 @@
 
     // Check for existing in-progress session for today
     const existingSession = await ptService.getTodaySessionInstance();
+    console.log('Checking for existing session:', existingSession);
+
+    if (existingSession) {
+      console.log('Existing session status:', existingSession.status);
+      console.log('Existing session definition ID:', existingSession.sessionDefinitionId);
+      console.log('Current session ID:', sessionId);
+    }
+
     if (existingSession && existingSession.status === 'in-progress' &&
         existingSession.sessionDefinitionId === sessionId) {
       // Resume existing session
+      console.log('Resuming existing session');
       await resumeSession(existingSession);
     } else {
       // Create new session instance
+      console.log('Creating new session instance');
       await createSessionInstance();
 
       // Start first exercise
@@ -134,6 +144,9 @@
   async function resumeSession(existing: SessionInstance) {
     sessionInstance = existing;
 
+    console.log('Resuming session:', existing);
+    console.log('Completed exercises:', existing.completedExercises);
+
     // Calculate total elapsed time from start
     if (existing.startTime) {
       const start = new Date(existing.startTime).getTime();
@@ -147,8 +160,11 @@
       const completed = existing.completedExercises.find(
         ce => ce.exerciseId === exercises[i].id
       );
+      console.log(`Exercise ${i} (ID: ${exercises[i].id}):`, completed);
+
       if (!completed || (!completed.completed && !completed.skipped)) {
         resumeIndex = i;
+        console.log(`Found incomplete exercise at index ${i}`);
         break;
       }
       if (completed.completed || completed.skipped) {
@@ -165,6 +181,8 @@
 
     currentExerciseIndex = resumeIndex;
     currentExercise = exercises[currentExerciseIndex];
+
+    console.log(`Resuming from exercise ${resumeIndex + 1}: ${currentExercise.name}`);
 
     // Start total timer
     totalTimerInterval = window.setInterval(() => {
@@ -365,28 +383,46 @@
 
   async function saveAndExit() {
     if (!sessionInstance) {
+      clearTimers();
       goto('/');
       return;
     }
 
     sessionInstance.status = 'completed';
     sessionInstance.endTime = new Date().toISOString();
-    await ptService.updateSessionInstance(sessionInstance);
 
-    toastStore.show('Session saved', 'success');
+    try {
+      await ptService.updateSessionInstance(sessionInstance);
+      toastStore.show('Session completed', 'success');
+    } catch (error) {
+      console.error('Failed to save session:', error);
+      toastStore.show('Failed to save session', 'error');
+    }
+
+    clearTimers();
     goto('/');
   }
 
   async function saveProgressAndExit() {
     if (!sessionInstance) {
+      clearTimers();
       goto('/');
       return;
     }
 
-    // Keep status as in-progress
-    await ptService.updateSessionInstance(sessionInstance);
+    // Explicitly keep status as in-progress
+    sessionInstance.status = 'in-progress';
 
-    toastStore.show('Progress saved', 'success');
+    try {
+      await ptService.updateSessionInstance(sessionInstance);
+      console.log('Progress saved:', sessionInstance);
+      toastStore.show('Progress saved', 'success');
+    } catch (error) {
+      console.error('Failed to save progress:', error);
+      toastStore.show('Failed to save progress', 'error');
+    }
+
+    clearTimers();
     goto('/');
   }
 
