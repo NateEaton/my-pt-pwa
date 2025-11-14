@@ -188,6 +188,20 @@
     }
   }
 
+  function moveExerciseUp(index: number) {
+    if (index === 0) return;
+    const newList = [...sessionFormData.selectedExercises];
+    [newList[index - 1], newList[index]] = [newList[index], newList[index - 1]];
+    sessionFormData.selectedExercises = newList;
+  }
+
+  function moveExerciseDown(index: number) {
+    if (index === sessionFormData.selectedExercises.length - 1) return;
+    const newList = [...sessionFormData.selectedExercises];
+    [newList[index], newList[index + 1]] = [newList[index + 1], newList[index]];
+    sessionFormData.selectedExercises = newList;
+  }
+
   async function saveSession() {
     if (!sessionFormData.name.trim()) {
       toastStore.show('Please enter a session name', 'error');
@@ -477,29 +491,88 @@
 
       <div class="form-group">
         <label>
-          Select Exercises <span class="required">*</span>
+          Session Exercises {#if sessionFormData.selectedExercises.length > 0}({sessionFormData.selectedExercises.length}){/if}
+        </label>
+        {#if sessionFormData.selectedExercises.length > 0}
+          <div class="selected-exercises-list">
+            {#each sessionFormData.selectedExercises as exerciseId, index (exerciseId)}
+              {@const exercise = $sortedExercises.find(e => e.id === exerciseId)}
+              {#if exercise}
+                <div class="selected-exercise-item">
+                  <div class="exercise-order-number">{index + 1}</div>
+                  <div class="exercise-order-info">
+                    <div class="exercise-order-name">{exercise.name}</div>
+                    <div class="exercise-order-meta">
+                      {exercise.type === 'duration'
+                        ? formatDuration(exercise.defaultDuration || 0)
+                        : `${exercise.defaultReps} × ${exercise.defaultSets}`
+                      }
+                    </div>
+                  </div>
+                  <div class="exercise-order-controls">
+                    <button
+                      type="button"
+                      class="order-btn"
+                      disabled={index === 0}
+                      on:click={() => moveExerciseUp(index)}
+                      title="Move up"
+                    >
+                      <span class="material-icons">arrow_upward</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="order-btn"
+                      disabled={index === sessionFormData.selectedExercises.length - 1}
+                      on:click={() => moveExerciseDown(index)}
+                      title="Move down"
+                    >
+                      <span class="material-icons">arrow_downward</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="order-btn remove-btn"
+                      on:click={() => toggleExerciseSelection(exerciseId)}
+                      title="Remove"
+                    >
+                      <span class="material-icons">close</span>
+                    </button>
+                  </div>
+                </div>
+              {/if}
+            {/each}
+          </div>
+        {:else}
+          <p class="empty-hint">No exercises selected. Add exercises below.</p>
+        {/if}
+      </div>
+
+      <div class="form-group">
+        <label>
+          Add Exercises <span class="required">*</span>
         </label>
         <div class="exercise-selector">
           {#if $sortedExercises.length === 0}
             <p class="empty-hint">No exercises available. Add exercises first.</p>
           {:else}
             {#each $sortedExercises as exercise (exercise.id)}
-              <label class="exercise-checkbox">
-                <input
-                  type="checkbox"
-                  checked={sessionFormData.selectedExercises.includes(exercise.id)}
-                  on:change={() => toggleExerciseSelection(exercise.id)}
-                />
-                <span class="exercise-checkbox-label">
-                  <span class="exercise-checkbox-name">{exercise.name}</span>
-                  <span class="exercise-checkbox-meta">
-                    {exercise.type === 'duration'
-                      ? formatDuration(exercise.defaultDuration || 0)
-                      : `${exercise.defaultReps} × ${exercise.defaultSets}`
-                    }
+              {#if !sessionFormData.selectedExercises.includes(exercise.id)}
+                <label class="exercise-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={false}
+                    on:change={() => toggleExerciseSelection(exercise.id)}
+                  />
+                  <span class="exercise-checkbox-label">
+                    <span class="exercise-checkbox-name">{exercise.name}</span>
+                    <span class="exercise-checkbox-meta">
+                      {exercise.type === 'duration'
+                        ? formatDuration(exercise.defaultDuration || 0)
+                        : `${exercise.defaultReps} × ${exercise.defaultSets}`
+                      }
+                    </span>
                   </span>
-                </span>
-              </label>
+                </label>
+              {/if}
             {/each}
           {/if}
         </div>
@@ -1015,6 +1088,103 @@
     border: 1px solid var(--divider);
     border-radius: var(--border-radius);
     padding: var(--spacing-sm);
+  }
+
+  /* Selected Exercises List */
+  .selected-exercises-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-sm);
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .selected-exercise-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background-color: var(--surface);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--divider);
+  }
+
+  .exercise-order-number {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+  }
+
+  .exercise-order-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .exercise-order-name {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+
+  .exercise-order-meta {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  .exercise-order-controls {
+    display: flex;
+    gap: var(--spacing-xs);
+  }
+
+  .order-btn {
+    background: none;
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius);
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+  }
+
+  .order-btn:hover:not(:disabled) {
+    background-color: var(--hover-overlay);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+  }
+
+  .order-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .order-btn.remove-btn {
+    border-color: var(--error-color);
+    color: var(--error-color);
+  }
+
+  .order-btn.remove-btn:hover:not(:disabled) {
+    background-color: rgba(244, 67, 54, 0.1);
+  }
+
+  .order-btn .material-icons {
+    font-size: var(--icon-size-sm);
   }
 
   .exercise-checkbox {
