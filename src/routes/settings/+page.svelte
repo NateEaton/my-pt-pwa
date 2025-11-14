@@ -16,7 +16,7 @@
   import BottomTabs from '$lib/components/BottomTabs.svelte';
   import Modal from '$lib/components/Modal.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-  import type { Exercise, SessionDefinition, SessionExercise } from '$lib/types/pt';
+  import type { Exercise, SessionDefinition, SessionExercise, AppSettings } from '$lib/types/pt';
 
   // Exercise modal state
   let showExerciseModal = false;
@@ -47,6 +47,20 @@
     name: '',
     selectedExercises: [] as number[],
     isDefault: false
+  };
+
+  // App settings modal state
+  let showAppSettingsModal = false;
+
+  // App settings form state
+  let appSettingsFormData = {
+    defaultRepDuration: 2,
+    startCountdownDuration: 10,
+    endCountdownDuration: 10,
+    restBetweenSets: 30,
+    restBetweenExercises: 15,
+    theme: 'auto' as 'light' | 'dark' | 'auto',
+    exerciseSortOrder: 'alphabetical' as 'alphabetical' | 'dateAdded' | 'frequency'
   };
 
   // ========== Exercise Functions ==========
@@ -305,6 +319,39 @@
     const exercise = $ptState.exercises.find(e => e.id === exerciseId);
     return exercise?.name || 'Unknown Exercise';
   }
+
+  // ========== App Settings Functions ==========
+
+  function openAppSettings() {
+    if ($ptState.settings) {
+      appSettingsFormData = {
+        defaultRepDuration: $ptState.settings.defaultRepDuration,
+        startCountdownDuration: $ptState.settings.startCountdownDuration,
+        endCountdownDuration: $ptState.settings.endCountdownDuration,
+        restBetweenSets: $ptState.settings.restBetweenSets,
+        restBetweenExercises: $ptState.settings.restBetweenExercises,
+        theme: $ptState.settings.theme,
+        exerciseSortOrder: $ptState.settings.exerciseSortOrder
+      };
+    }
+    showAppSettingsModal = true;
+  }
+
+  async function saveAppSettings() {
+    const newSettings: AppSettings = {
+      ...appSettingsFormData,
+      enableNotifications: $ptState.settings?.enableNotifications || false
+    };
+
+    await ptService.updateSettings(newSettings);
+
+    // Reload settings into state
+    const settings = await ptService.getSettings();
+    ptState.update((state) => ({ ...state, settings }));
+
+    showAppSettingsModal = false;
+    toastStore.show('Settings saved', 'success');
+  }
 </script>
 
 <div class="page-container">
@@ -461,6 +508,38 @@
               </div>
             </div>
           {/each}
+        </div>
+      {/if}
+    </section>
+
+    <!-- App Settings Section -->
+    <section class="settings-section">
+      <div class="section-header">
+        <h2>App Settings</h2>
+        <button class="btn btn-primary" on:click={openAppSettings}>
+          <span class="material-icons">settings</span>
+          Configure
+        </button>
+      </div>
+
+      {#if $ptState.settings}
+        <div class="settings-summary">
+          <div class="setting-item">
+            <span class="setting-label">Default Rep Duration:</span>
+            <span class="setting-value">{$ptState.settings.defaultRepDuration}s</span>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Start Countdown:</span>
+            <span class="setting-value">{$ptState.settings.startCountdownDuration}s</span>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Rest Between Sets:</span>
+            <span class="setting-value">{$ptState.settings.restBetweenSets}s</span>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">Rest Between Exercises:</span>
+            <span class="setting-value">{$ptState.settings.restBetweenExercises}s</span>
+          </div>
         </div>
       {/if}
     </section>
@@ -732,6 +811,124 @@
   />
 {/if}
 
+<!-- App Settings Modal -->
+{#if showAppSettingsModal}
+  <Modal
+    title="App Settings"
+    on:close={() => (showAppSettingsModal = false)}
+  >
+    <form on:submit|preventDefault={saveAppSettings} class="settings-form">
+      <div class="form-section">
+        <h3>Timing Settings</h3>
+
+        <div class="form-group">
+          <label for="default-rep-duration">
+            Default Rep Duration (seconds)
+          </label>
+          <input
+            id="default-rep-duration"
+            type="number"
+            min="1"
+            max="30"
+            bind:value={appSettingsFormData.defaultRepDuration}
+          />
+          <p class="help-text">Default time for each repetition</p>
+        </div>
+
+        <div class="form-group">
+          <label for="start-countdown">
+            Start Countdown (seconds)
+          </label>
+          <input
+            id="start-countdown"
+            type="number"
+            min="0"
+            max="30"
+            bind:value={appSettingsFormData.startCountdownDuration}
+          />
+          <p class="help-text">Countdown before each exercise begins</p>
+        </div>
+
+        <div class="form-group">
+          <label for="end-countdown">
+            End Countdown (seconds)
+          </label>
+          <input
+            id="end-countdown"
+            type="number"
+            min="0"
+            max="30"
+            bind:value={appSettingsFormData.endCountdownDuration}
+          />
+          <p class="help-text">Warning countdown at end of exercise</p>
+        </div>
+
+        <div class="form-group">
+          <label for="rest-between-sets">
+            Rest Between Sets (seconds)
+          </label>
+          <input
+            id="rest-between-sets"
+            type="number"
+            min="0"
+            max="300"
+            bind:value={appSettingsFormData.restBetweenSets}
+          />
+          <p class="help-text">Rest period between sets within an exercise</p>
+        </div>
+
+        <div class="form-group">
+          <label for="rest-between-exercises">
+            Rest Between Exercises (seconds)
+          </label>
+          <input
+            id="rest-between-exercises"
+            type="number"
+            min="0"
+            max="300"
+            bind:value={appSettingsFormData.restBetweenExercises}
+          />
+          <p class="help-text">Rest period between different exercises</p>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Display Settings</h3>
+
+        <div class="form-group">
+          <label for="theme">Theme</label>
+          <select id="theme" bind:value={appSettingsFormData.theme}>
+            <option value="auto">Auto (System)</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="sort-order">Exercise Sort Order</label>
+          <select id="sort-order" bind:value={appSettingsFormData.exerciseSortOrder}>
+            <option value="alphabetical">Alphabetical</option>
+            <option value="dateAdded">Date Added</option>
+            <option value="frequency">Frequency</option>
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div slot="footer" class="modal-actions">
+      <button
+        class="btn btn-secondary"
+        on:click={() => (showAppSettingsModal = false)}
+      >
+        Cancel
+      </button>
+      <button class="btn btn-primary" on:click={saveAppSettings}>
+        Save Settings
+      </button>
+    </div>
+  </Modal>
+{/if}
+
 <style>
   .page-container {
     display: flex;
@@ -839,6 +1036,39 @@
   .empty-hint {
     font-size: var(--font-size-sm) !important;
     opacity: 0.7;
+  }
+
+  /* Settings Summary */
+  .settings-summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background-color: var(--surface-variant);
+    border-radius: var(--border-radius);
+  }
+
+  .setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--divider);
+  }
+
+  .setting-item:last-child {
+    border-bottom: none;
+  }
+
+  .setting-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  .setting-value {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
   }
 
   /* Session List */
@@ -1048,6 +1278,25 @@
 
   .required {
     color: var(--error-color);
+  }
+
+  .form-section {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .form-section h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--divider);
+  }
+
+  .help-text {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin: var(--spacing-xs) 0 0 0;
   }
 
   .form-group input,
