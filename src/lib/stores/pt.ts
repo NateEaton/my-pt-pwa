@@ -16,28 +16,41 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { writable } from 'svelte/store';
-
 /**
  * @fileoverview Core state management for My PT application
- * This is a minimal implementation to get Phase 1 running.
- * Will be expanded in Phase 2 with full data models and IndexedDB integration.
+ * Phase 2: Full implementation with IndexedDB integration
  */
 
-interface PTState {
+import { writable, derived } from 'svelte/store';
+import type {
+  Exercise,
+  SessionDefinition,
+  SessionInstance,
+  AppSettings
+} from '$lib/types/pt';
+
+/**
+ * Application state interface
+ */
+export interface PTState {
   initialized: boolean;
   loading: boolean;
-  exercises: any[];
-  sessionDefinitions: any[];
-  todaySession: any | null;
+  exercises: Exercise[];
+  sessionDefinitions: SessionDefinition[];
+  todaySession: SessionInstance | null;
+  settings: AppSettings | null;
 }
 
+/**
+ * Initial state
+ */
 const initialState: PTState = {
   initialized: false,
   loading: false,
   exercises: [],
   sessionDefinitions: [],
-  todaySession: null
+  todaySession: null,
+  settings: null
 };
 
 /**
@@ -46,62 +59,42 @@ const initialState: PTState = {
 export const ptState = writable<PTState>(initialState);
 
 /**
- * PTService - Handles all data operations
- * Minimal implementation for Phase 1, will be expanded in Phase 2
+ * Derived store: Get default session definition
  */
-class PTService {
-  private db: IDBDatabase | null = null;
+export const defaultSessionDefinition = derived(
+  ptState,
+  ($ptState) => $ptState.sessionDefinitions.find((s) => s.isDefault) || null
+);
 
-  /**
-   * Initialize the PT service and IndexedDB
-   */
-  async initialize(): Promise<void> {
-    console.log('🏥 Initializing PT Service...');
+/**
+ * Derived store: Get exercises sorted by settings preference
+ */
+export const sortedExercises = derived(ptState, ($ptState) => {
+  const exercises = [...$ptState.exercises];
+  const sortOrder = $ptState.settings?.exerciseSortOrder || 'alphabetical';
 
-    try {
-      ptState.update(state => ({ ...state, loading: true }));
-
-      // TODO: Phase 2 - Initialize IndexedDB
-      // For now, just mark as initialized
-
-      ptState.update(state => ({
-        ...state,
-        initialized: true,
-        loading: false
-      }));
-
-      console.log('✅ PT Service initialized');
-    } catch (error) {
-      console.error('❌ Failed to initialize PT Service:', error);
-      ptState.update(state => ({ ...state, loading: false }));
-      throw error;
-    }
+  switch (sortOrder) {
+    case 'alphabetical':
+      return exercises.sort((a, b) => a.name.localeCompare(b.name));
+    case 'dateAdded':
+      return exercises.sort(
+        (a, b) =>
+          new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
+      );
+    case 'frequency':
+      // TODO: Implement frequency sorting based on usage stats
+      return exercises;
+    default:
+      return exercises;
   }
+});
 
-  /**
-   * Get all exercises
-   */
-  async getExercises(): Promise<any[]> {
-    // TODO: Phase 2 - Implement IndexedDB query
-    return [];
-  }
+/**
+ * Derived store: Get exercises included in default session
+ */
+export const defaultExercises = derived(ptState, ($ptState) =>
+  $ptState.exercises.filter((e) => e.includeInDefault)
+);
 
-  /**
-   * Get all session definitions
-   */
-  async getSessionDefinitions(): Promise<any[]> {
-    // TODO: Phase 2 - Implement IndexedDB query
-    return [];
-  }
-
-  /**
-   * Get today's session
-   */
-  async getTodaySession(): Promise<any | null> {
-    // TODO: Phase 2 - Implement today session logic
-    return null;
-  }
-}
-
-// Export singleton instance
-export const ptService = new PTService();
+// Re-export the PTService singleton from the service file
+export { ptService } from '$lib/services/PTService';

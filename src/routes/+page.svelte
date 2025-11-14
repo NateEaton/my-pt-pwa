@@ -37,7 +37,7 @@
       {#if $ptState.initialized}
         <div class="placeholder-card">
           <div class="placeholder-icon">
-            <span class="material-icons">fitness_center</span>
+            <span class="material-icons">yoga</span>
           </div>
           <h2>Welcome to My PT</h2>
           <p class="placeholder-text">

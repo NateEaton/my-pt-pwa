@@ -25,8 +25,12 @@
   import "../app.css";
 
   onMount(async () => {
+    // Initialize PTService and IndexedDB
     await ptService.initialize();
-    
+
+    // Load initial data into store
+    await loadInitialData();
+
     initializeTheme();
 
     if (typeof window !== "undefined") {
@@ -38,6 +42,37 @@
     }
     logBuildInfo();
   });
+
+  async function loadInitialData() {
+    try {
+      ptState.update(state => ({ ...state, loading: true }));
+
+      // Load all data in parallel
+      const [exercises, sessionDefinitions, settings, todaySession] = await Promise.all([
+        ptService.getExercises(),
+        ptService.getSessionDefinitions(),
+        ptService.getSettings(),
+        ptService.getTodaySessionInstance()
+      ]);
+
+      ptState.update(state => ({
+        ...state,
+        initialized: true,
+        loading: false,
+        exercises,
+        sessionDefinitions,
+        settings,
+        todaySession
+      }));
+    } catch (error) {
+      console.error('Failed to load initial data:', error);
+      ptState.update(state => ({
+        ...state,
+        loading: false,
+        initialized: true // Still mark as initialized even if data load fails
+      }));
+    }
+  }
 
   $: pageTitle = (() => {
     switch ($page.route?.id) {
