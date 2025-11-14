@@ -1283,6 +1283,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
   }
 
   .form-row {
@@ -1317,7 +1318,7 @@
   .help-text {
     font-size: var(--font-size-xs);
     color: var(--text-secondary);
-    margin: var(--spacing-xs) 0 0 0;
+    margin: 0.125rem 0 0 0;
   }
 
   .form-group input,
