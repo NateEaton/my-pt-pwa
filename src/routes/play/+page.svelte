@@ -62,9 +62,10 @@
       return;
     }
 
-    // Load exercises
-    const exerciseIds = sessionDefinition.exercises.map(e => e.exerciseId);
-    exercises = $ptState.exercises.filter(e => exerciseIds.includes(e.id));
+    // Load exercises in session-defined order
+    exercises = sessionDefinition.exercises
+      .map(se => $ptState.exercises.find(e => e.id === se.exerciseId))
+      .filter((e): e is Exercise => e !== undefined);
 
     if (exercises.length === 0) {
       toastStore.show('Session has no exercises', 'error');

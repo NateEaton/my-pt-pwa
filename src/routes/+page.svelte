@@ -89,8 +89,10 @@
       return;
     }
 
-    const exerciseIds = selectedSession.exercises.map(e => e.exerciseId);
-    sessionExercises = $ptState.exercises.filter(e => exerciseIds.includes(e.id));
+    // Map through session exercises in order to preserve session-defined order
+    sessionExercises = selectedSession.exercises
+      .map(se => $ptState.exercises.find(e => e.id === se.exerciseId))
+      .filter((e): e is Exercise => e !== undefined);
   }
 
   // Reactive: Load session when store is initialized or session definitions change
