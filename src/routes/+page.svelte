@@ -115,9 +115,23 @@
   }
 
   function calculateTotalDurationSeconds(): number {
+    if (sessionExercises.length === 0) return 0;
+
+    // Get settings for countdown and rest durations
+    const settings = $ptState.settings;
+    const startCountdown = settings?.startCountdownDuration || 5;
+    const endCountdown = settings?.endCountdownDuration || 5;
+    const restBetweenExercises = settings?.restBetweenExercises || 15;
+    const endSessionDelay = settings?.endSessionDelay || 5;
+
     let totalSeconds = 0;
 
-    sessionExercises.forEach((exercise) => {
+    // Calculate exercise durations and add countdowns/rest
+    sessionExercises.forEach((exercise, index) => {
+      // Start countdown before each exercise
+      totalSeconds += startCountdown;
+
+      // Exercise duration
       if (exercise.type === 'duration') {
         totalSeconds += exercise.defaultDuration || 0;
       } else {
@@ -126,7 +140,18 @@
         const repDuration = exercise.defaultRepDuration || 2;
         totalSeconds += reps * sets * repDuration;
       }
+
+      // End countdown after each exercise
+      totalSeconds += endCountdown;
+
+      // Rest between exercises (not after the last exercise)
+      if (index < sessionExercises.length - 1) {
+        totalSeconds += restBetweenExercises;
+      }
     });
+
+    // Add end session delay
+    totalSeconds += endSessionDelay;
 
     return totalSeconds;
   }

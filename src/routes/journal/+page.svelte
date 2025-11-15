@@ -135,7 +135,10 @@
     return Math.round((completed / total) * 100);
   }
 
-  function getStatusBadgeClass(status: string): string {
+  function getStatusBadgeClass(status: string, manuallyLogged?: boolean): string {
+    if (manuallyLogged) {
+      return 'status-badge status-manually-logged';
+    }
     switch (status) {
       case 'completed':
         return 'status-badge status-completed';
@@ -148,7 +151,10 @@
     }
   }
 
-  function getStatusIcon(status: string): string {
+  function getStatusIcon(status: string, manuallyLogged?: boolean): string {
+    if (manuallyLogged) {
+      return 'edit_note';
+    }
     switch (status) {
       case 'completed':
         return 'check_circle';
@@ -159,6 +165,13 @@
       default:
         return 'circle';
     }
+  }
+
+  function getStatusText(status: string, manuallyLogged?: boolean): string {
+    if (manuallyLogged) {
+      return 'Manually Logged';
+    }
+    return status;
   }
 
   function getExerciseName(exerciseId: number): string {
@@ -223,21 +236,14 @@
                     <div class="session-time">{formatTime(session.startTime)}</div>
                   {/if}
                 </div>
-                <div class={getStatusBadgeClass(session.status)}>
-                  <span class="material-icons status-icon">{getStatusIcon(session.status)}</span>
-                  {session.status}
+                <div class={getStatusBadgeClass(session.status, session.manuallyLogged)}>
+                  <span class="material-icons status-icon">{getStatusIcon(session.status, session.manuallyLogged)}</span>
+                  {getStatusText(session.status, session.manuallyLogged)}
                 </div>
               </div>
 
               <div class="session-body">
-                <div class="session-name-row">
-                  <h3 class="session-name">{session.sessionName}</h3>
-                  {#if session.manuallyLogged}
-                    <span class="manual-badge" title="Manually logged workout">
-                      <span class="material-icons">edit_note</span>
-                    </span>
-                  {/if}
-                </div>
+                <h3 class="session-name">{session.sessionName}</h3>
                 <div class="session-meta">
                   <span class="meta-item">
                     <span class="material-icons meta-icon">fitness_center</span>
@@ -293,23 +299,12 @@
         <div class="detail-stat">
           <div class="detail-stat-label">Status</div>
           <div class="detail-stat-value">
-            <span class={getStatusBadgeClass(selectedSession.status)}>
-              <span class="material-icons status-icon">{getStatusIcon(selectedSession.status)}</span>
-              {selectedSession.status}
+            <span class={getStatusBadgeClass(selectedSession.status, selectedSession.manuallyLogged)}>
+              <span class="material-icons status-icon">{getStatusIcon(selectedSession.status, selectedSession.manuallyLogged)}</span>
+              {getStatusText(selectedSession.status, selectedSession.manuallyLogged)}
             </span>
           </div>
         </div>
-        {#if selectedSession.manuallyLogged}
-          <div class="detail-stat">
-            <div class="detail-stat-label">Type</div>
-            <div class="detail-stat-value">
-              <span class="manual-badge-detail">
-                <span class="material-icons">edit_note</span>
-                Manually Logged
-              </span>
-            </div>
-          </div>
-        {/if}
         {#if selectedSession.startTime}
           <div class="detail-stat">
             <div class="detail-stat-label">Start Time</div>
@@ -546,6 +541,11 @@
     color: #2e7d32;
   }
 
+  .status-manually-logged {
+    background-color: #e3f2fd;
+    color: #1976d2;
+  }
+
   .status-in-progress {
     background-color: #fff3e0;
     color: #ef6c00;
@@ -560,49 +560,11 @@
     margin-bottom: var(--spacing-sm);
   }
 
-  .session-name-row {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    margin-bottom: var(--spacing-xs);
-  }
-
   .session-name {
-    margin: 0;
+    margin: 0 0 var(--spacing-xs) 0;
     font-size: var(--font-size-lg);
     font-weight: 600;
     color: var(--text-primary);
-  }
-
-  .manual-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.25rem;
-    background-color: #e3f2fd;
-    color: #1976d2;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .manual-badge .material-icons {
-    font-size: 1rem;
-  }
-
-  .manual-badge-detail {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    background-color: #e3f2fd;
-    color: #1976d2;
-    border-radius: calc(var(--border-radius) / 2);
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-  }
-
-  .manual-badge-detail .material-icons {
-    font-size: 1rem;
   }
 
   .session-meta {
