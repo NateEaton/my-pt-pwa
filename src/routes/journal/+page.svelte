@@ -113,12 +113,16 @@
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     thisWeekSessions = sessionInstances.filter(s => {
-      const sessionDate = new Date(s.date);
+      // Parse date string in local timezone to avoid timezone issues
+      const [year, month, day] = s.date.split('-').map(Number);
+      const sessionDate = new Date(year, month - 1, day);
       return sessionDate >= weekAgo && s.status === 'completed';
     }).length;
 
     thisMonthSessions = sessionInstances.filter(s => {
-      const sessionDate = new Date(s.date);
+      // Parse date string in local timezone to avoid timezone issues
+      const [year, month, day] = s.date.split('-').map(Number);
+      const sessionDate = new Date(year, month - 1, day);
       return sessionDate >= monthAgo && s.status === 'completed';
     }).length;
   }
@@ -321,18 +325,33 @@
     <!-- Statistics Section -->
     {#if !loading && totalSessions > 0}
       <section class="stats-section">
-        <div class="stat-card">
-          <div class="stat-value">{completedSessions}</div>
-          <div class="stat-label">Total Sessions</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">{thisWeekSessions}</div>
-          <div class="stat-label">This Week</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">{thisMonthSessions}</div>
-          <div class="stat-label">This Month</div>
-        </div>
+        {#if viewMode === 'all'}
+          <div class="stat-card">
+            <div class="stat-value">{totalSessions}</div>
+            <div class="stat-label">Total Sessions</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{thisWeekSessions}</div>
+            <div class="stat-label">This Week</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{thisMonthSessions}</div>
+            <div class="stat-label">This Month</div>
+          </div>
+        {:else}
+          <div class="stat-card">
+            <div class="stat-value">{filteredSessions.length}</div>
+            <div class="stat-label">Sessions on {formatSelectedDate()}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{thisWeekSessions}</div>
+            <div class="stat-label">This Week</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{thisMonthSessions}</div>
+            <div class="stat-label">This Month</div>
+          </div>
+        {/if}
       </section>
     {/if}
 
