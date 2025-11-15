@@ -507,6 +507,17 @@
       <span class="timer-value">{formatTime(totalElapsedSeconds)}</span>
     </div>
 
+    <!-- Always reserve space for exercise header -->
+    <div class="exercise-header" class:invisible={timerState === 'countdown' || timerState === 'completed'}>
+      {#if currentExercise}
+        <span class="exercise-number">#{currentExerciseIndex + 1}</span>
+        <h2 class="exercise-name">{currentExercise.name}</h2>
+      {:else}
+        <span class="exercise-number">&nbsp;</span>
+        <h2 class="exercise-name">&nbsp;</h2>
+      {/if}
+    </div>
+
     {#if timerState === 'countdown'}
       <div class="countdown-display">
         <div class="countdown-number">{countdownSeconds}</div>
@@ -519,18 +530,10 @@
       </div>
     {:else if currentExercise}
       <div class="current-exercise-card">
-        <div class="exercise-header">
-          <span class="exercise-number">#{currentExerciseIndex + 1}</span>
-          <h2 class="exercise-name">{currentExercise.name}</h2>
-        </div>
-
         {#if timerState === 'rest'}
           <div class="rest-indicator">
-            <span class="material-icons">self_improvement</span>
-            <div class="rest-content">
-              <div class="rest-label">Rest</div>
-              <div class="rest-timer">{formatTime(restCountdown)}</div>
-            </div>
+            <div class="rest-label">Rest</div>
+            <div class="rest-timer">{formatTime(restCountdown)}</div>
           </div>
         {:else if currentExercise.type === 'duration'}
           <div class="exercise-timer">
@@ -547,45 +550,39 @@
     {/if}
 
     <div class="control-buttons">
+      <button class="pause-btn" on:click={togglePause}>
+        <span class="material-icons">
+          {isPaused ? 'play_arrow' : 'pause'}
+        </span>
+        {isPaused ? 'Resume' : 'Pause'}
+      </button>
+
       {#if timerState === 'countdown'}
-        <button class="pause-btn" on:click={togglePause}>
-          <span class="material-icons">
-            {isPaused ? 'play_arrow' : 'pause'}
-          </span>
-          {isPaused ? 'Resume' : 'Pause'}
-        </button>
         <button class="start-now-btn btn-primary" on:click={skipCountdown}>
           <span class="material-icons">play_arrow</span>
           Start Now
         </button>
       {:else if timerState === 'rest' && currentExercise?.type === 'reps'}
-        <button class="pause-btn" on:click={togglePause}>
-          <span class="material-icons">
-            {isPaused ? 'play_arrow' : 'pause'}
-          </span>
-          {isPaused ? 'Resume' : 'Pause'}
-        </button>
         <button class="start-now-btn btn-primary" on:click={skipRest}>
           <span class="material-icons">play_arrow</span>
           Start Now
         </button>
+      {:else}
+        <div></div>
+      {/if}
+
+      {#if timerState === 'rest' && currentExercise?.type === 'reps'}
+        <button class="skip-btn" on:click={skipExercise}>
+          <span class="material-icons">skip_next</span>
+          Skip
+        </button>
+      {:else if currentExercise && timerState !== 'countdown' && timerState !== 'completed'}
         <button class="skip-btn" on:click={skipExercise}>
           <span class="material-icons">skip_next</span>
           Skip
         </button>
       {:else}
-        <button class="pause-btn" on:click={togglePause}>
-          <span class="material-icons">
-            {isPaused ? 'play_arrow' : 'pause'}
-          </span>
-          {isPaused ? 'Resume' : 'Pause'}
-        </button>
-        {#if currentExercise && timerState !== 'completed'}
-          <button class="skip-btn" on:click={skipExercise}>
-            <span class="material-icons">skip_next</span>
-            Skip
-          </button>
-        {/if}
+        <div></div>
       {/if}
     </div>
 
@@ -682,10 +679,11 @@
   }
 
   .control-buttons {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     gap: var(--spacing-md);
     margin-top: var(--spacing-md);
+    align-items: center;
   }
 
   .pause-btn {
@@ -760,6 +758,10 @@
     margin-bottom: var(--spacing-lg);
   }
 
+  .exercise-header.invisible {
+    visibility: hidden;
+  }
+
   .exercise-number {
     background-color: rgba(255, 255, 255, 0.2);
     padding: var(--spacing-xs) var(--spacing-md);
@@ -809,25 +811,15 @@
   }
 
   .rest-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-lg);
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: var(--border-radius);
+    text-align: center;
     margin: var(--spacing-xl) 0;
   }
 
-  .rest-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
   .rest-label {
-    font-size: var(--font-size-lg);
-    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    opacity: 0.9;
   }
 
   .rest-timer {
