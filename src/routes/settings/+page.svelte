@@ -75,6 +75,21 @@
   let showRestoreConfirm = false;
   let restoreData: any = null;
   let fileInput: HTMLInputElement;
+  let journalEntriesCount = 0;
+
+  // Load journal entries count when state is initialized
+  $: if ($ptState.initialized) {
+    loadJournalEntriesCount();
+  }
+
+  async function loadJournalEntriesCount() {
+    try {
+      const instances = await ptService.getSessionInstances();
+      journalEntriesCount = instances.length;
+    } catch (error) {
+      console.error('Failed to load journal entries count:', error);
+    }
+  }
 
   // ========== Exercise Functions ==========
 
@@ -532,6 +547,7 @@
       }
 
       await reloadData();
+      await loadJournalEntriesCount();
 
       showRestoreConfirm = false;
       restoreData = null;
@@ -739,6 +755,10 @@
               <div class="backup-item">
                 <span class="material-icons backup-icon">playlist_play</span>
                 <span>{$ptState.sessionDefinitions.length} sessions</span>
+              </div>
+              <div class="backup-item">
+                <span class="material-icons backup-icon">book</span>
+                <span>{journalEntriesCount} journal entries</span>
               </div>
             </div>
           {/if}
