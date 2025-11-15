@@ -21,10 +21,15 @@
   import type { SessionInstance, Exercise } from '$lib/types/pt';
 
   let sessionInstances: SessionInstance[] = [];
+  let filteredSessions: SessionInstance[] = [];
   let selectedSession: SessionInstance | null = null;
   let showDetailsModal = false;
   let showDeleteConfirm = false;
   let loading = true;
+
+  // Date navigation
+  let selectedDate: string = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  let viewMode: 'all' | 'day' = 'all';
 
   // Statistics
   let totalSessions = 0;
@@ -44,12 +49,46 @@
       sessionInstances = instances.sort((a, b) => {
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       });
+      filterSessions();
       calculateStatistics();
     } catch (error) {
       console.error('Failed to load session instances:', error);
     } finally {
       loading = false;
     }
+  }
+
+  function filterSessions() {
+    if (viewMode === 'day') {
+      filteredSessions = sessionInstances.filter(s => s.date === selectedDate);
+    } else {
+      filteredSessions = sessionInstances;
+    }
+  }
+
+  function changeDate(days: number) {
+    const currentDate = new Date(selectedDate);
+    currentDate.setDate(currentDate.getDate() + days);
+    selectedDate = currentDate.toISOString().split('T')[0];
+    filterSessions();
+  }
+
+  function goToToday() {
+    selectedDate = new Date().toISOString().split('T')[0];
+    viewMode = 'day';
+    filterSessions();
+  }
+
+  function showAllEntries() {
+    viewMode = 'all';
+    filterSessions();
+  }
+
+  // Reactive: filter when date or mode changes
+  $: {
+    selectedDate;
+    viewMode;
+    filterSessions();
   }
 
   function calculateStatistics() {
@@ -217,6 +256,52 @@
       <p class="header-subtitle">Your session history and progress</p>
     </header>
 
+    <!-- Date Navigation -->
+    {#if !loading && sessionInstances.length > 0}
+      <section class="date-navigation">
+        <div class="view-toggle">
+          <button
+            class="view-btn"
+            class:active={viewMode === 'all'}
+            on:click={showAllEntries}
+          >
+            <span class="material-icons">view_list</span>
+            All Entries
+          </button>
+          <button
+            class="view-btn"
+            class:active={viewMode === 'day'}
+            on:click={goToToday}
+          >
+            <span class="material-icons">today</span>
+            By Date
+          </button>
+        </div>
+
+        {#if viewMode === 'day'}
+          <div class="date-picker-controls">
+            <button class="nav-btn" on:click={() => changeDate(-1)} aria-label="Previous day">
+              <span class="material-icons">chevron_left</span>
+            </button>
+            <input
+              type="date"
+              class="date-input"
+              bind:value={selectedDate}
+              max={new Date().toISOString().split('T')[0]}
+            />
+            <button
+              class="nav-btn"
+              on:click={() => changeDate(1)}
+              disabled={selectedDate >= new Date().toISOString().split('T')[0]}
+              aria-label="Next day"
+            >
+              <span class="material-icons">chevron_right</span>
+            </button>
+          </div>
+        {/if}
+      </section>
+    {/if}
+
     <!-- Statistics Section -->
     {#if !loading && totalSessions > 0}
       <section class="stats-section">
@@ -252,9 +337,21 @@
             Complete your first session to start tracking your progress!
           </p>
         </div>
+      {:else if filteredSessions.length === 0}
+        <div class="empty-state">
+          <div class="empty-icon">
+            <span class="material-icons">event_busy</span>
+          </div>
+          <h2>No Sessions on This Date</h2>
+          <p>No journal entries found for {new Date(selectedDate).toLocaleDateString()}.</p>
+          <button class="btn btn-primary" on:click={showAllEntries}>
+            <span class="material-icons">view_list</span>
+            View All Entries
+          </button>
+        </div>
       {:else}
         <div class="sessions-list">
-          {#each sessionInstances as session (session.id)}
+          {#each filteredSessions as session (session.id)}
             <button
               class="session-card"
               on:click={() => openSessionDetails(session)}
@@ -466,6 +563,102 @@
     color: var(--text-secondary);
   }
 
+  /* Date Navigation */
+  .date-navigation {
+    padding: var(--spacing-lg);
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--divider);
+  }
+
+  .view-toggle {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .view-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--surface-variant);
+    border: 2px solid transparent;
+    border-radius: var(--border-radius);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .view-btn:hover {
+    background-color: var(--divider);
+  }
+
+  .view-btn.active {
+    background-color: var(--primary-alpha-10);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+  }
+
+  .view-btn .material-icons {
+    font-size: var(--icon-size-md);
+  }
+
+  .date-picker-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    justify-content: center;
+  }
+
+  .nav-btn {
+    background-color: var(--surface-variant);
+    border: none;
+    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+  }
+
+  .nav-btn:hover:not(:disabled) {
+    background-color: var(--divider);
+  }
+
+  .nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .nav-btn .material-icons {
+    font-size: var(--icon-size-lg);
+  }
+
+  .date-input {
+    flex: 1;
+    max-width: 200px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius);
+    background-color: var(--surface);
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    text-align: center;
+  }
+
+  .date-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+
   /* Statistics Section */
   .stats-section {
     display: grid;
@@ -541,6 +734,33 @@
     font-size: var(--font-size-base);
     color: var(--text-secondary);
     max-width: 300px;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .empty-state .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+  }
+
+  .empty-state .btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+  }
+
+  .empty-state .btn-primary:hover {
+    background-color: var(--primary-color-dark);
+  }
+
+  .empty-state .btn .material-icons {
+    font-size: var(--icon-size-md);
   }
 
   /* Session Cards */
