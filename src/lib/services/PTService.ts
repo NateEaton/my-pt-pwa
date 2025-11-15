@@ -368,7 +368,15 @@ export class PTService {
   async getTodaySessionInstance(): Promise<SessionInstance | null> {
     const today = this.formatDate(new Date());
     const instances = await this.getSessionInstancesByDate(today);
-    return instances[0] || null;
+
+    // First, try to find an in-progress session
+    const inProgress = instances.find(inst => inst.status === 'in-progress');
+    if (inProgress) {
+      return inProgress;
+    }
+
+    // Otherwise, return the most recent instance (last in array)
+    return instances[instances.length - 1] || null;
   }
 
   /**
