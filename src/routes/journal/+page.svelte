@@ -230,7 +230,14 @@
               </div>
 
               <div class="session-body">
-                <h3 class="session-name">{session.sessionName}</h3>
+                <div class="session-name-row">
+                  <h3 class="session-name">{session.sessionName}</h3>
+                  {#if session.manuallyLogged}
+                    <span class="manual-badge" title="Manually logged workout">
+                      <span class="material-icons">edit_note</span>
+                    </span>
+                  {/if}
+                </div>
                 <div class="session-meta">
                   <span class="meta-item">
                     <span class="material-icons meta-icon">fitness_center</span>
@@ -292,6 +299,17 @@
             </span>
           </div>
         </div>
+        {#if selectedSession.manuallyLogged}
+          <div class="detail-stat">
+            <div class="detail-stat-label">Type</div>
+            <div class="detail-stat-value">
+              <span class="manual-badge-detail">
+                <span class="material-icons">edit_note</span>
+                Manually Logged
+              </span>
+            </div>
+          </div>
+        {/if}
         {#if selectedSession.startTime}
           <div class="detail-stat">
             <div class="detail-stat-label">Start Time</div>
@@ -542,11 +560,49 @@
     margin-bottom: var(--spacing-sm);
   }
 
+  .session-name-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+  }
+
   .session-name {
-    margin: 0 0 var(--spacing-xs) 0;
+    margin: 0;
     font-size: var(--font-size-lg);
     font-weight: 600;
     color: var(--text-primary);
+  }
+
+  .manual-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .manual-badge .material-icons {
+    font-size: 1rem;
+  }
+
+  .manual-badge-detail {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border-radius: calc(var(--border-radius) / 2);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+  }
+
+  .manual-badge-detail .material-icons {
+    font-size: 1rem;
   }
 
   .session-meta {

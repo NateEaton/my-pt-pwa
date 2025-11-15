@@ -105,6 +105,9 @@ export interface SessionInstance {
 
   // Optional notes
   notes?: string;
+
+  // Indicates if this session was manually logged (not performed with timer)
+  manuallyLogged?: boolean;
 }
 
 /**

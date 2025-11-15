@@ -18,7 +18,8 @@
   import BottomTabs from '$lib/components/BottomTabs.svelte';
   import ExerciseCard from '$lib/components/ExerciseCard.svelte';
   import Modal from '$lib/components/Modal.svelte';
-  import type { Exercise, SessionDefinition } from '$lib/types/pt';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import type { Exercise, SessionDefinition, CompletedExercise } from '$lib/types/pt';
 
   // Format today's date
   const today = new Date();
@@ -33,6 +34,7 @@
   // Modal states
   let showExerciseListModal = false;
   let showSessionSelectModal = false;
+  let showManualLogConfirm = false;
 
   // Selected session for today (defaults to default session)
   let selectedSession: SessionDefinition | null = null;
@@ -112,7 +114,7 @@
     loadSessionExercises();
   }
 
-  function calculateTotalDuration(): string {
+  function calculateTotalDurationSeconds(): number {
     let totalSeconds = 0;
 
     sessionExercises.forEach((exercise) => {
@@ -125,6 +127,12 @@
         totalSeconds += reps * sets * repDuration;
       }
     });
+
+    return totalSeconds;
+  }
+
+  function calculateTotalDuration(): string {
+    const totalSeconds = calculateTotalDurationSeconds();
 
     if (totalSeconds < 60) return `${totalSeconds}s`;
     const minutes = Math.floor(totalSeconds / 60);
@@ -146,7 +154,62 @@
   }
 
   function handleLogSession() {
-    toastStore.show('Manual logging coming soon!', 'info');
+    if (!selectedSession) {
+      toastStore.show('No session selected', 'error');
+      return;
+    }
+    showManualLogConfirm = true;
+  }
+
+  async function confirmManualLog() {
+    showManualLogConfirm = false;
+
+    if (!selectedSession) return;
+
+    try {
+      const now = new Date();
+      const totalDurationSeconds = calculateTotalDurationSeconds();
+
+      // Calculate start time by subtracting the total duration from now
+      const startTime = new Date(now.getTime() - totalDurationSeconds * 1000);
+      const endTime = now;
+
+      // Create completed exercises array with all exercises marked as completed
+      const completedExercises: CompletedExercise[] = sessionExercises.map((exercise) => ({
+        exerciseId: exercise.id,
+        completed: true,
+        actualDuration: exercise.type === 'duration'
+          ? exercise.defaultDuration
+          : (exercise.defaultReps || 0) * (exercise.defaultSets || 0) * (exercise.defaultRepDuration || 2),
+        skipped: false,
+        completedAt: now.toISOString()
+      }));
+
+      // Create the session instance
+      const sessionInstance = {
+        date: $ptService.formatDate(now),
+        sessionDefinitionId: selectedSession.id,
+        sessionName: selectedSession.name,
+        status: 'completed' as const,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        completedExercises,
+        customized: false,
+        manuallyLogged: true
+      };
+
+      // Save to database
+      await $ptService.addSessionInstance(sessionInstance);
+
+      toastStore.show('Workout logged successfully!', 'success');
+    } catch (error) {
+      console.error('Error logging workout:', error);
+      toastStore.show('Failed to log workout', 'error');
+    }
+  }
+
+  function cancelManualLog() {
+    showManualLogConfirm = false;
   }
 
   function viewExercises() {
@@ -286,6 +349,19 @@
 
   <BottomTabs currentTab="today" />
 </div>
+
+<!-- Manual Log Confirmation Dialog -->
+{#if showManualLogConfirm}
+  <ConfirmDialog
+    title="Log Workout"
+    message="This will log your workout as completed for today. Are you sure you want to continue?"
+    confirmText="Log Workout"
+    cancelText="Cancel"
+    confirmVariant="primary"
+    on:confirm={confirmManualLog}
+    on:cancel={cancelManualLog}
+  />
+{/if}
 
 <!-- Session Selection Modal -->
 {#if showSessionSelectModal}
