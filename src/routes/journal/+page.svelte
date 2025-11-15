@@ -372,10 +372,27 @@
             <div class="exercise-item" class:completed={completedEx.completed} class:skipped={completedEx.skipped}>
               <div class="exercise-number">{index + 1}</div>
               <div class="exercise-details">
-                <div class="exercise-name">{getExerciseName(completedEx.exerciseId)}</div>
+                <div class="exercise-name">
+                  {completedEx.exerciseName || getExerciseName(completedEx.exerciseId)}
+                </div>
+                <div class="exercise-meta">
+                  {#if completedEx.exerciseType === 'duration'}
+                    <span class="exercise-type-badge duration">Duration</span>
+                    {#if completedEx.targetDuration}
+                      <span class="exercise-target">Target: {formatDuration(completedEx.targetDuration)}</span>
+                    {/if}
+                  {:else if completedEx.exerciseType === 'reps'}
+                    <span class="exercise-type-badge reps">Reps</span>
+                    {#if completedEx.targetSets && completedEx.targetReps}
+                      <span class="exercise-target">
+                        Target: {completedEx.targetSets} sets × {completedEx.targetReps} reps
+                      </span>
+                    {/if}
+                  {/if}
+                </div>
                 {#if completedEx.actualDuration}
-                  <div class="exercise-duration">
-                    Duration: {formatDuration(completedEx.actualDuration)}
+                  <div class="exercise-actual">
+                    Completed in: {formatDuration(completedEx.actualDuration)}
                   </div>
                 {/if}
               </div>
@@ -780,7 +797,42 @@
     font-size: var(--font-size-base);
     font-weight: 500;
     color: var(--text-primary);
-    margin-bottom: 0.125rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .exercise-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: 0.25rem;
+    flex-wrap: wrap;
+  }
+
+  .exercise-type-badge {
+    font-size: var(--font-size-xs);
+    padding: 2px var(--spacing-xs);
+    border-radius: calc(var(--border-radius) / 2);
+    font-weight: 500;
+  }
+
+  .exercise-type-badge.duration {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .exercise-type-badge.reps {
+    background-color: #e3f2fd;
+    color: #1976d2;
+  }
+
+  .exercise-target {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+  }
+
+  .exercise-actual {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
   }
 
   .exercise-duration {

@@ -202,6 +202,18 @@
       // Create completed exercises array with all exercises marked as completed
       const completedExercises: CompletedExercise[] = sessionExercises.map((exercise) => ({
         exerciseId: exercise.id,
+
+        // Snapshot data for historical preservation
+        exerciseName: exercise.name,
+        exerciseType: exercise.type,
+
+        // Target values (what was planned)
+        targetDuration: exercise.type === 'duration' ? exercise.defaultDuration : undefined,
+        targetReps: exercise.type === 'reps' ? exercise.defaultReps : undefined,
+        targetSets: exercise.type === 'reps' ? exercise.defaultSets : undefined,
+        targetRepDuration: exercise.type === 'reps' ? exercise.defaultRepDuration : undefined,
+
+        // Completion tracking
         completed: true,
         actualDuration: exercise.type === 'duration'
           ? exercise.defaultDuration

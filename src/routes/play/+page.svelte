@@ -127,6 +127,18 @@
     const today = new Date().toISOString().split('T')[0];
     const completedExercises: CompletedExercise[] = exercises.map(ex => ({
       exerciseId: ex.id,
+
+      // Snapshot data for historical preservation
+      exerciseName: ex.name,
+      exerciseType: ex.type,
+
+      // Target values (what was planned)
+      targetDuration: ex.type === 'duration' ? ex.defaultDuration : undefined,
+      targetReps: ex.type === 'reps' ? ex.defaultReps : undefined,
+      targetSets: ex.type === 'reps' ? ex.defaultSets : undefined,
+      targetRepDuration: ex.type === 'reps' ? ex.defaultRepDuration : undefined,
+
+      // Completion tracking
       completed: false,
       skipped: false
     }));

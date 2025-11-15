@@ -76,6 +76,18 @@ export interface SessionDefinition {
  */
 export interface CompletedExercise {
   exerciseId: number;
+
+  // Snapshot data for historical preservation
+  exerciseName: string;
+  exerciseType: 'duration' | 'reps';
+
+  // Target values (what was planned)
+  targetDuration?: number; // For duration exercises (seconds)
+  targetReps?: number; // For reps exercises
+  targetSets?: number; // For reps exercises
+  targetRepDuration?: number; // For reps exercises (seconds per rep)
+
+  // Completion tracking
   completed: boolean;
   actualDuration?: number; // seconds actually spent
   skipped?: boolean;

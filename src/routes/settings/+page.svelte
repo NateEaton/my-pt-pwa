@@ -23,6 +23,11 @@
   let showDeleteExerciseConfirm = false;
   let editingExercise: Exercise | null = null;
   let exerciseToDelete: Exercise | null = null;
+  let sessionsUsingExercise: SessionDefinition[] = [];
+  let journalEntriesCount = 0;
+  let showEmptySessionConfirm = false;
+  let emptySessionsAfterDeletion: SessionDefinition[] = [];
+  let currentEmptySessionIndex = 0;
 
   // Session definition modal state
   let showSessionModal = false;
@@ -148,8 +153,20 @@
     }
   }
 
-  function confirmDeleteExercise(exercise: Exercise) {
+  async function confirmDeleteExercise(exercise: Exercise) {
     exerciseToDelete = exercise;
+
+    // Find all sessions using this exercise
+    sessionsUsingExercise = $ptState.sessionDefinitions.filter(session =>
+      session.exercises.some(ex => ex.exerciseId === exercise.id)
+    );
+
+    // Count journal entries referencing this exercise (for info only)
+    const allInstances = await ptService.getSessionInstances();
+    journalEntriesCount = allInstances.filter(instance =>
+      instance.completedExercises.some(ex => ex.exerciseId === exercise.id)
+    ).length;
+
     showDeleteExerciseConfirm = true;
   }
 
@@ -157,14 +174,66 @@
     if (!exerciseToDelete) return;
 
     try {
+      // Remove exercise from all sessions
+      for (const session of sessionsUsingExercise) {
+        const updatedExercises = session.exercises.filter(
+          ex => ex.exerciseId !== exerciseToDelete!.id
+        );
+        await ptService.updateSessionDefinition({
+          ...session,
+          exercises: updatedExercises
+        });
+      }
+
+      // Delete the exercise
       await ptService.deleteExercise(exerciseToDelete.id);
-      toastStore.show('Exercise deleted', 'success');
+
+      // Reload data to get updated sessions
       await reloadData();
+
+      // Find sessions that are now empty
+      emptySessionsAfterDeletion = $ptState.sessionDefinitions.filter(
+        session => session.exercises.length === 0
+      );
+
+      toastStore.show('Exercise deleted', 'success');
       showDeleteExerciseConfirm = false;
-      exerciseToDelete = null;
+
+      // If there are empty sessions, prompt for each one
+      if (emptySessionsAfterDeletion.length > 0) {
+        currentEmptySessionIndex = 0;
+        showEmptySessionConfirm = true;
+      } else {
+        exerciseToDelete = null;
+        sessionsUsingExercise = [];
+      }
     } catch (error) {
       console.error('Failed to delete exercise:', error);
       toastStore.show('Failed to delete exercise', 'error');
+    }
+  }
+
+  async function handleEmptySessionDecision(deleteSession: boolean) {
+    const session = emptySessionsAfterDeletion[currentEmptySessionIndex];
+
+    if (deleteSession && session) {
+      try {
+        await ptService.deleteSessionDefinition(session.id);
+        await reloadData();
+      } catch (error) {
+        console.error('Failed to delete empty session:', error);
+        toastStore.show('Failed to delete session', 'error');
+      }
+    }
+
+    // Move to next empty session or finish
+    currentEmptySessionIndex++;
+    if (currentEmptySessionIndex >= emptySessionsAfterDeletion.length) {
+      showEmptySessionConfirm = false;
+      exerciseToDelete = null;
+      sessionsUsingExercise = [];
+      emptySessionsAfterDeletion = [];
+      currentEmptySessionIndex = 0;
     }
   }
 
@@ -733,7 +802,15 @@
 {#if showDeleteExerciseConfirm && exerciseToDelete}
   <ConfirmDialog
     title="Delete Exercise"
-    message="Are you sure you want to delete '{exerciseToDelete.name}'? This action cannot be undone."
+    message={`Are you sure you want to delete '${exerciseToDelete.name}'?${
+      sessionsUsingExercise.length > 0
+        ? `\n\nThis exercise is used in ${sessionsUsingExercise.length} session(s):\n${sessionsUsingExercise.map(s => `• ${s.name}`).join('\n')}\n\nThe exercise will be removed from these sessions.`
+        : ''
+    }${
+      journalEntriesCount > 0
+        ? `\n\n${journalEntriesCount} journal ${journalEntriesCount === 1 ? 'entry references' : 'entries reference'} this exercise (history will be preserved).`
+        : ''
+    }\n\nThis action cannot be undone.`}
     confirmText="Delete"
     cancelText="Cancel"
     confirmVariant="danger"
@@ -741,7 +818,22 @@
     on:cancel={() => {
       showDeleteExerciseConfirm = false;
       exerciseToDelete = null;
+      sessionsUsingExercise = [];
+      journalEntriesCount = 0;
     }}
+  />
+{/if}
+
+<!-- Empty Session Confirmation -->
+{#if showEmptySessionConfirm && emptySessionsAfterDeletion.length > 0}
+  <ConfirmDialog
+    title="Empty Session"
+    message={`Session '${emptySessionsAfterDeletion[currentEmptySessionIndex]?.name}' now has no exercises.\n\nWould you like to delete this session?`}
+    confirmText="Delete Session"
+    cancelText="Keep Session"
+    confirmVariant="danger"
+    on:confirm={() => handleEmptySessionDecision(true)}
+    on:cancel={() => handleEmptySessionDecision(false)}
   />
 {/if}
 
