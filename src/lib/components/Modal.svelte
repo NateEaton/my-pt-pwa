@@ -20,6 +20,8 @@
   export let fullScreen: boolean = false;
 
   const dispatch = createEventDispatcher();
+  let modalElement: HTMLDivElement;
+  let previouslyFocusedElement: HTMLElement | null = null;
 
   function handleClose() {
     dispatch('close');
@@ -37,15 +39,103 @@
     }
   }
 
+  // Focus trap: keep focus within modal
+  function handleTabKey(event: KeyboardEvent) {
+    if (event.key !== 'Tab' || !modalElement) return;
+
+    const focusableElements = modalElement.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const focusableArray = Array.from(focusableElements);
+    const firstElement = focusableArray[0];
+    const lastElement = focusableArray[focusableArray.length - 1];
+
+    if (event.shiftKey) {
+      // Shift + Tab: going backwards
+      if (document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement?.focus();
+      }
+    } else {
+      // Tab: going forwards
+      if (document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement?.focus();
+      }
+    }
+  }
+
+  // Prevent background scroll and gestures when modal is open
   onMount(() => {
+    // Store the previously focused element
+    previouslyFocusedElement = document.activeElement as HTMLElement;
+
+    // Store original overflow values
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalTop = document.body.style.top;
+    const originalWidth = document.body.style.width;
+
+    // Get current scroll position
+    const scrollY = window.scrollY;
+
+    // Lock body scroll - iOS-safe method
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+
+    // Prevent touch move events on the backdrop
+    const preventTouchMove = (e: TouchEvent) => {
+      // Allow scrolling inside the modal container
+      const target = e.target as HTMLElement;
+      const modalContainer = target.closest('.modal-container');
+      if (!modalContainer) {
+        e.preventDefault();
+      }
+    };
+
+    // Focus the modal element or first focusable element
+    setTimeout(() => {
+      const focusableElements = modalElement?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstFocusable = focusableElements?.[0];
+      if (firstFocusable) {
+        firstFocusable.focus();
+      } else {
+        modalElement?.focus();
+      }
+    }, 100);
+
     document.addEventListener('keydown', handleKeydown);
+    document.addEventListener('keydown', handleTabKey);
+    document.addEventListener('touchmove', preventTouchMove, { passive: false });
+
     return () => {
+      // Restore original styles
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.top = originalTop;
+      document.body.style.width = originalWidth;
+
+      // Restore scroll position
+      window.scrollTo(0, scrollY);
+
+      // Restore focus to previously focused element
+      if (previouslyFocusedElement) {
+        previouslyFocusedElement.focus();
+      }
+
       document.removeEventListener('keydown', handleKeydown);
+      document.removeEventListener('keydown', handleTabKey);
+      document.removeEventListener('touchmove', preventTouchMove);
     };
   });
 </script>
 
 <div
+  bind:this={modalElement}
   class="modal-backdrop"
   class:full-screen={fullScreen}
   on:click={handleBackdropClick}
@@ -53,6 +143,7 @@
   role="dialog"
   aria-modal="true"
   aria-labelledby="modal-title"
+  tabindex="-1"
 >
   <div class="modal-container" class:full-screen={fullScreen}>
     {#if title || showCloseButton || $$slots.headerActions}
@@ -146,8 +237,8 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    width: 2rem;
-    height: 2rem;
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
     transition: background-color 0.2s ease, color 0.2s ease;
   }
 
@@ -192,14 +283,16 @@
   /* Mobile optimizations */
   @media (max-width: 480px) {
     .modal-backdrop {
-      padding: 0;
-      align-items: flex-end;
+      padding: var(--spacing-md);
+      /* Center modals on mobile instead of bottom sheet */
+      align-items: center;
     }
 
     .modal-container {
       max-width: 100%;
-      max-height: 95vh;
-      border-radius: var(--border-radius) var(--border-radius) 0 0;
+      max-height: 90vh;
+      /* Keep rounded corners for centered modals */
+      border-radius: var(--border-radius);
     }
 
     .modal-container.full-screen {

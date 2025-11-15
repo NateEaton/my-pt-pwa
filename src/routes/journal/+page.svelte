@@ -575,8 +575,15 @@
 
   .content {
     flex: 1;
-    padding-bottom: calc(var(--bottom-tabs-height) + var(--spacing-lg));
+    padding-bottom: var(--bottom-tabs-height);
     overflow-y: auto;
+  }
+
+  /* Add safe area padding on iOS devices */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .content {
+      padding-bottom: calc(var(--bottom-tabs-height) + env(safe-area-inset-bottom));
+    }
   }
 
   .page-header {
@@ -653,8 +660,8 @@
     background-color: var(--surface-variant);
     border: none;
     border-radius: 50%;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
     display: flex;
     align-items: center;
     justify-content: center;

@@ -479,7 +479,7 @@ export class PTService {
   private _getByIndex<T>(
     storeName: string,
     indexName: string,
-    value: any
+    value: IDBValidKey
   ): Promise<T[]> {
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([storeName], 'readonly');

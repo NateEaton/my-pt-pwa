@@ -1059,5 +1059,24 @@
     .countdown-number {
       font-size: 3rem;
     }
+
+    .completion-icon {
+      font-size: 4rem;
+    }
+  }
+
+  /* Extra small screens */
+  @media (max-width: 360px) {
+    .timer-display {
+      font-size: 2.5rem;
+    }
+
+    .countdown-number {
+      font-size: 2.5rem;
+    }
+
+    .completion-icon {
+      font-size: 3rem;
+    }
   }
 </style>
