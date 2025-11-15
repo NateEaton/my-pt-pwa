@@ -161,7 +161,10 @@
   }
 
   function formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
+    // Parse date string to avoid timezone issues
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
