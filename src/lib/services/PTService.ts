@@ -46,12 +46,15 @@ const STORES = {
 // Default application settings
 const DEFAULT_SETTINGS: AppSettings = {
   defaultRepDuration: 2, // 2 seconds per rep
-  startCountdownDuration: 10, // 10 second countdown before start
-  endCountdownDuration: 10, // 10 second countdown at end
+  startCountdownDuration: 5, // 5 second countdown before start
+  endCountdownDuration: 5, // 5 second countdown at end
+  endSessionDelay: 5, // 5 second delay before session player closes
   restBetweenSets: 30, // 30 seconds between sets
   restBetweenExercises: 15, // 15 seconds between exercises
   theme: 'auto',
   exerciseSortOrder: 'alphabetical',
+  soundEnabled: true,
+  soundVolume: 0.3, // 30% volume
   enableNotifications: false
 };
 
@@ -367,7 +370,15 @@ export class PTService {
   async getTodaySessionInstance(): Promise<SessionInstance | null> {
     const today = this.formatDate(new Date());
     const instances = await this.getSessionInstancesByDate(today);
-    return instances[0] || null;
+
+    // First, try to find an in-progress session
+    const inProgress = instances.find(inst => inst.status === 'in-progress');
+    if (inProgress) {
+      return inProgress;
+    }
+
+    // Otherwise, return the most recent instance (last in array)
+    return instances[instances.length - 1] || null;
   }
 
   /**
@@ -526,10 +537,13 @@ export class PTService {
   // ==================== Utility Functions ====================
 
   /**
-   * Format date as YYYY-MM-DD
+   * Format date as YYYY-MM-DD in local timezone
    */
   formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   /**

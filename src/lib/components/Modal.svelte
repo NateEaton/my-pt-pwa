@@ -55,18 +55,23 @@
   aria-labelledby="modal-title"
 >
   <div class="modal-container" class:full-screen={fullScreen}>
-    {#if title || showCloseButton}
+    {#if title || showCloseButton || $$slots.headerActions}
       <header class="modal-header">
         <h2 id="modal-title" class="modal-title">{title}</h2>
-        {#if showCloseButton}
-          <button
-            class="modal-close-button"
-            on:click={handleClose}
-            aria-label="Close modal"
-          >
-            <span class="material-icons">close</span>
-          </button>
-        {/if}
+        <div class="modal-header-actions">
+          {#if $$slots.headerActions}
+            <slot name="headerActions" />
+          {/if}
+          {#if showCloseButton}
+            <button
+              class="modal-close-button"
+              on:click={handleClose}
+              aria-label="Close modal"
+            >
+              <span class="material-icons">close</span>
+            </button>
+          {/if}
+        </div>
       </header>
     {/if}
 
@@ -123,6 +128,12 @@
     font-size: var(--font-size-xl);
     font-weight: 600;
     color: var(--text-primary);
+  }
+
+  .modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
   }
 
   .modal-close-button {

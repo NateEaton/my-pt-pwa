@@ -15,6 +15,7 @@
   import { goto } from '$app/navigation';
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
+  import { audioService } from '$lib/services/AudioService';
   import type { Exercise, SessionDefinition, SessionInstance, CompletedExercise } from '$lib/types/pt';
 
   // Player state
@@ -32,21 +33,59 @@
   let countdownSeconds = 10; // Start countdown
   let restCountdown = 0; // Rest period countdown
   let currentSet = 1;
-  let currentRep = 0;
-  let completedSet = 0; // Track which set just completed for rest display
+  let currentRep = 1;
 
   // Intervals
   let totalTimerInterval: number | undefined;
   let exerciseTimerInterval: number | undefined;
 
   // Settings
-  let startCountdownDuration = 10;
-  let endCountdownDuration = 10;
+  let startCountdownDuration = 5;
+  let endCountdownDuration = 5;
+  let endSessionDelay = 5;
   let restBetweenSets = 30;
   let restBetweenExercises = 30;
 
-  // Load session from localStorage (set by Today screen)
-  onMount(async () => {
+  let sessionLoadAttempted = false;
+
+  // Audio helper function
+  function playSound(soundType: 'countdown' | 'duration' | 'rep' | 'rest' | 'complete') {
+    if (!$ptState.settings?.soundEnabled) return;
+
+    const volume = $ptState.settings.soundVolume || 0.3;
+
+    switch (soundType) {
+      case 'countdown':
+        audioService.playCountdownTick(volume);
+        break;
+      case 'duration':
+        audioService.playDurationTick(volume);
+        break;
+      case 'rep':
+        audioService.playRepBeep(volume);
+        break;
+      case 'rest':
+        audioService.playRestTick(volume);
+        break;
+      case 'complete':
+        audioService.playComplete(volume);
+        break;
+    }
+  }
+
+  // Unlock audio on mount (required for mobile browsers)
+  onMount(() => {
+    audioService.unlock();
+  });
+
+  // Wait for ptState to be initialized, then load session
+  $: if ($ptState.initialized && !sessionLoadAttempted) {
+    loadSession();
+  }
+
+  async function loadSession() {
+    sessionLoadAttempted = true;
+
     const sessionIdStr = localStorage.getItem('pt-active-session-id');
     if (!sessionIdStr) {
       toastStore.show('No session selected', 'error');
@@ -63,9 +102,10 @@
       return;
     }
 
-    // Load exercises
-    const exerciseIds = sessionDefinition.exercises.map(e => e.exerciseId);
-    exercises = $ptState.exercises.filter(e => exerciseIds.includes(e.id));
+    // Load exercises in session-defined order
+    exercises = sessionDefinition.exercises
+      .map(se => $ptState.exercises.find(e => e.id === se.exerciseId))
+      .filter((e): e is Exercise => e !== undefined);
 
     if (exercises.length === 0) {
       toastStore.show('Session has no exercises', 'error');
@@ -77,6 +117,7 @@
     if ($ptState.settings) {
       startCountdownDuration = $ptState.settings.startCountdownDuration;
       endCountdownDuration = $ptState.settings.endCountdownDuration;
+      endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
       restBetweenExercises = $ptState.settings.restBetweenExercises;
     }
@@ -105,7 +146,7 @@
       currentExercise = exercises[0];
       startExerciseCountdown();
     }
-  });
+  }
 
   onDestroy(() => {
     clearTimers();
@@ -117,6 +158,18 @@
     const today = new Date().toISOString().split('T')[0];
     const completedExercises: CompletedExercise[] = exercises.map(ex => ({
       exerciseId: ex.id,
+
+      // Snapshot data for historical preservation
+      exerciseName: ex.name,
+      exerciseType: ex.type,
+
+      // Target values (what was planned)
+      targetDuration: ex.type === 'duration' ? ex.defaultDuration : undefined,
+      targetReps: ex.type === 'reps' ? ex.defaultReps : undefined,
+      targetSets: ex.type === 'reps' ? ex.defaultSets : undefined,
+      targetRepDuration: ex.type === 'reps' ? ex.defaultRepDuration : undefined,
+
+      // Completion tracking
       completed: false,
       skipped: false
     }));
@@ -148,12 +201,8 @@
     console.log('Resuming session:', existing);
     console.log('Completed exercises:', existing.completedExercises);
 
-    // Calculate total elapsed time from start
-    if (existing.startTime) {
-      const start = new Date(existing.startTime).getTime();
-      const now = Date.now();
-      totalElapsedSeconds = Math.floor((now - start) / 1000);
-    }
+    // Restore cumulative elapsed time (not wall clock time since start)
+    totalElapsedSeconds = existing.cumulativeElapsedSeconds || 0;
 
     // Find first incomplete exercise
     let resumeIndex = 0;
@@ -210,6 +259,8 @@
       if (isPaused) return;
 
       countdownSeconds--;
+      playSound('countdown'); // Play tick sound on each countdown second
+
       if (countdownSeconds <= 0) {
         clearInterval(exerciseTimerInterval);
         startExercise();
@@ -223,8 +274,7 @@
     timerState = 'active';
     exerciseElapsedSeconds = 0;
     currentSet = 1;
-    currentRep = 0;
-    completedSet = 0; // Reset for new exercise
+    currentRep = 1;
 
     if (currentExercise.type === 'duration') {
       startDurationExercise();
@@ -242,6 +292,7 @@
       if (isPaused) return;
 
       exerciseElapsedSeconds++;
+      playSound('duration'); // Play tick sound for each second of duration exercise
 
       if (exerciseElapsedSeconds >= totalDuration) {
         clearInterval(exerciseTimerInterval);
@@ -263,17 +314,19 @@
       exerciseElapsedSeconds++;
       currentRep = Math.floor((exerciseElapsedSeconds % (reps * repDuration)) / repDuration) + 1;
 
+      // Play beep at the end of each rep
+      if (exerciseElapsedSeconds % repDuration === 0) {
+        playSound('rep');
+      }
+
       // Check if set is complete
       if (exerciseElapsedSeconds % (reps * repDuration) === 0 && exerciseElapsedSeconds > 0) {
-        // Set just completed
-        completedSet = currentSet;
-
         if (currentSet >= sets) {
           // Exercise complete - all sets done
           clearInterval(exerciseTimerInterval);
           completeCurrentExercise();
         } else {
-          // Rest between sets (rest AFTER the set that just completed)
+          // Rest between sets (not before first set, not after last set)
           startRestBetweenSets();
         }
       }
@@ -289,6 +342,8 @@
       if (isPaused) return;
 
       restCountdown--;
+      playSound('rest'); // Play tick sound during rest between sets
+
       if (restCountdown <= 0) {
         clearInterval(exerciseTimerInterval);
         timerState = 'active';
@@ -317,23 +372,32 @@
 
     // Move to next exercise
     if (currentExerciseIndex < exercises.length - 1) {
+      const completedExerciseType = currentExercise?.type;
       currentExerciseIndex++;
       currentExercise = exercises[currentExerciseIndex];
       exerciseElapsedSeconds = 0;
 
-      // Rest between exercises
-      timerState = 'rest';
-      restCountdown = restBetweenExercises;
+      // Only rest between exercises for reps/sets exercises
+      // Duration exercises go straight to next exercise countdown
+      if (completedExerciseType === 'reps') {
+        timerState = 'rest';
+        restCountdown = restBetweenExercises;
 
-      exerciseTimerInterval = window.setInterval(() => {
-        if (isPaused) return;
+        exerciseTimerInterval = window.setInterval(() => {
+          if (isPaused) return;
 
-        restCountdown--;
-        if (restCountdown <= 0) {
-          clearInterval(exerciseTimerInterval);
-          startExerciseCountdown();
-        }
-      }, 1000);
+          restCountdown--;
+          playSound('rest'); // Play tick sound during rest between exercises
+
+          if (restCountdown <= 0) {
+            clearInterval(exerciseTimerInterval);
+            startExerciseCountdown();
+          }
+        }, 1000);
+      } else {
+        // Duration exercise - go straight to countdown for next exercise
+        startExerciseCountdown();
+      }
     } else {
       // Session complete
       await completeSession();
@@ -347,12 +411,14 @@
     sessionInstance.status = 'completed';
     sessionInstance.endTime = new Date().toISOString();
 
+    playSound('complete'); // Play completion chime
+
     await ptService.updateSessionInstance(sessionInstance);
 
     toastStore.show('Session completed!', 'success');
     setTimeout(() => {
       goto('/');
-    }, 2000);
+    }, endSessionDelay * 1000);
   }
 
   function togglePause() {
@@ -368,6 +434,15 @@
     if (timerState !== 'countdown') return;
     clearInterval(exerciseTimerInterval);
     startExercise();
+  }
+
+  function skipRest() {
+    if (timerState !== 'rest') return;
+    clearInterval(exerciseTimerInterval);
+    restCountdown = 0;
+    timerState = 'active';
+    currentSet++;
+    startRepsExercise();
   }
 
   async function skipExercise() {
@@ -395,6 +470,7 @@
 
     sessionInstance.status = 'completed';
     sessionInstance.endTime = new Date().toISOString();
+    sessionInstance.cumulativeElapsedSeconds = totalElapsedSeconds;
 
     try {
       await ptService.updateSessionInstance(sessionInstance);
@@ -417,6 +493,7 @@
 
     // Explicitly keep status as in-progress
     sessionInstance.status = 'in-progress';
+    sessionInstance.cumulativeElapsedSeconds = totalElapsedSeconds;
 
     try {
       await ptService.updateSessionInstance(sessionInstance);
@@ -485,20 +562,21 @@
       <span class="timer-value">{formatTime(totalElapsedSeconds)}</span>
     </div>
 
-    <button class="pause-btn" on:click={togglePause}>
-      <span class="material-icons">
-        {isPaused ? 'play_arrow' : 'pause'}
-      </span>
-    </button>
+    <!-- Always reserve space for exercise header -->
+    <div class="exercise-header" class:invisible={timerState === 'countdown' || timerState === 'completed'}>
+      {#if currentExercise}
+        <span class="exercise-number">#{currentExerciseIndex + 1}</span>
+        <h2 class="exercise-name">{currentExercise.name}</h2>
+      {:else}
+        <span class="exercise-number">&nbsp;</span>
+        <h2 class="exercise-name">&nbsp;</h2>
+      {/if}
+    </div>
 
     {#if timerState === 'countdown'}
       <div class="countdown-display">
         <div class="countdown-number">{countdownSeconds}</div>
         <div class="countdown-label">Get Ready</div>
-        <button class="btn btn-primary skip-countdown-btn" on:click={skipCountdown}>
-          <span class="material-icons">play_arrow</span>
-          Start Now
-        </button>
       </div>
     {:else if timerState === 'completed'}
       <div class="completion-display">
@@ -507,12 +585,12 @@
       </div>
     {:else if currentExercise}
       <div class="current-exercise-card">
-        <div class="exercise-header">
-          <span class="exercise-number">#{currentExerciseIndex + 1}</span>
-          <h2 class="exercise-name">{currentExercise.name}</h2>
-        </div>
-
-        {#if currentExercise.type === 'duration'}
+        {#if timerState === 'rest'}
+          <div class="rest-indicator">
+            <div class="rest-label">Rest</div>
+            <div class="rest-timer">{formatTime(restCountdown)}</div>
+          </div>
+        {:else if currentExercise.type === 'duration'}
           <div class="exercise-timer">
             <div class="timer-display">{currentExerciseTimeDisplay}</div>
             <div class="timer-label-small">Remaining</div>
@@ -523,29 +601,45 @@
             <div class="rep-info">Rep {currentRep} of {currentExercise.defaultReps || 10}</div>
           </div>
         {/if}
-
-        {#if timerState === 'rest'}
-          <div class="rest-indicator">
-            <span class="material-icons">self_improvement</span>
-            <div class="rest-content">
-              <div class="rest-label">
-                {#if completedSet > 0}
-                  Rest after Set {completedSet}
-                {:else}
-                  Rest
-                {/if}
-              </div>
-              <div class="rest-timer">{formatTime(restCountdown)}</div>
-            </div>
-          </div>
-        {/if}
       </div>
-
-      <button class="skip-btn" on:click={skipExercise}>
-        <span class="material-icons">skip_next</span>
-        Skip
-      </button>
     {/if}
+
+    <div class="control-buttons">
+      <button class="pause-btn" on:click={togglePause}>
+        <span class="material-icons">
+          {isPaused ? 'play_arrow' : 'pause'}
+        </span>
+        {isPaused ? 'Resume' : 'Pause'}
+      </button>
+
+      {#if timerState === 'countdown'}
+        <button class="start-now-btn btn-primary" on:click={skipCountdown}>
+          <span class="material-icons">play_arrow</span>
+          Start Now
+        </button>
+      {:else if timerState === 'rest' && currentExercise?.type === 'reps'}
+        <button class="start-now-btn btn-primary" on:click={skipRest}>
+          <span class="material-icons">play_arrow</span>
+          Start Now
+        </button>
+      {:else}
+        <div></div>
+      {/if}
+
+      {#if timerState === 'rest' && currentExercise?.type === 'reps'}
+        <button class="skip-btn" on:click={skipExercise}>
+          <span class="material-icons">skip_next</span>
+          Skip
+        </button>
+      {:else if currentExercise && timerState !== 'countdown' && timerState !== 'completed'}
+        <button class="skip-btn" on:click={skipExercise}>
+          <span class="material-icons">skip_next</span>
+          Skip
+        </button>
+      {:else}
+        <div></div>
+      {/if}
+    </div>
 
     <div class="exit-buttons">
       <button class="btn btn-secondary" on:click={saveProgressAndExit}>
@@ -618,11 +712,14 @@
   }
 
   .session-timer {
+    position: absolute;
+    top: var(--spacing-lg);
+    right: 0;
+    padding-right: var(--spacing-lg);
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--spacing-md);
-    padding-right: 4rem; /* Make room for pause button */
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
   }
 
   .timer-label {
@@ -636,29 +733,31 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .control-buttons {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+    align-items: center;
+  }
+
   .pause-btn {
-    position: absolute;
-    top: var(--spacing-lg);
-    right: var(--spacing-lg);
     background-color: rgba(255, 255, 255, 0.2);
     border: none;
-    border-radius: 50%;
-    width: 3rem;
-    height: 3rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-sm) var(--spacing-md);
     color: white;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-base);
     transition: background-color 0.2s;
+    justify-self: start;
   }
 
   .pause-btn:hover {
     background-color: rgba(255, 255, 255, 0.3);
-  }
-
-  .pause-btn .material-icons {
-    font-size: 2rem;
   }
 
   .countdown-display {
@@ -670,7 +769,7 @@
   }
 
   .countdown-number {
-    font-size: 6rem;
+    font-size: 4rem;
     font-weight: 700;
     line-height: 1;
   }
@@ -680,12 +779,6 @@
     margin-top: var(--spacing-md);
     margin-bottom: var(--spacing-xl);
     opacity: 0.9;
-  }
-
-  .skip-countdown-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-xs);
   }
 
   .completion-display {
@@ -719,6 +812,10 @@
     align-items: center;
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-lg);
+  }
+
+  .exercise-header.invisible {
+    visibility: hidden;
   }
 
   .exercise-number {
@@ -770,26 +867,15 @@
   }
 
   .rest-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-lg);
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: var(--border-radius);
-    margin-top: var(--spacing-md);
-    margin-bottom: 4rem; /* Make room for skip button */
-  }
-
-  .rest-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    text-align: center;
+    margin: var(--spacing-xl) 0;
   }
 
   .rest-label {
-    font-size: var(--font-size-lg);
-    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    opacity: 0.9;
   }
 
   .rest-timer {
@@ -799,9 +885,6 @@
   }
 
   .skip-btn {
-    position: absolute;
-    bottom: calc(var(--spacing-lg) * 4);
-    right: var(--spacing-lg);
     background-color: rgba(255, 255, 255, 0.2);
     border: none;
     border-radius: var(--border-radius);
@@ -813,10 +896,31 @@
     gap: var(--spacing-xs);
     font-size: var(--font-size-base);
     transition: background-color 0.2s;
+    justify-self: end;
   }
 
   .skip-btn:hover {
     background-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .start-now-btn {
+    background-color: white;
+    color: var(--primary-color);
+    border: none;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .start-now-btn:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+    transform: translateY(-1px);
   }
 
   .exit-buttons {
@@ -953,7 +1057,7 @@
     }
 
     .countdown-number {
-      font-size: 4rem;
+      font-size: 3rem;
     }
   }
 </style>

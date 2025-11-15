@@ -76,6 +76,18 @@ export interface SessionDefinition {
  */
 export interface CompletedExercise {
   exerciseId: number;
+
+  // Snapshot data for historical preservation
+  exerciseName: string;
+  exerciseType: 'duration' | 'reps';
+
+  // Target values (what was planned)
+  targetDuration?: number; // For duration exercises (seconds)
+  targetReps?: number; // For reps exercises
+  targetSets?: number; // For reps exercises
+  targetRepDuration?: number; // For reps exercises (seconds per rep)
+
+  // Completion tracking
   completed: boolean;
   actualDuration?: number; // seconds actually spent
   skipped?: boolean;
@@ -96,6 +108,7 @@ export interface SessionInstance {
   // Timing information
   startTime?: string; // ISO date string
   endTime?: string; // ISO date string
+  cumulativeElapsedSeconds?: number; // Track cumulative time for paused/resumed sessions
 
   // Exercise completion tracking
   completedExercises: CompletedExercise[];
@@ -105,6 +118,9 @@ export interface SessionInstance {
 
   // Optional notes
   notes?: string;
+
+  // Indicates if this session was manually logged (not performed with timer)
+  manuallyLogged?: boolean;
 }
 
 /**
@@ -116,12 +132,17 @@ export interface AppSettings {
   defaultRepDuration: number; // Default seconds per rep
   startCountdownDuration: number; // Countdown before exercise starts
   endCountdownDuration: number; // Countdown shown at end of exercise
+  endSessionDelay: number; // Delay before session player closes after completion
   restBetweenSets: number; // Rest period between sets
   restBetweenExercises: number; // Rest period between exercises
 
   // UI preferences
   theme: 'light' | 'dark' | 'auto';
   exerciseSortOrder: 'alphabetical' | 'dateAdded' | 'frequency';
+
+  // Sound preferences
+  soundEnabled: boolean;
+  soundVolume: number; // 0.0 to 1.0
 
   // Feature flags (for future use)
   enableNotifications?: boolean;

@@ -32,7 +32,7 @@
 </script>
 
 <Modal {title} on:close={handleCancel} closeOnBackdrop={false}>
-  <div class="confirm-message">
+  <div class="confirm-message" style="white-space: pre-wrap;">
     {message}
   </div>
 

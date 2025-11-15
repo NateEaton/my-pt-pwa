@@ -13,12 +13,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { ptState, ptService, defaultSessionDefinition } from '$lib/stores/pt';
+  import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
   import ExerciseCard from '$lib/components/ExerciseCard.svelte';
   import Modal from '$lib/components/Modal.svelte';
-  import type { Exercise, SessionDefinition } from '$lib/types/pt';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import type { Exercise, SessionDefinition, CompletedExercise } from '$lib/types/pt';
 
   // Format today's date
   const today = new Date();
@@ -33,6 +34,7 @@
   // Modal states
   let showExerciseListModal = false;
   let showSessionSelectModal = false;
+  let showManualLogConfirm = false;
 
   // Selected session for today (defaults to default session)
   let selectedSession: SessionDefinition | null = null;
@@ -57,7 +59,7 @@
     }
   }
 
-  // Load the selected session (default or previously selected)
+  // Load the selected session (previously selected or first available)
   function loadSelectedSession() {
     if (!$ptState.initialized || $ptState.sessionDefinitions.length === 0) {
       selectedSession = null;
@@ -74,10 +76,8 @@
       }
     }
 
-    // Fall back to default session or first available
-    if ($defaultSessionDefinition) {
-      selectedSession = $defaultSessionDefinition;
-    } else if ($ptState.sessionDefinitions.length > 0) {
+    // Fall back to first available session
+    if ($ptState.sessionDefinitions.length > 0) {
       selectedSession = $ptState.sessionDefinitions[0];
     }
   }
@@ -89,8 +89,10 @@
       return;
     }
 
-    const exerciseIds = selectedSession.exercises.map(e => e.exerciseId);
-    sessionExercises = $ptState.exercises.filter(e => exerciseIds.includes(e.id));
+    // Map through session exercises in order to preserve session-defined order
+    sessionExercises = selectedSession.exercises
+      .map(se => $ptState.exercises.find(e => e.id === se.exerciseId))
+      .filter((e): e is Exercise => e !== undefined);
   }
 
   // Reactive: Load session when store is initialized or session definitions change
@@ -112,13 +114,24 @@
     loadSessionExercises();
   }
 
-  // Reactive: Compute session badge
-  $: sessionBadge = selectedSession?.isDefault ? 'Default' : 'Custom';
+  function calculateTotalDurationSeconds(): number {
+    if (sessionExercises.length === 0) return 0;
 
-  function calculateTotalDuration(): string {
+    // Get settings for countdown and rest durations
+    const settings = $ptState.settings;
+    const startCountdown = settings?.startCountdownDuration || 5;
+    const endCountdown = settings?.endCountdownDuration || 5;
+    const restBetweenExercises = settings?.restBetweenExercises || 15;
+    const endSessionDelay = settings?.endSessionDelay || 5;
+
     let totalSeconds = 0;
 
-    sessionExercises.forEach((exercise) => {
+    // Calculate exercise durations and add countdowns/rest
+    sessionExercises.forEach((exercise, index) => {
+      // Start countdown before each exercise
+      totalSeconds += startCountdown;
+
+      // Exercise duration
       if (exercise.type === 'duration') {
         totalSeconds += exercise.defaultDuration || 0;
       } else {
@@ -127,7 +140,24 @@
         const repDuration = exercise.defaultRepDuration || 2;
         totalSeconds += reps * sets * repDuration;
       }
+
+      // End countdown after each exercise
+      totalSeconds += endCountdown;
+
+      // Rest between exercises (not after the last exercise)
+      if (index < sessionExercises.length - 1) {
+        totalSeconds += restBetweenExercises;
+      }
     });
+
+    // Add end session delay
+    totalSeconds += endSessionDelay;
+
+    return totalSeconds;
+  }
+
+  function calculateTotalDuration(): string {
+    const totalSeconds = calculateTotalDurationSeconds();
 
     if (totalSeconds < 60) return `${totalSeconds}s`;
     const minutes = Math.floor(totalSeconds / 60);
@@ -149,7 +179,74 @@
   }
 
   function handleLogSession() {
-    toastStore.show('Manual logging coming soon!', 'info');
+    if (!selectedSession) {
+      toastStore.show('No session selected', 'error');
+      return;
+    }
+    showManualLogConfirm = true;
+  }
+
+  async function confirmManualLog() {
+    showManualLogConfirm = false;
+
+    if (!selectedSession) return;
+
+    try {
+      const now = new Date();
+      const totalDurationSeconds = calculateTotalDurationSeconds();
+
+      // Calculate start time by subtracting the total duration from now
+      const startTime = new Date(now.getTime() - totalDurationSeconds * 1000);
+      const endTime = now;
+
+      // Create completed exercises array with all exercises marked as completed
+      const completedExercises: CompletedExercise[] = sessionExercises.map((exercise) => ({
+        exerciseId: exercise.id,
+
+        // Snapshot data for historical preservation
+        exerciseName: exercise.name,
+        exerciseType: exercise.type,
+
+        // Target values (what was planned)
+        targetDuration: exercise.type === 'duration' ? exercise.defaultDuration : undefined,
+        targetReps: exercise.type === 'reps' ? exercise.defaultReps : undefined,
+        targetSets: exercise.type === 'reps' ? exercise.defaultSets : undefined,
+        targetRepDuration: exercise.type === 'reps' ? exercise.defaultRepDuration : undefined,
+
+        // Completion tracking
+        completed: true,
+        actualDuration: exercise.type === 'duration'
+          ? exercise.defaultDuration
+          : (exercise.defaultReps || 0) * (exercise.defaultSets || 0) * (exercise.defaultRepDuration || 2),
+        skipped: false,
+        completedAt: now.toISOString()
+      }));
+
+      // Create the session instance
+      const sessionInstance = {
+        date: ptService.formatDate(now),
+        sessionDefinitionId: selectedSession.id,
+        sessionName: selectedSession.name,
+        status: 'completed' as const,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        completedExercises,
+        customized: false,
+        manuallyLogged: true
+      };
+
+      // Save to database
+      await ptService.addSessionInstance(sessionInstance);
+
+      toastStore.show('Workout logged successfully!', 'success');
+    } catch (error) {
+      console.error('Error logging workout:', error);
+      toastStore.show('Failed to log workout', 'error');
+    }
+  }
+
+  function cancelManualLog() {
+    showManualLogConfirm = false;
   }
 
   function viewExercises() {
@@ -209,7 +306,6 @@
             <div class="session-header">
               <div class="session-title">
                 <h2>{selectedSession?.name || 'Session'}</h2>
-                <span class="session-badge">{sessionBadge}</span>
               </div>
               <div class="session-header-actions">
                 <button
@@ -291,6 +387,19 @@
   <BottomTabs currentTab="today" />
 </div>
 
+<!-- Manual Log Confirmation Dialog -->
+{#if showManualLogConfirm}
+  <ConfirmDialog
+    title="Log Workout"
+    message="This will log your workout as completed for today. Are you sure you want to continue?"
+    confirmText="Log Workout"
+    cancelText="Cancel"
+    confirmVariant="primary"
+    on:confirm={confirmManualLog}
+    on:cancel={cancelManualLog}
+  />
+{/if}
+
 <!-- Session Selection Modal -->
 {#if showSessionSelectModal}
   <Modal
@@ -313,12 +422,6 @@
             <div class="session-select-info">
               <div class="session-select-header">
                 <span class="session-select-name">{session.name}</span>
-                {#if session.isDefault}
-                  <span class="default-badge-small">
-                    <span class="material-icons">check_circle</span>
-                    Default
-                  </span>
-                {/if}
               </div>
               <div class="session-select-meta">
                 <span class="material-icons meta-icon">fitness_center</span>

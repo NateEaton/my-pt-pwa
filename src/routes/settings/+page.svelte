@@ -23,6 +23,11 @@
   let showDeleteExerciseConfirm = false;
   let editingExercise: Exercise | null = null;
   let exerciseToDelete: Exercise | null = null;
+  let sessionsUsingExercise: SessionDefinition[] = [];
+  let exerciseJournalReferences = 0;
+  let showEmptySessionConfirm = false;
+  let emptySessionsAfterDeletion: SessionDefinition[] = [];
+  let currentEmptySessionIndex = 0;
 
   // Session definition modal state
   let showSessionModal = false;
@@ -55,13 +60,36 @@
   // App settings form state
   let appSettingsFormData = {
     defaultRepDuration: 2,
-    startCountdownDuration: 10,
-    endCountdownDuration: 10,
+    startCountdownDuration: 5,
+    endCountdownDuration: 5,
+    endSessionDelay: 5,
     restBetweenSets: 30,
     restBetweenExercises: 15,
     theme: 'auto' as 'light' | 'dark' | 'auto',
-    exerciseSortOrder: 'alphabetical' as 'alphabetical' | 'dateAdded' | 'frequency'
+    exerciseSortOrder: 'alphabetical' as 'alphabetical' | 'dateAdded' | 'frequency',
+    soundEnabled: true,
+    soundVolume: 0.3
   };
+
+  // Backup/Restore state
+  let showRestoreConfirm = false;
+  let restoreData: any = null;
+  let fileInput: HTMLInputElement;
+  let journalEntriesCount = 0;
+
+  // Load journal entries count when state is initialized
+  $: if ($ptState.initialized) {
+    loadJournalEntriesCount();
+  }
+
+  async function loadJournalEntriesCount() {
+    try {
+      const instances = await ptService.getSessionInstances();
+      journalEntriesCount = instances.length;
+    } catch (error) {
+      console.error('Failed to load journal entries count:', error);
+    }
+  }
 
   // ========== Exercise Functions ==========
 
@@ -147,8 +175,20 @@
     }
   }
 
-  function confirmDeleteExercise(exercise: Exercise) {
+  async function confirmDeleteExercise(exercise: Exercise) {
     exerciseToDelete = exercise;
+
+    // Find all sessions using this exercise
+    sessionsUsingExercise = $ptState.sessionDefinitions.filter(session =>
+      session.exercises.some(ex => ex.exerciseId === exercise.id)
+    );
+
+    // Count journal entries referencing this exercise (for info only)
+    const allInstances = await ptService.getSessionInstances();
+    exerciseJournalReferences = allInstances.filter(instance =>
+      instance.completedExercises.some(ex => ex.exerciseId === exercise.id)
+    ).length;
+
     showDeleteExerciseConfirm = true;
   }
 
@@ -156,14 +196,66 @@
     if (!exerciseToDelete) return;
 
     try {
+      // Remove exercise from all sessions
+      for (const session of sessionsUsingExercise) {
+        const updatedExercises = session.exercises.filter(
+          ex => ex.exerciseId !== exerciseToDelete!.id
+        );
+        await ptService.updateSessionDefinition({
+          ...session,
+          exercises: updatedExercises
+        });
+      }
+
+      // Delete the exercise
       await ptService.deleteExercise(exerciseToDelete.id);
-      toastStore.show('Exercise deleted', 'success');
+
+      // Reload data to get updated sessions
       await reloadData();
+
+      // Find sessions that are now empty
+      emptySessionsAfterDeletion = $ptState.sessionDefinitions.filter(
+        session => session.exercises.length === 0
+      );
+
+      toastStore.show('Exercise deleted', 'success');
       showDeleteExerciseConfirm = false;
-      exerciseToDelete = null;
+
+      // If there are empty sessions, prompt for each one
+      if (emptySessionsAfterDeletion.length > 0) {
+        currentEmptySessionIndex = 0;
+        showEmptySessionConfirm = true;
+      } else {
+        exerciseToDelete = null;
+        sessionsUsingExercise = [];
+      }
     } catch (error) {
       console.error('Failed to delete exercise:', error);
       toastStore.show('Failed to delete exercise', 'error');
+    }
+  }
+
+  async function handleEmptySessionDecision(deleteSession: boolean) {
+    const session = emptySessionsAfterDeletion[currentEmptySessionIndex];
+
+    if (deleteSession && session) {
+      try {
+        await ptService.deleteSessionDefinition(session.id);
+        await reloadData();
+      } catch (error) {
+        console.error('Failed to delete empty session:', error);
+        toastStore.show('Failed to delete session', 'error');
+      }
+    }
+
+    // Move to next empty session or finish
+    currentEmptySessionIndex++;
+    if (currentEmptySessionIndex >= emptySessionsAfterDeletion.length) {
+      showEmptySessionConfirm = false;
+      exerciseToDelete = null;
+      sessionsUsingExercise = [];
+      emptySessionsAfterDeletion = [];
+      currentEmptySessionIndex = 0;
     }
   }
 
@@ -283,21 +375,6 @@
     }
   }
 
-  async function setDefaultSession(session: SessionDefinition) {
-    try {
-      const updated: SessionDefinition = {
-        ...session,
-        isDefault: true
-      };
-      await ptService.updateSessionDefinition(updated);
-      toastStore.show(`"${session.name}" set as default session`, 'success');
-      await reloadData();
-    } catch (error) {
-      console.error('Failed to set default session:', error);
-      toastStore.show('Failed to set default session', 'error');
-    }
-  }
-
   // ========== Helper Functions ==========
 
   async function reloadData() {
@@ -328,10 +405,13 @@
         defaultRepDuration: $ptState.settings.defaultRepDuration,
         startCountdownDuration: $ptState.settings.startCountdownDuration,
         endCountdownDuration: $ptState.settings.endCountdownDuration,
+        endSessionDelay: $ptState.settings.endSessionDelay,
         restBetweenSets: $ptState.settings.restBetweenSets,
         restBetweenExercises: $ptState.settings.restBetweenExercises,
         theme: $ptState.settings.theme,
-        exerciseSortOrder: $ptState.settings.exerciseSortOrder
+        exerciseSortOrder: $ptState.settings.exerciseSortOrder,
+        soundEnabled: $ptState.settings.soundEnabled ?? true,
+        soundVolume: $ptState.settings.soundVolume ?? 0.3
       };
     }
     showAppSettingsModal = true;
@@ -351,6 +431,137 @@
 
     showAppSettingsModal = false;
     toastStore.show('Settings saved', 'success');
+  }
+
+  // ========== Backup/Restore Functions ==========
+
+  async function exportBackup() {
+    try {
+      // Gather all data from IndexedDB
+      const exercises = await ptService.getExercises();
+      const sessionDefinitions = await ptService.getSessionDefinitions();
+      const sessionInstances = await ptService.getSessionInstances();
+      const settings = await ptService.getSettings();
+      const metadata = await ptService.getMetadata();
+
+      const backupData = {
+        version: 1,
+        exportDate: new Date().toISOString(),
+        data: {
+          exercises,
+          sessionDefinitions,
+          sessionInstances,
+          settings,
+          metadata
+        }
+      };
+
+      // Create blob and download
+      const json = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      a.download = `my-pt-backup-${timestamp}.json`;
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toastStore.show('Backup downloaded successfully', 'success');
+    } catch (error) {
+      console.error('Failed to export backup:', error);
+      toastStore.show('Failed to create backup', 'error');
+    }
+  }
+
+  function handleFileSelect(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const json = e.target?.result as string;
+          restoreData = JSON.parse(json);
+
+          // Validate backup data structure
+          if (!restoreData.data || !restoreData.data.exercises) {
+            throw new Error('Invalid backup file format');
+          }
+
+          showRestoreConfirm = true;
+        } catch (error) {
+          console.error('Failed to parse backup file:', error);
+          toastStore.show('Invalid backup file', 'error');
+          restoreData = null;
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Reset file input
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }
+
+  async function confirmRestore() {
+    if (!restoreData) return;
+
+    try {
+      // Clear all existing data
+      await ptService.clearAllData();
+
+      // Restore exercises
+      for (const exercise of restoreData.data.exercises) {
+        const { id, ...exerciseData } = exercise;
+        await ptService.addExercise(exerciseData);
+      }
+
+      // Restore session definitions
+      for (const session of restoreData.data.sessionDefinitions) {
+        const { id, ...sessionData } = session;
+        await ptService.addSessionDefinition(sessionData);
+      }
+
+      // Restore session instances
+      for (const instance of restoreData.data.sessionInstances) {
+        const { id, ...instanceData } = instance;
+        await ptService.addSessionInstance(instanceData);
+      }
+
+      // Restore settings
+      if (restoreData.data.settings) {
+        await ptService.saveSettings(restoreData.data.settings);
+      }
+
+      // Restore metadata
+      if (restoreData.data.metadata) {
+        await ptService.saveMetadata(restoreData.data.metadata);
+      }
+
+      await reloadData();
+      await loadJournalEntriesCount();
+
+      showRestoreConfirm = false;
+      restoreData = null;
+
+      toastStore.show('Data restored successfully', 'success');
+    } catch (error) {
+      console.error('Failed to restore data:', error);
+      toastStore.show('Failed to restore data', 'error');
+    }
+  }
+
+  function cancelRestore() {
+    showRestoreConfirm = false;
+    restoreData = null;
   }
 </script>
 
@@ -383,12 +594,6 @@
               <div class="session-info">
                 <div class="session-header">
                   <h3 class="session-name">{session.name}</h3>
-                  {#if session.isDefault}
-                    <span class="default-badge">
-                      <span class="material-icons">check_circle</span>
-                      Default
-                    </span>
-                  {/if}
                 </div>
 
                 <div class="session-details">
@@ -409,16 +614,6 @@
               </div>
 
               <div class="session-actions">
-                {#if !session.isDefault}
-                  <button
-                    class="icon-button"
-                    on:click={() => setDefaultSession(session)}
-                    aria-label="Set as default"
-                    title="Set as default"
-                  >
-                    <span class="material-icons">star_outline</span>
-                  </button>
-                {/if}
                 <button
                   class="icon-button"
                   on:click={() => openEditSession(session)}
@@ -480,13 +675,6 @@
                       {exercise.defaultReps} reps × {exercise.defaultSets} sets
                     </span>
                   {/if}
-
-                  {#if exercise.includeInDefault}
-                    <span class="detail-item">
-                      <span class="material-icons detail-icon">check_circle</span>
-                      In default session
-                    </span>
-                  {/if}
                 </div>
               </div>
 
@@ -542,6 +730,66 @@
           </div>
         </div>
       {/if}
+    </section>
+
+    <!-- Backup & Restore Section -->
+    <section class="settings-section">
+      <div class="section-header">
+        <h2>Backup & Restore</h2>
+      </div>
+
+      <div class="backup-restore-container">
+        <!-- Backup Section -->
+        <div class="backup-section">
+          <h3 class="subsection-title">Backup Data</h3>
+          <p class="subsection-description">
+            Download all your exercises, sessions, and journal entries as a JSON file.
+          </p>
+
+          {#if $ptState.initialized}
+            <div class="backup-summary">
+              <div class="backup-item">
+                <span class="material-icons backup-icon">fitness_center</span>
+                <span>{$ptState.exercises.length} exercises</span>
+              </div>
+              <div class="backup-item">
+                <span class="material-icons backup-icon">playlist_play</span>
+                <span>{$ptState.sessionDefinitions.length} sessions</span>
+              </div>
+              <div class="backup-item">
+                <span class="material-icons backup-icon">book</span>
+                <span>{journalEntriesCount} journal entries</span>
+              </div>
+            </div>
+          {/if}
+
+          <button class="btn btn-primary backup-btn" on:click={exportBackup}>
+            <span class="material-icons">download</span>
+            Download Backup
+          </button>
+        </div>
+
+        <!-- Restore Section -->
+        <div class="restore-section">
+          <h3 class="subsection-title">Restore Data</h3>
+          <p class="subsection-description">
+            Upload a backup file to restore your data. This will replace all current data.
+          </p>
+
+          <input
+            type="file"
+            accept=".json"
+            bind:this={fileInput}
+            on:change={handleFileSelect}
+            style="display: none;"
+          />
+
+          <button class="btn btn-secondary restore-btn" on:click={() => fileInput.click()}>
+            <span class="material-icons">upload</span>
+            Select Backup File
+          </button>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -656,13 +904,6 @@
           {/if}
         </div>
       </div>
-
-      <div class="form-group checkbox-group">
-        <label>
-          <input type="checkbox" bind:checked={sessionFormData.isDefault} />
-          <span>Set as default session</span>
-        </label>
-      </div>
     </form>
 
     <div slot="footer" class="modal-actions">
@@ -759,13 +1000,6 @@
           rows="3"
         />
       </div>
-
-      <div class="form-group checkbox-group">
-        <label>
-          <input type="checkbox" bind:checked={exerciseFormData.includeInDefault} />
-          <span>Include in default session</span>
-        </label>
-      </div>
     </form>
 
     <div slot="footer" class="modal-actions">
@@ -783,7 +1017,15 @@
 {#if showDeleteExerciseConfirm && exerciseToDelete}
   <ConfirmDialog
     title="Delete Exercise"
-    message="Are you sure you want to delete '{exerciseToDelete.name}'? This action cannot be undone."
+    message={`Are you sure you want to delete '${exerciseToDelete.name}'?${
+      sessionsUsingExercise.length > 0
+        ? `\n\nThis exercise is used in ${sessionsUsingExercise.length} session(s):\n${sessionsUsingExercise.map(s => `• ${s.name}`).join('\n')}\n\nThe exercise will be removed from these sessions.`
+        : ''
+    }${
+      exerciseJournalReferences > 0
+        ? `\n\n${exerciseJournalReferences} journal ${exerciseJournalReferences === 1 ? 'entry references' : 'entries reference'} this exercise (history will be preserved).`
+        : ''
+    }\n\nThis action cannot be undone.`}
     confirmText="Delete"
     cancelText="Cancel"
     confirmVariant="danger"
@@ -791,7 +1033,22 @@
     on:cancel={() => {
       showDeleteExerciseConfirm = false;
       exerciseToDelete = null;
+      sessionsUsingExercise = [];
+      exerciseJournalReferences = 0;
     }}
+  />
+{/if}
+
+<!-- Empty Session Confirmation -->
+{#if showEmptySessionConfirm && emptySessionsAfterDeletion.length > 0}
+  <ConfirmDialog
+    title="Empty Session"
+    message={`Session '${emptySessionsAfterDeletion[currentEmptySessionIndex]?.name}' now has no exercises.\n\nWould you like to delete this session?`}
+    confirmText="Delete Session"
+    cancelText="Keep Session"
+    confirmVariant="danger"
+    on:confirm={() => handleEmptySessionDecision(true)}
+    on:cancel={() => handleEmptySessionDecision(false)}
   />
 {/if}
 
@@ -811,6 +1068,28 @@
   />
 {/if}
 
+<!-- Restore Data Confirmation -->
+{#if showRestoreConfirm && restoreData}
+  <ConfirmDialog
+    title="Restore Backup"
+    message={`You are about to restore a backup created on ${new Date(restoreData.exportDate).toLocaleString()}.
+
+Backup contains:
+• ${restoreData.data.exercises?.length || 0} exercises
+• ${restoreData.data.sessionDefinitions?.length || 0} sessions
+• ${restoreData.data.sessionInstances?.length || 0} journal entries
+
+⚠️ WARNING: This will PERMANENTLY DELETE all current data and replace it with the backup.
+
+This action cannot be undone. Are you sure?`}
+    confirmText="Restore Backup"
+    cancelText="Cancel"
+    confirmVariant="danger"
+    on:confirm={confirmRestore}
+    on:cancel={cancelRestore}
+  />
+{/if}
+
 <!-- App Settings Modal -->
 {#if showAppSettingsModal}
   <Modal
@@ -825,6 +1104,7 @@
           <label for="default-rep-duration">
             Default Rep Duration (seconds)
           </label>
+          <p class="help-text">Default time for each repetition</p>
           <input
             id="default-rep-duration"
             type="number"
@@ -832,13 +1112,13 @@
             max="30"
             bind:value={appSettingsFormData.defaultRepDuration}
           />
-          <p class="help-text">Default time for each repetition</p>
         </div>
 
         <div class="form-group">
           <label for="start-countdown">
             Start Countdown (seconds)
           </label>
+          <p class="help-text">Countdown before each exercise begins</p>
           <input
             id="start-countdown"
             type="number"
@@ -846,13 +1126,13 @@
             max="30"
             bind:value={appSettingsFormData.startCountdownDuration}
           />
-          <p class="help-text">Countdown before each exercise begins</p>
         </div>
 
         <div class="form-group">
           <label for="end-countdown">
             End Countdown (seconds)
           </label>
+          <p class="help-text">Warning countdown at end of exercise</p>
           <input
             id="end-countdown"
             type="number"
@@ -860,13 +1140,27 @@
             max="30"
             bind:value={appSettingsFormData.endCountdownDuration}
           />
-          <p class="help-text">Warning countdown at end of exercise</p>
+        </div>
+
+        <div class="form-group">
+          <label for="end-session-delay">
+            End Session Delay (seconds)
+          </label>
+          <p class="help-text">Delay before session player closes after completion</p>
+          <input
+            id="end-session-delay"
+            type="number"
+            min="0"
+            max="30"
+            bind:value={appSettingsFormData.endSessionDelay}
+          />
         </div>
 
         <div class="form-group">
           <label for="rest-between-sets">
             Rest Between Sets (seconds)
           </label>
+          <p class="help-text">Rest period between sets within an exercise</p>
           <input
             id="rest-between-sets"
             type="number"
@@ -874,13 +1168,13 @@
             max="300"
             bind:value={appSettingsFormData.restBetweenSets}
           />
-          <p class="help-text">Rest period between sets within an exercise</p>
         </div>
 
         <div class="form-group">
           <label for="rest-between-exercises">
             Rest Between Exercises (seconds)
           </label>
+          <p class="help-text">Rest period between different exercises</p>
           <input
             id="rest-between-exercises"
             type="number"
@@ -888,7 +1182,6 @@
             max="300"
             bind:value={appSettingsFormData.restBetweenExercises}
           />
-          <p class="help-text">Rest period between different exercises</p>
         </div>
       </div>
 
@@ -912,6 +1205,39 @@
             <option value="frequency">Frequency</option>
           </select>
         </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Sound Settings</h3>
+
+        <div class="form-group">
+          <label for="sound-enabled">
+            <input
+              id="sound-enabled"
+              type="checkbox"
+              bind:checked={appSettingsFormData.soundEnabled}
+            />
+            Enable Audible Tones
+          </label>
+          <p class="help-text">Play sounds during exercise timer (countdown ticks, rep beeps, completion chime)</p>
+        </div>
+
+        {#if appSettingsFormData.soundEnabled}
+          <div class="form-group">
+            <label for="sound-volume">
+              Sound Volume ({Math.round(appSettingsFormData.soundVolume * 100)}%)
+            </label>
+            <p class="help-text">Adjust the volume of timer sounds</p>
+            <input
+              id="sound-volume"
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              bind:value={appSettingsFormData.soundVolume}
+            />
+          </div>
+        {/if}
       </div>
     </form>
 
@@ -1074,6 +1400,73 @@
     font-size: var(--font-size-base);
     font-weight: 600;
     color: var(--text-primary);
+  }
+
+  /* Backup & Restore */
+  .backup-restore-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-xl);
+    margin-top: var(--spacing-md);
+  }
+
+  .backup-section,
+  .restore-section {
+    background-color: var(--surface-variant);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+  }
+
+  .subsection-title {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .subsection-description {
+    margin: 0 0 var(--spacing-md) 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .backup-summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-md);
+    background-color: var(--surface);
+    border-radius: var(--border-radius);
+  }
+
+  .backup-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+  }
+
+  .backup-icon {
+    font-size: var(--icon-size-md);
+    color: var(--primary-color);
+  }
+
+  .backup-btn,
+  .restore-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+  }
+
+  @media (max-width: 768px) {
+    .backup-restore-container {
+      grid-template-columns: 1fr;
+    }
   }
 
   /* Session List */
@@ -1267,6 +1660,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
   }
 
   .form-row {
@@ -1301,7 +1695,7 @@
   .help-text {
     font-size: var(--font-size-xs);
     color: var(--text-secondary);
-    margin: var(--spacing-xs) 0 0 0;
+    margin: 0.125rem 0 0 0;
   }
 
   .form-group input,
