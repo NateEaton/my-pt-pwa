@@ -201,12 +201,8 @@
     console.log('Resuming session:', existing);
     console.log('Completed exercises:', existing.completedExercises);
 
-    // Calculate total elapsed time from start
-    if (existing.startTime) {
-      const start = new Date(existing.startTime).getTime();
-      const now = Date.now();
-      totalElapsedSeconds = Math.floor((now - start) / 1000);
-    }
+    // Restore cumulative elapsed time (not wall clock time since start)
+    totalElapsedSeconds = existing.cumulativeElapsedSeconds || 0;
 
     // Find first incomplete exercise
     let resumeIndex = 0;
@@ -474,6 +470,7 @@
 
     sessionInstance.status = 'completed';
     sessionInstance.endTime = new Date().toISOString();
+    sessionInstance.cumulativeElapsedSeconds = totalElapsedSeconds;
 
     try {
       await ptService.updateSessionInstance(sessionInstance);
@@ -496,6 +493,7 @@
 
     // Explicitly keep status as in-progress
     sessionInstance.status = 'in-progress';
+    sessionInstance.cumulativeElapsedSeconds = totalElapsedSeconds;
 
     try {
       await ptService.updateSessionInstance(sessionInstance);

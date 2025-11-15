@@ -108,6 +108,7 @@ export interface SessionInstance {
   // Timing information
   startTime?: string; // ISO date string
   endTime?: string; // ISO date string
+  cumulativeElapsedSeconds?: number; // Track cumulative time for paused/resumed sessions
 
   // Exercise completion tracking
   completedExercises: CompletedExercise[];
