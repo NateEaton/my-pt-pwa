@@ -13,7 +13,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { ptState, ptService, defaultSessionDefinition } from '$lib/stores/pt';
+  import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
   import ExerciseCard from '$lib/components/ExerciseCard.svelte';
@@ -57,7 +57,7 @@
     }
   }
 
-  // Load the selected session (default or previously selected)
+  // Load the selected session (previously selected or first available)
   function loadSelectedSession() {
     if (!$ptState.initialized || $ptState.sessionDefinitions.length === 0) {
       selectedSession = null;
@@ -74,10 +74,8 @@
       }
     }
 
-    // Fall back to default session or first available
-    if ($defaultSessionDefinition) {
-      selectedSession = $defaultSessionDefinition;
-    } else if ($ptState.sessionDefinitions.length > 0) {
+    // Fall back to first available session
+    if ($ptState.sessionDefinitions.length > 0) {
       selectedSession = $ptState.sessionDefinitions[0];
     }
   }
@@ -113,9 +111,6 @@
   $: if (selectedSession) {
     loadSessionExercises();
   }
-
-  // Reactive: Compute session badge
-  $: sessionBadge = selectedSession?.isDefault ? 'Default' : 'Custom';
 
   function calculateTotalDuration(): string {
     let totalSeconds = 0;
@@ -211,7 +206,6 @@
             <div class="session-header">
               <div class="session-title">
                 <h2>{selectedSession?.name || 'Session'}</h2>
-                <span class="session-badge">{sessionBadge}</span>
               </div>
               <div class="session-header-actions">
                 <button
@@ -315,12 +309,6 @@
             <div class="session-select-info">
               <div class="session-select-header">
                 <span class="session-select-name">{session.name}</span>
-                {#if session.isDefault}
-                  <span class="default-badge-small">
-                    <span class="material-icons">check_circle</span>
-                    Default
-                  </span>
-                {/if}
               </div>
               <div class="session-select-meta">
                 <span class="material-icons meta-icon">fitness_center</span>

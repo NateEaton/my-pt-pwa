@@ -284,21 +284,6 @@
     }
   }
 
-  async function setDefaultSession(session: SessionDefinition) {
-    try {
-      const updated: SessionDefinition = {
-        ...session,
-        isDefault: true
-      };
-      await ptService.updateSessionDefinition(updated);
-      toastStore.show(`"${session.name}" set as default session`, 'success');
-      await reloadData();
-    } catch (error) {
-      console.error('Failed to set default session:', error);
-      toastStore.show('Failed to set default session', 'error');
-    }
-  }
-
   // ========== Helper Functions ==========
 
   async function reloadData() {
@@ -385,12 +370,6 @@
               <div class="session-info">
                 <div class="session-header">
                   <h3 class="session-name">{session.name}</h3>
-                  {#if session.isDefault}
-                    <span class="default-badge">
-                      <span class="material-icons">check_circle</span>
-                      Default
-                    </span>
-                  {/if}
                 </div>
 
                 <div class="session-details">
@@ -411,16 +390,6 @@
               </div>
 
               <div class="session-actions">
-                {#if !session.isDefault}
-                  <button
-                    class="icon-button"
-                    on:click={() => setDefaultSession(session)}
-                    aria-label="Set as default"
-                    title="Set as default"
-                  >
-                    <span class="material-icons">star_outline</span>
-                  </button>
-                {/if}
                 <button
                   class="icon-button"
                   on:click={() => openEditSession(session)}
@@ -480,13 +449,6 @@
                     <span class="detail-item">
                       <span class="material-icons detail-icon">fitness_center</span>
                       {exercise.defaultReps} reps × {exercise.defaultSets} sets
-                    </span>
-                  {/if}
-
-                  {#if exercise.includeInDefault}
-                    <span class="detail-item">
-                      <span class="material-icons detail-icon">check_circle</span>
-                      In default session
                     </span>
                   {/if}
                 </div>
@@ -658,13 +620,6 @@
           {/if}
         </div>
       </div>
-
-      <div class="form-group checkbox-group">
-        <label>
-          <input type="checkbox" bind:checked={sessionFormData.isDefault} />
-          <span>Set as default session</span>
-        </label>
-      </div>
     </form>
 
     <div slot="footer" class="modal-actions">
@@ -760,13 +715,6 @@
           placeholder="Exercise instructions or notes"
           rows="3"
         />
-      </div>
-
-      <div class="form-group checkbox-group">
-        <label>
-          <input type="checkbox" bind:checked={exerciseFormData.includeInDefault} />
-          <span>Include in default session</span>
-        </label>
       </div>
     </form>
 
