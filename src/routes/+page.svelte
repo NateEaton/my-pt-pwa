@@ -187,7 +187,7 @@
 
       // Create the session instance
       const sessionInstance = {
-        date: $ptService.formatDate(now),
+        date: ptService.formatDate(now),
         sessionDefinitionId: selectedSession.id,
         sessionName: selectedSession.name,
         status: 'completed' as const,
@@ -199,7 +199,7 @@
       };
 
       // Save to database
-      await $ptService.addSessionInstance(sessionInstance);
+      await ptService.addSessionInstance(sessionInstance);
 
       toastStore.show('Workout logged successfully!', 'success');
     } catch (error) {
