@@ -698,6 +698,7 @@
     gap: var(--spacing-xs);
     font-size: var(--font-size-base);
     transition: background-color 0.2s;
+    justify-self: start;
   }
 
   .pause-btn:hover {
@@ -713,7 +714,7 @@
   }
 
   .countdown-number {
-    font-size: 6rem;
+    font-size: 4rem;
     font-weight: 700;
     line-height: 1;
   }
@@ -840,6 +841,7 @@
     gap: var(--spacing-xs);
     font-size: var(--font-size-base);
     transition: background-color 0.2s;
+    justify-self: end;
   }
 
   .skip-btn:hover {
@@ -1000,7 +1002,7 @@
     }
 
     .countdown-number {
-      font-size: 4rem;
+      font-size: 3rem;
     }
   }
 </style>
