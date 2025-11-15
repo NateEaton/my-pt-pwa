@@ -82,8 +82,14 @@ export const sortedExercises = derived(ptState, ($ptState) => {
           new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
       );
     case 'frequency':
-      // TODO: Implement frequency sorting based on usage stats
-      return exercises;
+      // Frequency sorting would require querying all session instances
+      // which is expensive. For now, fall back to dateAdded (most recent first)
+      // as a proxy for "frequently used" exercises.
+      // TODO: Consider caching usage statistics in metadata for better performance
+      return exercises.sort(
+        (a, b) =>
+          new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
+      );
     default:
       return exercises;
   }

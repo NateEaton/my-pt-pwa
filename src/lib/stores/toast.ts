@@ -26,6 +26,18 @@ function createToastStore() {
   return {
     subscribe,
     show: (message: string, type: ToastType = 'info', duration: number = 3000) => {
+      // Prevent duplicate toasts with the same message and type
+      let existingToast: ToastMessage | undefined;
+      update(toasts => {
+        existingToast = toasts.find(t => t.message === message && t.type === type);
+        return toasts;
+      });
+
+      if (existingToast) {
+        // Don't add a duplicate, just return the existing ID
+        return existingToast.id;
+      }
+
       const id = nextId++;
       const toast: ToastMessage = { id, message, type, duration };
 
