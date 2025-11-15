@@ -24,7 +24,7 @@
   let editingExercise: Exercise | null = null;
   let exerciseToDelete: Exercise | null = null;
   let sessionsUsingExercise: SessionDefinition[] = [];
-  let journalEntriesCount = 0;
+  let exerciseJournalReferences = 0;
   let showEmptySessionConfirm = false;
   let emptySessionsAfterDeletion: SessionDefinition[] = [];
   let currentEmptySessionIndex = 0;
@@ -185,7 +185,7 @@
 
     // Count journal entries referencing this exercise (for info only)
     const allInstances = await ptService.getSessionInstances();
-    journalEntriesCount = allInstances.filter(instance =>
+    exerciseJournalReferences = allInstances.filter(instance =>
       instance.completedExercises.some(ex => ex.exerciseId === exercise.id)
     ).length;
 
@@ -1022,8 +1022,8 @@
         ? `\n\nThis exercise is used in ${sessionsUsingExercise.length} session(s):\n${sessionsUsingExercise.map(s => `• ${s.name}`).join('\n')}\n\nThe exercise will be removed from these sessions.`
         : ''
     }${
-      journalEntriesCount > 0
-        ? `\n\n${journalEntriesCount} journal ${journalEntriesCount === 1 ? 'entry references' : 'entries reference'} this exercise (history will be preserved).`
+      exerciseJournalReferences > 0
+        ? `\n\n${exerciseJournalReferences} journal ${exerciseJournalReferences === 1 ? 'entry references' : 'entries reference'} this exercise (history will be preserved).`
         : ''
     }\n\nThis action cannot be undone.`}
     confirmText="Delete"
@@ -1034,7 +1034,7 @@
       showDeleteExerciseConfirm = false;
       exerciseToDelete = null;
       sessionsUsingExercise = [];
-      journalEntriesCount = 0;
+      exerciseJournalReferences = 0;
     }}
   />
 {/if}
