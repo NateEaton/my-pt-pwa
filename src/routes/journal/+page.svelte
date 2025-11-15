@@ -14,13 +14,16 @@
   import { onMount } from 'svelte';
   import { ptState } from '$lib/stores/pt';
   import { ptService } from '$lib/services/PTService';
+  import { toastStore } from '$lib/stores/toast';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
   import Modal from '$lib/components/Modal.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import type { SessionInstance, Exercise } from '$lib/types/pt';
 
   let sessionInstances: SessionInstance[] = [];
   let selectedSession: SessionInstance | null = null;
   let showDetailsModal = false;
+  let showDeleteConfirm = false;
   let loading = true;
 
   // Statistics
@@ -76,6 +79,33 @@
   function closeDetailsModal() {
     showDetailsModal = false;
     selectedSession = null;
+  }
+
+  function handleDeleteClick() {
+    showDeleteConfirm = true;
+  }
+
+  async function confirmDelete() {
+    showDeleteConfirm = false;
+
+    if (!selectedSession) return;
+
+    try {
+      await ptService.deleteSessionInstance(selectedSession.id);
+      toastStore.show('Session deleted successfully', 'success');
+
+      // Close modal and reload sessions
+      showDetailsModal = false;
+      selectedSession = null;
+      await loadSessions();
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+      toastStore.show('Failed to delete session', 'error');
+    }
+  }
+
+  function cancelDelete() {
+    showDeleteConfirm = false;
   }
 
   function formatDate(dateStr: string): string {
@@ -289,6 +319,16 @@
 <!-- Session Details Modal -->
 {#if showDetailsModal && selectedSession}
   <Modal title="Session Details" on:close={closeDetailsModal}>
+    <button
+      slot="headerActions"
+      class="modal-action-button delete-button"
+      on:click={handleDeleteClick}
+      aria-label="Delete session"
+      title="Delete session"
+    >
+      <span class="material-icons">delete</span>
+    </button>
+
     <div class="details-container">
       <div class="details-header">
         <h2>{selectedSession.sessionName}</h2>
@@ -361,6 +401,19 @@
       {/if}
     </div>
   </Modal>
+{/if}
+
+<!-- Delete Confirmation Dialog -->
+{#if showDeleteConfirm}
+  <ConfirmDialog
+    title="Delete Session"
+    message="Are you sure you want to delete this session? This action cannot be undone."
+    confirmText="Delete"
+    cancelText="Cancel"
+    confirmVariant="danger"
+    on:confirm={confirmDelete}
+    on:cancel={cancelDelete}
+  />
 {/if}
 
 <style>
@@ -762,6 +815,35 @@
     font-size: var(--font-size-base);
     color: var(--text-secondary);
     line-height: 1.6;
+  }
+
+  /* Modal action buttons */
+  .modal-action-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .modal-action-button:hover {
+    background-color: var(--hover-overlay);
+  }
+
+  .modal-action-button.delete-button:hover {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: var(--error-color);
+  }
+
+  .modal-action-button .material-icons {
+    font-size: var(--icon-size-lg);
   }
 
   @media (max-width: 480px) {
