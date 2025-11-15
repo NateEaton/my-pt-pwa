@@ -15,6 +15,7 @@
   import { goto } from '$app/navigation';
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
+  import { audioService } from '$lib/services/AudioService';
   import type { Exercise, SessionDefinition, SessionInstance, CompletedExercise } from '$lib/types/pt';
 
   // Player state
@@ -46,6 +47,36 @@
   let restBetweenExercises = 30;
 
   let sessionLoadAttempted = false;
+
+  // Audio helper function
+  function playSound(soundType: 'countdown' | 'duration' | 'rep' | 'rest' | 'complete') {
+    if (!$ptState.settings?.soundEnabled) return;
+
+    const volume = $ptState.settings.soundVolume || 0.3;
+
+    switch (soundType) {
+      case 'countdown':
+        audioService.playCountdownTick(volume);
+        break;
+      case 'duration':
+        audioService.playDurationTick(volume);
+        break;
+      case 'rep':
+        audioService.playRepBeep(volume);
+        break;
+      case 'rest':
+        audioService.playRestTick(volume);
+        break;
+      case 'complete':
+        audioService.playComplete(volume);
+        break;
+    }
+  }
+
+  // Unlock audio on mount (required for mobile browsers)
+  onMount(() => {
+    audioService.unlock();
+  });
 
   // Wait for ptState to be initialized, then load session
   $: if ($ptState.initialized && !sessionLoadAttempted) {
@@ -232,6 +263,8 @@
       if (isPaused) return;
 
       countdownSeconds--;
+      playSound('countdown'); // Play tick sound on each countdown second
+
       if (countdownSeconds <= 0) {
         clearInterval(exerciseTimerInterval);
         startExercise();
@@ -263,6 +296,7 @@
       if (isPaused) return;
 
       exerciseElapsedSeconds++;
+      playSound('duration'); // Play tick sound for each second of duration exercise
 
       if (exerciseElapsedSeconds >= totalDuration) {
         clearInterval(exerciseTimerInterval);
@@ -283,6 +317,11 @@
 
       exerciseElapsedSeconds++;
       currentRep = Math.floor((exerciseElapsedSeconds % (reps * repDuration)) / repDuration) + 1;
+
+      // Play beep at the end of each rep
+      if (exerciseElapsedSeconds % repDuration === 0) {
+        playSound('rep');
+      }
 
       // Check if set is complete
       if (exerciseElapsedSeconds % (reps * repDuration) === 0 && exerciseElapsedSeconds > 0) {
@@ -307,6 +346,8 @@
       if (isPaused) return;
 
       restCountdown--;
+      playSound('rest'); // Play tick sound during rest between sets
+
       if (restCountdown <= 0) {
         clearInterval(exerciseTimerInterval);
         timerState = 'active';
@@ -350,6 +391,8 @@
           if (isPaused) return;
 
           restCountdown--;
+          playSound('rest'); // Play tick sound during rest between exercises
+
           if (restCountdown <= 0) {
             clearInterval(exerciseTimerInterval);
             startExerciseCountdown();
@@ -371,6 +414,8 @@
     timerState = 'completed';
     sessionInstance.status = 'completed';
     sessionInstance.endTime = new Date().toISOString();
+
+    playSound('complete'); // Play completion chime
 
     await ptService.updateSessionInstance(sessionInstance);
 

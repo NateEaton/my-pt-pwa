@@ -53,6 +53,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   restBetweenExercises: 15, // 15 seconds between exercises
   theme: 'auto',
   exerciseSortOrder: 'alphabetical',
+  soundEnabled: true,
+  soundVolume: 0.3, // 30% volume
   enableNotifications: false
 };
 

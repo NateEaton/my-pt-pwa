@@ -66,7 +66,9 @@
     restBetweenSets: 30,
     restBetweenExercises: 15,
     theme: 'auto' as 'light' | 'dark' | 'auto',
-    exerciseSortOrder: 'alphabetical' as 'alphabetical' | 'dateAdded' | 'frequency'
+    exerciseSortOrder: 'alphabetical' as 'alphabetical' | 'dateAdded' | 'frequency',
+    soundEnabled: true,
+    soundVolume: 0.3
   };
 
   // Backup/Restore state
@@ -392,7 +394,9 @@
         restBetweenSets: $ptState.settings.restBetweenSets,
         restBetweenExercises: $ptState.settings.restBetweenExercises,
         theme: $ptState.settings.theme,
-        exerciseSortOrder: $ptState.settings.exerciseSortOrder
+        exerciseSortOrder: $ptState.settings.exerciseSortOrder,
+        soundEnabled: $ptState.settings.soundEnabled ?? true,
+        soundVolume: $ptState.settings.soundVolume ?? 0.3
       };
     }
     showAppSettingsModal = true;
@@ -1181,6 +1185,39 @@ This action cannot be undone. Are you sure?`}
             <option value="frequency">Frequency</option>
           </select>
         </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Sound Settings</h3>
+
+        <div class="form-group">
+          <label for="sound-enabled">
+            <input
+              id="sound-enabled"
+              type="checkbox"
+              bind:checked={appSettingsFormData.soundEnabled}
+            />
+            Enable Audible Tones
+          </label>
+          <p class="help-text">Play sounds during exercise timer (countdown ticks, rep beeps, completion chime)</p>
+        </div>
+
+        {#if appSettingsFormData.soundEnabled}
+          <div class="form-group">
+            <label for="sound-volume">
+              Sound Volume ({Math.round(appSettingsFormData.soundVolume * 100)}%)
+            </label>
+            <p class="help-text">Adjust the volume of timer sounds</p>
+            <input
+              id="sound-volume"
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              bind:value={appSettingsFormData.soundVolume}
+            />
+          </div>
+        {/if}
       </div>
     </form>
 

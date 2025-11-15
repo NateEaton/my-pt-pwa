@@ -139,6 +139,10 @@ export interface AppSettings {
   theme: 'light' | 'dark' | 'auto';
   exerciseSortOrder: 'alphabetical' | 'dateAdded' | 'frequency';
 
+  // Sound preferences
+  soundEnabled: boolean;
+  soundVolume: number; // 0.0 to 1.0
+
   // Feature flags (for future use)
   enableNotifications?: boolean;
 }
