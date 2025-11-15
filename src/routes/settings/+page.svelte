@@ -55,8 +55,8 @@
   // App settings form state
   let appSettingsFormData = {
     defaultRepDuration: 2,
-    startCountdownDuration: 10,
-    endCountdownDuration: 10,
+    startCountdownDuration: 5,
+    endCountdownDuration: 5,
     endSessionDelay: 5,
     restBetweenSets: 30,
     restBetweenExercises: 15,
