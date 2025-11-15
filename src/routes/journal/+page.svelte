@@ -67,9 +67,15 @@
   }
 
   function changeDate(days: number) {
-    const currentDate = new Date(selectedDate);
-    currentDate.setDate(currentDate.getDate() + days);
-    selectedDate = currentDate.toISOString().split('T')[0];
+    // Parse date components to avoid timezone issues
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day); // month is 0-indexed in Date constructor
+    date.setDate(date.getDate() + days);
+
+    // Format as YYYY-MM-DD
+    selectedDate = date.getFullYear() + '-' +
+      String(date.getMonth() + 1).padStart(2, '0') + '-' +
+      String(date.getDate()).padStart(2, '0');
     filterSessions();
   }
 
@@ -82,6 +88,13 @@
   function showAllEntries() {
     viewMode = 'all';
     filterSessions();
+  }
+
+  // Format date string for display (avoid timezone issues)
+  function formatSelectedDate(): string {
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString();
   }
 
   // Reactive: filter when date or mode changes
@@ -343,7 +356,7 @@
             <span class="material-icons">event_busy</span>
           </div>
           <h2>No Sessions on This Date</h2>
-          <p>No journal entries found for {new Date(selectedDate).toLocaleDateString()}.</p>
+          <p>No journal entries found for {formatSelectedDate()}.</p>
           <button class="btn btn-primary" on:click={showAllEntries}>
             <span class="material-icons">view_list</span>
             View All Entries
