@@ -46,8 +46,8 @@ const STORES = {
 // Default application settings
 const DEFAULT_SETTINGS: AppSettings = {
   defaultRepDuration: 2, // 2 seconds per rep
-  startCountdownDuration: 10, // 10 second countdown before start
-  endCountdownDuration: 10, // 10 second countdown at end
+  startCountdownDuration: 5, // 5 second countdown before start
+  endCountdownDuration: 5, // 5 second countdown at end
   endSessionDelay: 5, // 5 second delay before session player closes
   restBetweenSets: 30, // 30 seconds between sets
   restBetweenExercises: 15, // 15 seconds between exercises

@@ -39,8 +39,8 @@
   let exerciseTimerInterval: number | undefined;
 
   // Settings
-  let startCountdownDuration = 10;
-  let endCountdownDuration = 10;
+  let startCountdownDuration = 5;
+  let endCountdownDuration = 5;
   let endSessionDelay = 5;
   let restBetweenSets = 30;
   let restBetweenExercises = 30;
