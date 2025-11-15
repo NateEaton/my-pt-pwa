@@ -275,7 +275,7 @@
 
 <!-- Session Details Modal -->
 {#if showDetailsModal && selectedSession}
-  <Modal title="Session Details" onClose={closeDetailsModal}>
+  <Modal title="Session Details" on:close={closeDetailsModal}>
     <div class="details-container">
       <div class="details-header">
         <h2>{selectedSession.sessionName}</h2>
