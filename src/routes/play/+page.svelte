@@ -45,8 +45,16 @@
   let restBetweenSets = 30;
   let restBetweenExercises = 30;
 
-  // Load session from localStorage (set by Today screen)
-  onMount(async () => {
+  let sessionLoadAttempted = false;
+
+  // Wait for ptState to be initialized, then load session
+  $: if ($ptState.initialized && !sessionLoadAttempted) {
+    loadSession();
+  }
+
+  async function loadSession() {
+    sessionLoadAttempted = true;
+
     const sessionIdStr = localStorage.getItem('pt-active-session-id');
     if (!sessionIdStr) {
       toastStore.show('No session selected', 'error');
@@ -107,7 +115,7 @@
       currentExercise = exercises[0];
       startExerciseCountdown();
     }
-  });
+  }
 
   onDestroy(() => {
     clearTimers();
@@ -375,6 +383,15 @@
     startExercise();
   }
 
+  function skipRest() {
+    if (timerState !== 'rest') return;
+    clearInterval(exerciseTimerInterval);
+    restCountdown = 0;
+    timerState = 'active';
+    currentSet++;
+    startRepsExercise();
+  }
+
   async function skipExercise() {
     if (!sessionInstance || !currentExercise) return;
 
@@ -494,10 +511,6 @@
       <div class="countdown-display">
         <div class="countdown-number">{countdownSeconds}</div>
         <div class="countdown-label">Get Ready</div>
-        <button class="btn btn-primary skip-countdown-btn" on:click={skipCountdown}>
-          <span class="material-icons">play_arrow</span>
-          Start Now
-        </button>
       </div>
     {:else if timerState === 'completed'}
       <div class="completion-display">
@@ -534,17 +547,45 @@
     {/if}
 
     <div class="control-buttons">
-      <button class="pause-btn" on:click={togglePause}>
-        <span class="material-icons">
-          {isPaused ? 'play_arrow' : 'pause'}
-        </span>
-        {isPaused ? 'Resume' : 'Pause'}
-      </button>
-      {#if currentExercise && timerState !== 'countdown' && timerState !== 'completed'}
+      {#if timerState === 'countdown'}
+        <button class="pause-btn" on:click={togglePause}>
+          <span class="material-icons">
+            {isPaused ? 'play_arrow' : 'pause'}
+          </span>
+          {isPaused ? 'Resume' : 'Pause'}
+        </button>
+        <button class="start-now-btn btn-primary" on:click={skipCountdown}>
+          <span class="material-icons">play_arrow</span>
+          Start Now
+        </button>
+      {:else if timerState === 'rest' && currentExercise?.type === 'reps'}
+        <button class="pause-btn" on:click={togglePause}>
+          <span class="material-icons">
+            {isPaused ? 'play_arrow' : 'pause'}
+          </span>
+          {isPaused ? 'Resume' : 'Pause'}
+        </button>
+        <button class="start-now-btn btn-primary" on:click={skipRest}>
+          <span class="material-icons">play_arrow</span>
+          Start Now
+        </button>
         <button class="skip-btn" on:click={skipExercise}>
           <span class="material-icons">skip_next</span>
           Skip
         </button>
+      {:else}
+        <button class="pause-btn" on:click={togglePause}>
+          <span class="material-icons">
+            {isPaused ? 'play_arrow' : 'pause'}
+          </span>
+          {isPaused ? 'Resume' : 'Pause'}
+        </button>
+        {#if currentExercise && timerState !== 'completed'}
+          <button class="skip-btn" on:click={skipExercise}>
+            <span class="material-icons">skip_next</span>
+            Skip
+          </button>
+        {/if}
       {/if}
     </div>
 
@@ -619,11 +660,14 @@
   }
 
   .session-timer {
+    position: absolute;
+    top: var(--spacing-lg);
+    right: 0;
+    padding-right: var(--spacing-lg);
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--spacing-md);
-    padding-right: 4rem; /* Make room for pause button */
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
   }
 
   .timer-label {
@@ -681,12 +725,6 @@
     margin-top: var(--spacing-md);
     margin-bottom: var(--spacing-xl);
     opacity: 0.9;
-  }
-
-  .skip-countdown-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-xs);
   }
 
   .completion-display {
@@ -814,6 +852,26 @@
 
   .skip-btn:hover {
     background-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .start-now-btn {
+    background-color: white;
+    color: var(--primary-color);
+    border: none;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .start-now-btn:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+    transform: translateY(-1px);
   }
 
   .exit-buttons {
