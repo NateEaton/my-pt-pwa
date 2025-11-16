@@ -18,14 +18,16 @@
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ 3. Complete Work                                            │
+│ 3. Complete Work & Merge                                    │
 │    → Claude creates PR                                      │
 │    → Review and merge PR on GitHub                          │
+│    → Continue working in same branch for future changes     │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ 4. Sync Local Repository (THIS CHEATSHEET)                  │
-│    → Different steps based on whether you pulled locally    │
+│    → Update main branch to get merged changes               │
+│    → Keep feature branch for continued work                 │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -33,7 +35,7 @@
 
 ## Scenario A: You DID Pull the Branch Locally for Testing
 
-**After merging PR on GitHub, your local repository needs cleanup.**
+**After merging PR on GitHub, update main but keep the feature branch for continued work.**
 
 ### Step-by-Step
 
@@ -58,15 +60,11 @@ git status
 # 6. Pull the merged changes
 git pull
 
-# 7. Delete the local feature branch (it's been merged)
-git branch -d claude/feature-branch-name-here
+# 7. Switch back to feature branch to continue working
+git checkout claude/feature-branch-name-here
 
-# 8. (Optional) Delete remote tracking reference
-git fetch origin --prune
-
-# 9. Verify you're clean
+# 8. Verify you're clean
 git status
-# Expected: "On branch main, Your branch is up to date with 'origin/main'"
 ```
 
 ### Quick Copy-Paste Version
@@ -76,8 +74,7 @@ cd /path/to/my-pt-pwa
 git checkout main
 git fetch origin
 git pull
-git branch -d claude/your-feature-branch-name
-git fetch origin --prune
+git checkout claude/your-feature-branch-name
 git status
 ```
 
@@ -118,6 +115,31 @@ cd /path/to/my-pt-pwa
 git fetch origin
 git pull
 git status
+```
+
+---
+
+## When to Delete Branches
+
+**Branch Cleanup Strategy:**
+
+- **During active development:** Keep the feature branch - you'll continue working in it
+- **After multiple PRs:** Keep the branch until you're done with that chat session
+- **When archiving chat session:** Delete the branch locally (GitHub branches kept for history)
+
+### Deleting a Branch When Archiving
+
+```bash
+# Switch to main first
+git checkout main
+
+# Delete the local feature branch
+git branch -D claude/feature-branch-name
+
+# Clean up remote tracking reference
+git fetch origin --prune
+
+# Note: GitHub branch remains as archival history unless manually deleted on GitHub
 ```
 
 ---
@@ -192,9 +214,6 @@ git reset --hard origin/main
 # Clean up any leftover files
 git clean -fd
 
-# Delete all local feature branches
-git branch | grep claude/ | xargs git branch -D
-
 # Verify clean state
 git status
 ```
@@ -227,21 +246,6 @@ git pull --rebase
 git branch -D claude/feature-branch-name
 ```
 
-### Issue: Multiple feature branches piling up locally
-
-**Solution:**
-```bash
-# List all local branches
-git branch
-
-# Delete multiple branches (one at a time)
-git branch -d claude/old-branch-1
-git branch -d claude/old-branch-2
-
-# Or force delete all claude/* branches
-git branch | grep claude/ | xargs git branch -D
-```
-
 ### Issue: Pulled wrong branch or on wrong branch
 
 **Solution:**
@@ -262,13 +266,14 @@ git checkout claude/correct-feature-branch
 - Commit frequently when making local changes
 - Push local changes before asking Claude to work on the same files
 - Use `git status` liberally to check your state
-- Delete merged feature branches to keep things clean
+- Keep feature branches during active development
+- Sync main after PR merges to stay up to date
 
 ### ❌ DON'T
 
 - Don't make commits directly to `main` locally
 - Don't force push (`git push -f`) to shared branches
-- Don't keep feature branches around after they're merged
+- Don't delete branches until you're done with the chat session
 - Don't panic if you see warnings - read them carefully
 
 ---
@@ -279,6 +284,7 @@ git checkout claude/correct-feature-branch
 |------|---------|
 | See current branch | `git branch` |
 | Switch to main | `git checkout main` |
+| Switch to feature branch | `git checkout claude/branch-name` |
 | Update from GitHub | `git fetch origin` |
 | Pull latest changes | `git pull` |
 | Check status | `git status` |
@@ -291,18 +297,24 @@ git checkout claude/correct-feature-branch
 
 ---
 
-## The One Command to Rule Them All
+## Common Workflows
 
-**After every PR merge, if you pulled the branch locally:**
+**After PR merge (pulled locally) - Continue working:**
 
 ```bash
-git checkout main && git fetch origin && git pull && git branch -d claude/$(git branch | grep claude/ | tail -1 | xargs) && git status
+git checkout main && git fetch origin && git pull && git checkout claude/your-branch && git status
 ```
 
-**After every PR merge, if you didn't pull locally:**
+**After PR merge (didn't pull locally):**
 
 ```bash
 git fetch origin && git pull && git status
+```
+
+**When archiving chat session (cleanup):**
+
+```bash
+git checkout main && git branch -D claude/old-branch-name && git fetch origin --prune
 ```
 
 ---
@@ -320,7 +332,7 @@ When you pull a feature branch locally for testing:
   - [ ] `git add .`
   - [ ] `git commit -m "Description"`
   - [ ] `git push`
-- [ ] When done testing, switch back: `git checkout main`
+- [ ] When done testing, you can stay on the branch or switch back: `git checkout main`
 
 ---
 
@@ -343,9 +355,13 @@ main (GitHub) ←─────────────────────
           main (GitHub) updated
               ↓
           git fetch origin
-          git pull
+          git pull (on main)
               ↓
           main (local) updated ✓
+              ↓
+          Continue working in
+          claude/feature-branch
+          for future changes
 ```
 
 ---
@@ -354,7 +370,7 @@ main (GitHub) ←─────────────────────
 
 **After PR merge (pulled locally):**
 ```
-git checkout main → git fetch origin → git pull → delete branch
+git checkout main → git fetch origin → git pull → git checkout feature-branch
 ```
 
 **After PR merge (didn't pull locally):**
@@ -362,14 +378,19 @@ git checkout main → git fetch origin → git pull → delete branch
 git fetch origin → git pull
 ```
 
-**Before starting work on a new feature:**
+**Before starting work on a new feature (new chat session):**
 ```
 git fetch origin → git pull → (wait for Claude to create new branch)
 ```
 
+**To continue work in existing chat session:**
+```
+Stay in claude/feature-branch or git checkout claude/feature-branch
+```
+
 **If you need to test Claude's changes:**
 ```
-git fetch origin → git checkout claude/branch-name → test → git checkout main
+git fetch origin → git checkout claude/branch-name → test → (stay or switch)
 ```
 
 **If you made local changes to test:**
@@ -392,6 +413,7 @@ Remember: Git is forgiving. As long as you've pushed changes to GitHub, you can 
 
 ---
 
-**Last Updated:** 2025-11-15
+**Last Updated:** 2025-11-16
 **Your Project:** my-pt-pwa
 **Your Remote:** github.com:NateEaton/my-pt-pwa
+**Branch Strategy:** Keep branches during active development, archive when chat session complete
