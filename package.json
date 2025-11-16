@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
@@ -29,6 +30,6 @@
     "svelte",
     "healthcare"
   ],
-  "author": "Your Name",
+  "author": "Nathan Eaton Jr.",
   "license": "GPL-3.0-or-later"
 }
