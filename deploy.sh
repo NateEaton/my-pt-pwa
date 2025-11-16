@@ -82,7 +82,7 @@ if [ "$ENVIRONMENT" = "prod" ]; then
     export BASE_PATH="" # Production serves at root path
 elif [ "$ENVIRONMENT" = "dev" ]; then
     DEPLOY_DIR="$DEV_DEPLOY_DIR"
-    export BASE_PATH="/Ca-pwa-dev" # Set for development
+    export BASE_PATH="/my-pt-pwa-dev" # Set for development
 elif [ "$ENVIRONMENT" = "test" ]; then
     # Test mode - no deployment directory needed
     export BASE_PATH="" # Test serves at root path

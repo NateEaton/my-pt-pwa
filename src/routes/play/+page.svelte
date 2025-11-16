@@ -48,6 +48,17 @@
 
   let sessionLoadAttempted = false;
 
+  // Auto-scroll support for exercise list
+  let exerciseElements: HTMLElement[] = [];
+
+  // Scroll active exercise into view when index changes
+  $: if (currentExerciseIndex >= 0 && exerciseElements[currentExerciseIndex]) {
+    exerciseElements[currentExerciseIndex].scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest'
+    });
+  }
+
   // Audio helper function
   function playSound(soundType: 'countdown' | 'duration' | 'rep' | 'rest' | 'complete') {
     if (!$ptState.settings?.soundEnabled) return;
@@ -656,6 +667,7 @@
     <div class="exercise-list">
       {#each exercises as exercise, index (exercise.id)}
         <div
+          bind:this={exerciseElements[index]}
           class="exercise-item"
           class:active={index === currentExerciseIndex}
           class:completed={isExerciseCompleted(index)}

@@ -581,15 +581,6 @@
     color: var(--text-primary);
   }
 
-  .session-badge {
-    font-size: var(--font-size-xs);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: calc(var(--border-radius) / 2);
-    background-color: var(--primary-alpha-10);
-    color: var(--primary-color);
-    font-weight: 500;
-  }
-
   .session-header-actions {
     display: flex;
     gap: var(--spacing-xs);
@@ -796,22 +787,6 @@
     font-size: var(--font-size-base);
     font-weight: 600;
     color: var(--text-primary);
-  }
-
-  .default-badge-small {
-    font-size: var(--font-size-xs);
-    padding: 2px var(--spacing-xs);
-    border-radius: calc(var(--border-radius) / 2);
-    background-color: rgba(76, 175, 80, 0.1);
-    color: var(--success-color);
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-  }
-
-  .default-badge-small .material-icons {
-    font-size: 12px;
   }
 
   .session-select-meta {
