@@ -17,6 +17,7 @@
   import SessionManagementModal from '$lib/components/SessionManagementModal.svelte';
   import ExerciseManagementModal from '$lib/components/ExerciseManagementModal.svelte';
   import TimingSettingsModal from '$lib/components/TimingSettingsModal.svelte';
+  import AudioSettingsModal from '$lib/components/AudioSettingsModal.svelte';
   import BackupModal from '$lib/components/BackupModal.svelte';
   import RestoreModal from '$lib/components/RestoreModal.svelte';
   import GuideDialog from '$lib/components/GuideDialog.svelte';
@@ -27,57 +28,14 @@
   let showSessionManagement = false;
   let showExerciseManagement = false;
   let showTimingSettings = false;
+  let showAudioSettings = false;
   let showBackupModal = false;
   let showRestoreModal = false;
   let showGuide = false;
   let showAbout = false;
 
   // Quick access settings (directly editable)
-  $: soundEnabled = $ptState.settings?.soundEnabled ?? true;
-  $: soundVolume = $ptState.settings?.soundVolume ?? 0.3;
   $: theme = $ptState.settings?.theme ?? 'auto';
-
-  // Update sound enabled setting
-  async function toggleSound() {
-    if (!$ptState.settings) return;
-
-    const newSettings: AppSettings = {
-      ...$ptState.settings,
-      soundEnabled: !soundEnabled
-    };
-
-    try {
-      await ptService.saveSettings(newSettings);
-      const settings = await ptService.getSettings();
-      ptState.update((state) => ({ ...state, settings }));
-      toastStore.show(`Sound ${!soundEnabled ? 'enabled' : 'disabled'}`, 'success');
-    } catch (error) {
-      console.error('Error updating sound setting:', error);
-      toastStore.show('Failed to update setting', 'error');
-    }
-  }
-
-  // Update sound volume setting
-  async function updateVolume(event: Event) {
-    if (!$ptState.settings) return;
-
-    const target = event.target as HTMLInputElement;
-    const newVolume = parseFloat(target.value);
-
-    const newSettings: AppSettings = {
-      ...$ptState.settings,
-      soundVolume: newVolume
-    };
-
-    try {
-      await ptService.saveSettings(newSettings);
-      const settings = await ptService.getSettings();
-      ptState.update((state) => ({ ...state, settings }));
-    } catch (error) {
-      console.error('Error updating volume:', error);
-      toastStore.show('Failed to update volume', 'error');
-    }
-  }
 
   // Update theme setting
   async function updateTheme(event: Event) {
@@ -118,38 +76,6 @@
       <h2 class="section-title">Quick Access</h2>
 
       <div class="quick-settings">
-        <!-- Audio Setting -->
-        <div class="quick-setting-item">
-          <div class="setting-info">
-            <div class="setting-label">
-              <span class="material-icons">volume_up</span>
-              <span>Audio</span>
-            </div>
-          </div>
-          <div class="setting-controls">
-            <label class="toggle-switch">
-              <input
-                type="checkbox"
-                checked={soundEnabled}
-                on:change={toggleSound}
-              />
-              <span class="toggle-slider"></span>
-            </label>
-            {#if soundEnabled}
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={soundVolume}
-                on:input={updateVolume}
-                class="volume-slider"
-                aria-label="Volume"
-              />
-            {/if}
-          </div>
-        </div>
-
         <!-- Theme Setting -->
         <div class="quick-setting-item">
           <div class="setting-info">
@@ -185,6 +111,30 @@
           <div class="card-meta">
             <span class="material-icons">folder</span>
             <span>{$ptState.sessionDefinitions.length} {$ptState.sessionDefinitions.length === 1 ? 'session' : 'sessions'}</span>
+          </div>
+        </div>
+        <div class="card-arrow">
+          <span class="material-icons">chevron_right</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Audio & Sound Section -->
+    <section class="settings-section">
+      <h2 class="section-title">Audio & Sound</h2>
+
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <div class="settings-card" on:click={() => (showAudioSettings = true)}>
+        <div class="card-icon">
+          <span class="material-icons">volume_up</span>
+        </div>
+        <div class="card-content">
+          <h3>Audio Settings</h3>
+          <p>Configure audio cues and sound preferences</p>
+          <div class="card-meta">
+            <span class="material-icons">settings</span>
+            <span>Volume, countdown, warnings, and more</span>
           </div>
         </div>
         <div class="card-arrow">
@@ -334,6 +284,10 @@
 
 {#if showTimingSettings}
   <TimingSettingsModal on:close={() => (showTimingSettings = false)} />
+{/if}
+
+{#if showAudioSettings}
+  <AudioSettingsModal on:close={() => (showAudioSettings = false)} />
 {/if}
 
 {#if showBackupModal}

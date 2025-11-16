@@ -54,7 +54,11 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: 'auto',
   exerciseSortOrder: 'alphabetical',
   soundEnabled: true,
-  soundVolume: 0.3, // 30% volume
+  soundVolume: 0.7, // 70% volume (master volume)
+  audioLeadInEnabled: true, // 3-2-1 countdown enabled by default
+  audioContinuousTicksEnabled: false, // Continuous ticks OFF by default
+  audioPerRepBeepsEnabled: false, // Per-rep beeps OFF by default
+  audioWarningTonesEnabled: true, // Warning tones enabled by default
   enableNotifications: false
 };
 

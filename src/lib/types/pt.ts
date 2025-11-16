@@ -142,7 +142,13 @@ export interface AppSettings {
 
   // Sound preferences
   soundEnabled: boolean;
-  soundVolume: number; // 0.0 to 1.0
+  soundVolume: number; // 0.0 to 1.0 (master volume)
+
+  // Audio cue preferences
+  audioLeadInEnabled: boolean; // 3-2-1 countdown before exercises
+  audioContinuousTicksEnabled: boolean; // Tick every second during duration exercises
+  audioPerRepBeepsEnabled: boolean; // Beep on each rep completion
+  audioWarningTonesEnabled: boolean; // Warning tones near end of exercises/rest
 
   // Feature flags (for future use)
   enableNotifications?: boolean;

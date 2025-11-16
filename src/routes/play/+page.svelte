@@ -62,6 +62,15 @@
     });
   }
 
+  // Update audio service when settings change
+  $: if ($ptState.settings) {
+    audioService.setMasterVolume($ptState.settings.soundVolume);
+    audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
+    audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
+    audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
+    audioService.setWarningTonesEnabled($ptState.settings.audioWarningTonesEnabled);
+  }
+
   // Audio helper function
   function playSound(soundType: 'countdown' | 'duration' | 'rep' | 'rest' | 'complete') {
     if (!$ptState.settings?.soundEnabled) return;
@@ -117,10 +126,19 @@
     }
   }
 
-  // Unlock audio on mount (required for mobile browsers)
+  // Unlock audio and configure settings on mount
   onMount(() => {
     audioService.unlock();
     requestWakeLock();
+
+    // Configure audio service with user settings
+    if ($ptState.settings) {
+      audioService.setMasterVolume($ptState.settings.soundVolume);
+      audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
+      audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
+      audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
+      audioService.setWarningTonesEnabled($ptState.settings.audioWarningTonesEnabled);
+    }
   });
 
   // Wait for ptState to be initialized, then load session
