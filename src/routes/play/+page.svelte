@@ -51,6 +51,9 @@
   // Auto-scroll support for exercise list
   let exerciseElements: HTMLElement[] = [];
 
+  // Wake Lock to keep screen awake during session
+  let wakeLock: any = null;
+
   // Scroll active exercise into view when index changes
   $: if (currentExerciseIndex >= 0 && exerciseElements[currentExerciseIndex]) {
     exerciseElements[currentExerciseIndex].scrollIntoView({
@@ -84,9 +87,40 @@
     }
   }
 
+  // Request wake lock to keep screen awake
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await (navigator as any).wakeLock.request('screen');
+        console.log('Wake Lock activated');
+
+        // Re-request wake lock if it's released (e.g., user switches tabs)
+        wakeLock.addEventListener('release', () => {
+          console.log('Wake Lock released');
+        });
+      }
+    } catch (err) {
+      console.error('Wake Lock request failed:', err);
+    }
+  }
+
+  // Release wake lock
+  async function releaseWakeLock() {
+    if (wakeLock) {
+      try {
+        await wakeLock.release();
+        wakeLock = null;
+        console.log('Wake Lock released manually');
+      } catch (err) {
+        console.error('Wake Lock release failed:', err);
+      }
+    }
+  }
+
   // Unlock audio on mount (required for mobile browsers)
   onMount(() => {
     audioService.unlock();
+    requestWakeLock();
   });
 
   // Wait for ptState to be initialized, then load session
@@ -161,6 +195,7 @@
 
   onDestroy(() => {
     clearTimers();
+    releaseWakeLock();
   });
 
   async function createSessionInstance() {
@@ -748,24 +783,25 @@
   .control-buttons {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-md);
+    gap: 1rem;
+    margin-top: 1.25rem;
     align-items: center;
   }
 
   .pause-btn {
     background-color: rgba(255, 255, 255, 0.2);
     border: none;
-    border-radius: var(--border-radius);
-    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 12px;
+    padding: 1rem var(--spacing-md);
     color: white;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    font-size: var(--font-size-base);
+    font-size: 1.1rem;
     transition: background-color 0.2s;
     justify-self: start;
+    min-height: 48px;
   }
 
   .pause-btn:hover {
@@ -781,7 +817,7 @@
   }
 
   .countdown-number {
-    font-size: 4rem;
+    font-size: clamp(3rem, 10vw, 5rem);
     font-weight: 700;
     line-height: 1;
   }
@@ -820,6 +856,7 @@
   }
 
   .exercise-header {
+    min-height: 3.5rem;
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
@@ -850,7 +887,7 @@
   }
 
   .timer-display {
-    font-size: 4rem;
+    font-size: clamp(3rem, 10vw, 5rem);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     line-height: 1;
@@ -899,16 +936,17 @@
   .skip-btn {
     background-color: rgba(255, 255, 255, 0.2);
     border: none;
-    border-radius: var(--border-radius);
-    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 12px;
+    padding: 1rem var(--spacing-md);
     color: white;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    font-size: var(--font-size-base);
+    font-size: 1.1rem;
     transition: background-color 0.2s;
     justify-self: end;
+    min-height: 48px;
   }
 
   .skip-btn:hover {
@@ -919,15 +957,16 @@
     background-color: white;
     color: var(--primary-color);
     border: none;
-    border-radius: var(--border-radius);
-    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 12px;
+    padding: 1rem var(--spacing-md);
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    font-size: var(--font-size-base);
+    font-size: 1.1rem;
     font-weight: 600;
     transition: all 0.2s;
+    min-height: 48px;
   }
 
   .start-now-btn:hover {
@@ -937,19 +976,20 @@
 
   .exit-buttons {
     display: flex;
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-md);
+    gap: 1rem;
+    margin-top: 2rem;
   }
 
   .btn {
     flex: 1;
-    padding: var(--spacing-md);
-    border-radius: var(--border-radius);
-    font-size: var(--font-size-base);
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 1.1rem;
     font-weight: 500;
     cursor: pointer;
     border: none;
     transition: all 0.2s ease;
+    min-height: 48px;
   }
 
   .btn-primary {
