@@ -364,9 +364,9 @@
       </div>
 
       <div class="form-group">
-        <label>
+        <h4 class="form-label">
           Session Exercises {#if sessionFormData.selectedExercises.length > 0}({sessionFormData.selectedExercises.length}){/if}
-        </label>
+        </h4>
         {#if sessionFormData.selectedExercises.length > 0}
           <div class="selected-exercises-list">
             {#each sessionFormData.selectedExercises as exerciseId, index (exerciseId)}
@@ -421,9 +421,9 @@
       </div>
 
       <div class="form-group">
-        <label>
+        <h4 class="form-label">
           Add Exercises <span class="required">*</span>
-        </label>
+        </h4>
         <div class="exercise-selector">
           {#if $ptState.exercises.length === 0}
             <p class="empty-hint">No exercises available. Add exercises first.</p>

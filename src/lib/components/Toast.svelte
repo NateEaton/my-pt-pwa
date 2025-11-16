@@ -21,6 +21,13 @@
       default: return 'info';
     }
   }
+
+  function handleToastKeydown(event: KeyboardEvent, toastId: string) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      toastStore.dismiss(toastId);
+    }
+  }
 </script>
 
 <div class="toast-container">
@@ -29,7 +36,10 @@
       class="toast toast-{toast.type}"
       transition:fly={{ y: 50, duration: 300 }}
       on:click={() => toastStore.dismiss(toast.id)}
-      role="alert"
+      on:keydown={(e) => handleToastKeydown(e, toast.id)}
+      role="button"
+      tabindex="0"
+      aria-label="Dismiss notification"
     >
       <span class="material-icons toast-icon">{getIconForType(toast.type)}</span>
       <span class="toast-message">{toast.message}</span>
