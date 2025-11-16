@@ -1,0 +1,889 @@
+<!--
+ * My PT - Physical Therapy Tracker PWA
+ * Copyright (C) 2025 Your Name
+ *
+ * ExerciseManagementModal Component - Manage exercise library
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+-->
+
+<script lang="ts">
+  import { createEventDispatcher } from 'svelte';
+  import Modal from './Modal.svelte';
+  import ConfirmDialog from './ConfirmDialog.svelte';
+  import { ptState, ptService } from '$lib/stores/pt';
+  import { toastStore } from '$lib/stores/toast';
+  import type { Exercise, SessionDefinition } from '$lib/types/pt';
+
+  const dispatch = createEventDispatcher();
+
+  // Exercise form modal state
+  let showExerciseForm = false;
+  let editingExercise: Exercise | null = null;
+
+  // Delete confirmation state
+  let showDeleteConfirm = false;
+  let showEmptySessionConfirm = false;
+  let exerciseToDelete: Exercise | null = null;
+  let sessionsUsingExercise: SessionDefinition[] = [];
+  let exerciseJournalReferences = 0;
+  let emptySessionsAfterDeletion: SessionDefinition[] = [];
+  let currentEmptySessionIndex = 0;
+
+  // Search and sort state
+  let searchQuery = '';
+  let sortField: 'name' | 'dateAdded' | 'usage' = 'name';
+  let sortAsc = true;
+
+  // Exercise form data
+  let exerciseFormData = {
+    name: '',
+    type: 'duration' as 'duration' | 'reps',
+    defaultDuration: 60,
+    defaultReps: 10,
+    defaultSets: 3,
+    defaultRepDuration: 2,
+    instructions: '',
+    includeInDefault: true
+  };
+
+  // Computed: filtered and sorted exercises
+  $: filteredExercises = filterAndSortExercises($ptState.exercises, searchQuery, sortField, sortAsc);
+
+  function filterAndSortExercises(
+    exercises: Exercise[],
+    query: string,
+    field: 'name' | 'dateAdded' | 'usage',
+    ascending: boolean
+  ): Exercise[] {
+    // Filter by search query
+    let filtered = exercises;
+    if (query.trim()) {
+      const lowerQuery = query.toLowerCase();
+      filtered = exercises.filter(exercise =>
+        exercise.name.toLowerCase().includes(lowerQuery) ||
+        exercise.instructions?.toLowerCase().includes(lowerQuery)
+      );
+    }
+
+    // Sort
+    const sorted = [...filtered].sort((a, b) => {
+      let comparison = 0;
+
+      switch (field) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'dateAdded':
+          comparison = new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime();
+          break;
+        case 'usage':
+          // Usage sorting would require counting session instance references
+          // For now, fall back to dateAdded (most recent first)
+          comparison = new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
+          break;
+      }
+
+      return ascending ? comparison : -comparison;
+    });
+
+    return sorted;
+  }
+
+  function toggleSort(field: 'name' | 'dateAdded' | 'usage') {
+    if (sortField === field) {
+      sortAsc = !sortAsc;
+    } else {
+      sortField = field;
+      sortAsc = true;
+    }
+  }
+
+  function handleClose() {
+    dispatch('close');
+  }
+
+  // ========== Exercise CRUD Functions ==========
+
+  function openAddExercise() {
+    editingExercise = null;
+    resetExerciseForm();
+    showExerciseForm = true;
+  }
+
+  function openEditExercise(exercise: Exercise) {
+    editingExercise = exercise;
+    exerciseFormData = {
+      name: exercise.name,
+      type: exercise.type,
+      defaultDuration: exercise.defaultDuration || 60,
+      defaultReps: exercise.defaultReps || 10,
+      defaultSets: exercise.defaultSets || 3,
+      defaultRepDuration: exercise.defaultRepDuration || 2,
+      instructions: exercise.instructions || '',
+      includeInDefault: exercise.includeInDefault
+    };
+    showExerciseForm = true;
+  }
+
+  function resetExerciseForm() {
+    exerciseFormData = {
+      name: '',
+      type: 'duration',
+      defaultDuration: 60,
+      defaultReps: 10,
+      defaultSets: 3,
+      defaultRepDuration: 2,
+      instructions: '',
+      includeInDefault: true
+    };
+  }
+
+  function closeExerciseForm() {
+    showExerciseForm = false;
+    resetExerciseForm();
+  }
+
+  async function saveExercise() {
+    if (!exerciseFormData.name.trim()) {
+      toastStore.show('Please enter an exercise name', 'error');
+      return;
+    }
+
+    try {
+      if (editingExercise) {
+        const updated: Exercise = {
+          ...editingExercise,
+          name: exerciseFormData.name.trim(),
+          type: exerciseFormData.type,
+          defaultDuration: exerciseFormData.type === 'duration' ? exerciseFormData.defaultDuration : undefined,
+          defaultReps: exerciseFormData.type === 'reps' ? exerciseFormData.defaultReps : undefined,
+          defaultSets: exerciseFormData.type === 'reps' ? exerciseFormData.defaultSets : undefined,
+          defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
+          instructions: exerciseFormData.instructions.trim() || undefined,
+          includeInDefault: exerciseFormData.includeInDefault
+        };
+
+        await ptService.updateExercise(updated);
+        toastStore.show('Exercise updated successfully', 'success');
+      } else {
+        const newExercise: Omit<Exercise, 'id'> = {
+          name: exerciseFormData.name.trim(),
+          type: exerciseFormData.type,
+          defaultDuration: exerciseFormData.type === 'duration' ? exerciseFormData.defaultDuration : undefined,
+          defaultReps: exerciseFormData.type === 'reps' ? exerciseFormData.defaultReps : undefined,
+          defaultSets: exerciseFormData.type === 'reps' ? exerciseFormData.defaultSets : undefined,
+          defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
+          instructions: exerciseFormData.instructions.trim() || undefined,
+          includeInDefault: exerciseFormData.includeInDefault,
+          dateAdded: new Date().toISOString()
+        };
+
+        await ptService.addExercise(newExercise);
+        toastStore.show('Exercise added successfully', 'success');
+      }
+
+      await reloadData();
+      closeExerciseForm();
+    } catch (error) {
+      console.error('Failed to save exercise:', error);
+      toastStore.show('Failed to save exercise', 'error');
+    }
+  }
+
+  async function confirmDeleteExercise(exercise: Exercise, event: Event) {
+    event.stopPropagation();
+    exerciseToDelete = exercise;
+
+    // Find all sessions using this exercise
+    sessionsUsingExercise = $ptState.sessionDefinitions.filter(session =>
+      session.exercises.some(ex => ex.exerciseId === exercise.id)
+    );
+
+    // Count journal entries referencing this exercise (for info only)
+    const allInstances = await ptService.getSessionInstances();
+    exerciseJournalReferences = allInstances.filter(instance =>
+      instance.completedExercises.some(ex => ex.exerciseId === exercise.id)
+    ).length;
+
+    showDeleteConfirm = true;
+  }
+
+  async function deleteExercise() {
+    if (!exerciseToDelete) return;
+
+    try {
+      // Remove exercise from all sessions
+      for (const session of sessionsUsingExercise) {
+        const updatedExercises = session.exercises.filter(ex => ex.exerciseId !== exerciseToDelete.id);
+        const updated = { ...session, exercises: updatedExercises };
+        await ptService.updateSessionDefinition(updated);
+      }
+
+      // Delete the exercise
+      await ptService.deleteExercise(exerciseToDelete.id);
+
+      // Check for empty sessions
+      emptySessionsAfterDeletion = [];
+      for (const session of sessionsUsingExercise) {
+        const updatedSession = await ptService.getSessionDefinitionById(session.id);
+        if (updatedSession && updatedSession.exercises.length === 0) {
+          emptySessionsAfterDeletion.push(updatedSession);
+        }
+      }
+
+      await reloadData();
+      showDeleteConfirm = false;
+
+      // Show empty session cleanup dialog if needed
+      if (emptySessionsAfterDeletion.length > 0) {
+        currentEmptySessionIndex = 0;
+        showEmptySessionConfirm = true;
+      } else {
+        toastStore.show('Exercise deleted', 'success');
+        exerciseToDelete = null;
+        sessionsUsingExercise = [];
+      }
+    } catch (error) {
+      console.error('Failed to delete exercise:', error);
+      toastStore.show('Failed to delete exercise', 'error');
+    }
+  }
+
+  async function deleteEmptySession() {
+    if (currentEmptySessionIndex >= emptySessionsAfterDeletion.length) return;
+
+    const session = emptySessionsAfterDeletion[currentEmptySessionIndex];
+    try {
+      await ptService.deleteSessionDefinition(session.id);
+      currentEmptySessionIndex++;
+
+      if (currentEmptySessionIndex < emptySessionsAfterDeletion.length) {
+        // More sessions to process
+        await reloadData();
+      } else {
+        // Done with all empty sessions
+        await reloadData();
+        showEmptySessionConfirm = false;
+        emptySessionsAfterDeletion = [];
+        currentEmptySessionIndex = 0;
+        exerciseToDelete = null;
+        sessionsUsingExercise = [];
+        toastStore.show('Exercise and empty sessions deleted', 'success');
+      }
+    } catch (error) {
+      console.error('Failed to delete empty session:', error);
+      toastStore.show('Failed to delete session', 'error');
+    }
+  }
+
+  function keepEmptySession() {
+    currentEmptySessionIndex++;
+
+    if (currentEmptySessionIndex < emptySessionsAfterDeletion.length) {
+      // More sessions to process
+    } else {
+      // Done with all empty sessions
+      showEmptySessionConfirm = false;
+      emptySessionsAfterDeletion = [];
+      currentEmptySessionIndex = 0;
+      exerciseToDelete = null;
+      sessionsUsingExercise = [];
+      toastStore.show('Exercise deleted', 'success');
+    }
+  }
+
+  async function reloadData() {
+    const exercises = await ptService.getExercises();
+    const sessionDefinitions = await ptService.getSessionDefinitions();
+    ptState.update((state) => ({ ...state, exercises, sessionDefinitions }));
+  }
+
+  // ========== Helper Functions ==========
+
+  function formatDuration(seconds: number): string {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return secs > 0 ? `${minutes}m ${secs}s` : `${minutes}m`;
+  }
+</script>
+
+<Modal fullScreen={true} title="Exercise Library" on:close={handleClose}>
+  <div slot="headerActions">
+    <button class="icon-button" on:click={openAddExercise} aria-label="Add exercise">
+      <span class="material-icons">add</span>
+    </button>
+  </div>
+
+  <div class="management-content">
+    <!-- Search Bar -->
+    <div class="search-bar">
+      <span class="material-icons search-icon">search</span>
+      <input
+        type="text"
+        placeholder="Search exercises..."
+        bind:value={searchQuery}
+        class="search-input"
+      />
+      {#if searchQuery}
+        <button class="clear-search" on:click={() => (searchQuery = '')} aria-label="Clear search">
+          <span class="material-icons">close</span>
+        </button>
+      {/if}
+    </div>
+
+    <!-- Sort Header (Table-Column-Style) -->
+    <div class="sort-header">
+      <button class="sort-button" on:click={() => toggleSort('name')}>
+        <span>Name</span>
+        <span class="material-icons sort-icon">
+          {sortField === 'name' ? (sortAsc ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+        </span>
+      </button>
+      <button class="sort-button" on:click={() => toggleSort('dateAdded')}>
+        <span>Created</span>
+        <span class="material-icons sort-icon">
+          {sortField === 'dateAdded' ? (sortAsc ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+        </span>
+      </button>
+      <button class="sort-button" on:click={() => toggleSort('usage')}>
+        <span>Usage</span>
+        <span class="material-icons sort-icon">
+          {sortField === 'usage' ? (sortAsc ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+        </span>
+      </button>
+    </div>
+
+    <!-- Exercises List -->
+    {#if filteredExercises.length === 0}
+      <div class="empty-state">
+        {#if searchQuery}
+          <span class="material-icons empty-icon">search_off</span>
+          <p>No exercises found</p>
+          <p class="empty-hint">Try a different search term</p>
+        {:else}
+          <span class="material-icons empty-icon">self_improvement</span>
+          <p>No exercises yet</p>
+          <p class="empty-hint">Add your first exercise to get started</p>
+        {/if}
+      </div>
+    {:else}
+      <div class="exercise-list">
+        {#each filteredExercises as exercise (exercise.id)}
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <div class="exercise-card" on:click={() => openEditExercise(exercise)}>
+            <div class="exercise-info">
+              <div class="exercise-header">
+                <h3 class="exercise-name">{exercise.name}</h3>
+                <span class="exercise-type-badge" class:is-duration={exercise.type === 'duration'}>
+                  {exercise.type === 'duration' ? 'Duration' : 'Reps/Sets'}
+                </span>
+              </div>
+
+              <div class="exercise-details">
+                {#if exercise.type === 'duration'}
+                  <span class="detail-item">
+                    <span class="material-icons detail-icon">timer</span>
+                    {formatDuration(exercise.defaultDuration || 0)}
+                  </span>
+                {:else}
+                  <span class="detail-item">
+                    <span class="material-icons detail-icon">repeat</span>
+                    {exercise.defaultReps} × {exercise.defaultSets}
+                  </span>
+                {/if}
+              </div>
+
+              {#if exercise.instructions}
+                <p class="exercise-instructions">{exercise.instructions}</p>
+              {/if}
+            </div>
+
+            <div class="exercise-actions">
+              <button
+                class="icon-button delete"
+                on:click={(e) => confirmDeleteExercise(exercise, e)}
+                aria-label="Delete exercise"
+              >
+                <span class="material-icons">delete</span>
+              </button>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
+</Modal>
+
+<!-- Exercise Form Modal (Nested) -->
+{#if showExerciseForm}
+  <Modal
+    title={editingExercise ? 'Edit Exercise' : 'Add Exercise'}
+    on:close={closeExerciseForm}
+  >
+    <form on:submit|preventDefault={saveExercise} class="exercise-form">
+      <div class="form-group">
+        <label for="exercise-name">
+          Exercise Name <span class="required">*</span>
+        </label>
+        <input
+          id="exercise-name"
+          type="text"
+          bind:value={exerciseFormData.name}
+          placeholder="e.g., Wall Slides"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="exercise-type">Exercise Type</label>
+        <select id="exercise-type" bind:value={exerciseFormData.type}>
+          <option value="duration">Duration (timed exercise)</option>
+          <option value="reps">Reps & Sets</option>
+        </select>
+      </div>
+
+      {#if exerciseFormData.type === 'duration'}
+        <div class="form-group">
+          <label for="default-duration">Default Duration (seconds)</label>
+          <input
+            id="default-duration"
+            type="number"
+            bind:value={exerciseFormData.defaultDuration}
+            min="1"
+            step="1"
+          />
+        </div>
+      {:else}
+        <div class="form-row">
+          <div class="form-group">
+            <label for="default-reps">Reps per Set</label>
+            <input
+              id="default-reps"
+              type="number"
+              bind:value={exerciseFormData.defaultReps}
+              min="1"
+              step="1"
+            />
+          </div>
+          <div class="form-group">
+            <label for="default-sets">Number of Sets</label>
+            <input
+              id="default-sets"
+              type="number"
+              bind:value={exerciseFormData.defaultSets}
+              min="1"
+              step="1"
+            />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="rep-duration">Duration per Rep (seconds)</label>
+          <input
+            id="rep-duration"
+            type="number"
+            bind:value={exerciseFormData.defaultRepDuration}
+            min="1"
+            step="0.5"
+          />
+        </div>
+      {/if}
+
+      <div class="form-group">
+        <label for="instructions">Instructions (optional)</label>
+        <textarea
+          id="instructions"
+          bind:value={exerciseFormData.instructions}
+          placeholder="Exercise instructions or notes"
+          rows="3"
+        />
+      </div>
+    </form>
+
+    <div slot="footer" class="modal-actions">
+      <button class="btn btn-secondary" on:click={closeExerciseForm}>
+        Cancel
+      </button>
+      <button class="btn btn-primary" on:click={saveExercise}>
+        {editingExercise ? 'Update' : 'Add'} Exercise
+      </button>
+    </div>
+  </Modal>
+{/if}
+
+<!-- Delete Exercise Confirmation -->
+{#if showDeleteConfirm && exerciseToDelete}
+  <ConfirmDialog
+    title="Delete Exercise"
+    message={`Are you sure you want to delete '${exerciseToDelete.name}'?${
+      sessionsUsingExercise.length > 0
+        ? `\n\nThis exercise is used in ${sessionsUsingExercise.length} session(s). It will be removed from them.`
+        : ''
+    }${
+      exerciseJournalReferences > 0
+        ? `\n\nIt is referenced in ${exerciseJournalReferences} journal entry/entries (they will not be affected).`
+        : ''
+    }`}
+    confirmText="Delete"
+    confirmClass="danger"
+    on:confirm={deleteExercise}
+    on:cancel={() => {
+      showDeleteConfirm = false;
+      exerciseToDelete = null;
+      sessionsUsingExercise = [];
+      exerciseJournalReferences = 0;
+    }}
+  />
+{/if}
+
+<!-- Empty Session Confirmation (shown after exercise deletion) -->
+{#if showEmptySessionConfirm && emptySessionsAfterDeletion.length > 0 && currentEmptySessionIndex < emptySessionsAfterDeletion.length}
+  {@const session = emptySessionsAfterDeletion[currentEmptySessionIndex]}
+  <ConfirmDialog
+    title="Delete Empty Session?"
+    message={`Session '${session.name}' is now empty. Do you want to delete it?\n\n(${currentEmptySessionIndex + 1} of ${emptySessionsAfterDeletion.length} empty sessions)`}
+    confirmText="Delete Session"
+    cancelText="Keep Session"
+    confirmClass="danger"
+    on:confirm={deleteEmptySession}
+    on:cancel={keepEmptySession}
+  />
+{/if}
+
+<style>
+  .management-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  /* Search Bar */
+  .search-bar {
+    position: relative;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--divider);
+    flex-shrink: 0;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: calc(var(--spacing-lg) + var(--spacing-sm));
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-hint);
+    font-size: var(--icon-size-md);
+    pointer-events: none;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    padding-left: calc(var(--spacing-md) + var(--icon-size-md) + var(--spacing-sm));
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius);
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-alpha-10);
+  }
+
+  .clear-search {
+    position: absolute;
+    right: calc(var(--spacing-lg) + var(--spacing-sm));
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-hint);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .clear-search:hover {
+    color: var(--text-secondary);
+  }
+
+  .clear-search .material-icons {
+    font-size: var(--icon-size-sm);
+  }
+
+  /* Sort Header */
+  .sort-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    background-color: var(--surface-variant);
+    border-bottom: 1px solid var(--divider);
+    flex-shrink: 0;
+  }
+
+  .sort-button {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .sort-button:hover {
+    color: var(--text-primary);
+  }
+
+  .sort-icon {
+    font-size: var(--icon-size-sm);
+  }
+
+  /* Exercise List */
+  .exercise-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-md) var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .exercise-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md);
+    background-color: var(--surface);
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .exercise-card:hover {
+    background-color: var(--surface-variant);
+    border-color: var(--primary-color);
+  }
+
+  .exercise-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .exercise-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+    flex-wrap: wrap;
+  }
+
+  .exercise-name {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .exercise-type-badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--surface-variant);
+    color: var(--text-secondary);
+    border-radius: calc(var(--border-radius) / 2);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+  }
+
+  .exercise-type-badge.is-duration {
+    background-color: var(--primary-alpha-10);
+    color: var(--primary-color);
+  }
+
+  .exercise-details {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xs);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  .detail-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .detail-icon {
+    font-size: var(--icon-size-sm);
+  }
+
+  .exercise-instructions {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .exercise-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-left: var(--spacing-md);
+  }
+
+  .icon-button {
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .icon-button:hover {
+    background-color: var(--hover-overlay);
+    color: var(--text-primary);
+  }
+
+  .icon-button.delete:hover {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: var(--error-color);
+  }
+
+  /* Empty State */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-2xl);
+    text-align: center;
+    color: var(--text-secondary);
+  }
+
+  .empty-icon {
+    font-size: 4rem;
+    color: var(--text-hint);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .empty-state p {
+    margin: var(--spacing-xs) 0;
+  }
+
+  .empty-hint {
+    font-size: var(--font-size-sm);
+    color: var(--text-hint);
+  }
+
+  /* Exercise Form */
+  .exercise-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+  }
+
+  .form-group label {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .required {
+    color: var(--error-color);
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="number"],
+  .form-group select,
+  .form-group textarea {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius);
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    font-family: inherit;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-alpha-10);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: flex-end;
+    padding: var(--spacing-lg);
+    border-top: 1px solid var(--divider);
+  }
+
+  @media (max-width: 480px) {
+    .sort-header {
+      grid-template-columns: 2fr 1fr 1fr;
+      padding: var(--spacing-xs) var(--spacing-md);
+    }
+
+    .sort-button {
+      font-size: var(--font-size-xs);
+      padding: var(--spacing-xs);
+    }
+
+    .exercise-list {
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .exercise-card {
+      padding: var(--spacing-sm);
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
