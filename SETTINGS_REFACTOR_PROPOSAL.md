@@ -22,30 +22,35 @@ Settings
 - ❌ Inconsistent patterns (some inline, some modals)
 - ❌ Hard to scan and find specific settings
 
-### Desired Calcium App Pattern (Clean)
+### Desired Pattern for My PT (Clean & Refined)
 ```
-Settings
-├── App Settings (section)
-│   ├── Theme (inline select)
-│   └── Exercise Sort Order (inline select)
-├── Timing (section)
-│   ├── Default Rep Duration (inline input)
-│   ├── Start Countdown (inline input)
-│   └── ... (other timing settings)
-├── Sound (section)
-│   ├── Sound Enabled (inline toggle)
-│   └── Volume (inline slider/input)
-├── Exercises (section)
-│   └── Manage Exercises → (nav button opens modal)
-├── Sessions (section)
-│   └── Manage Sessions → (nav button opens modal)
-├── Data (section)
-│   ├── Backup → (nav button opens modal)
-│   └── Restore → (nav button opens modal)
-└── Help & About (section)
-    ├── User Guide → (nav button opens dialog)
-    └── About → (nav button opens dialog)
+Settings (Quick Access at Top)
+├── Audio (inline)
+│   ├── Sound Enabled (checkbox/toggle)
+│   └── Volume (slider - shown when enabled)
+└── Theme (inline select)
+
+Settings (Navigation Sections)
+├── Sessions
+│   └── Manage Sessions → (nav button opens full-screen modal)
+├── Exercise Library
+│   └── Manage Exercise Library → (nav button opens full-screen modal)
+├── Timing
+│   └── Timing Settings → (nav button opens full-screen modal)
+├── Data
+│   ├── Backup → (nav button opens full-screen modal)
+│   └── Restore → (nav button opens full-screen modal)
+└── Help & About
+    ├── User Guide → (nav button opens full-screen dialog)
+    └── About → (nav button opens full-screen dialog)
 ```
+
+**Session & Exercise Modals:**
+- Full-screen scrollable content
+- Create/Add button in header (top right)
+- Sort buttons in list header (table-column-style: Name ↕, Created ↕, Frequency ↕)
+- Click any card to edit
+- Delete button on each card
 
 **Benefits:**
 - ✅ Clean, scannable interface
@@ -64,13 +69,19 @@ Move complex sections into dedicated modal components (like Calcium app does).
 **New Components to Create:**
 ```
 src/lib/components/
-├── ExerciseManagementModal.svelte    (NEW)
-├── SessionManagementModal.svelte     (NEW)
-├── BackupModal.svelte                (NEW)
-├── RestoreModal.svelte               (NEW)
-└── GuideDialog.svelte                (NEW - from other proposal)
-└── AboutDialog.svelte                (NEW - from other proposal)
+├── ExerciseManagementModal.svelte    (NEW - full-screen)
+├── SessionManagementModal.svelte     (NEW - full-screen)
+├── TimingSettingsModal.svelte        (NEW - full-screen)
+├── BackupModal.svelte                (NEW - full-screen)
+├── RestoreModal.svelte               (NEW - full-screen)
+├── GuideDialog.svelte                (NEW - full-screen)
+└── AboutDialog.svelte                (NEW - full-screen)
 ```
+
+**Key Pattern: All Modals Full-Screen**
+- Consistent user experience
+- Better mobile optimization
+- More room for content and controls
 
 ### Phase 2: Reorganize Settings Page
 Restructure into clean sections with navigation items.
@@ -81,106 +92,366 @@ Restructure into clean sections with navigation items.
 
 ### 1. ExerciseManagementModal.svelte
 
-**Purpose:** Manage all exercises in a dedicated modal
+**Purpose:** Manage all exercises in a dedicated full-screen modal
 
 **Structure:**
 ```svelte
-<Modal fullScreen={true} title="Manage Exercises" on:close>
+<Modal fullScreen={true} title="Exercise Library" on:close>
   <div slot="headerActions">
-    <button on:click={openAddExercise}>
+    <button class="icon-button" on:click={openAddExercise} aria-label="Add exercise">
       <span class="material-icons">add</span>
     </button>
   </div>
 
-  <!-- Search/Filter Bar -->
-  <div class="exercise-filters">
-    <input type="text" placeholder="Search exercises..." bind:value={searchQuery} />
-    <select bind:value={filterType}>
-      <option value="all">All Exercises</option>
-      <option value="duration">Duration-based</option>
-      <option value="reps">Reps-based</option>
-      <option value="default">In Default Session</option>
-    </select>
+  <!-- Search Bar -->
+  <div class="search-bar">
+    <span class="material-icons search-icon">search</span>
+    <input
+      type="text"
+      placeholder="Search exercises..."
+      bind:value={searchQuery}
+      class="search-input"
+    />
+    {#if searchQuery}
+      <button class="clear-search" on:click={() => searchQuery = ''}>
+        <span class="material-icons">close</span>
+      </button>
+    {/if}
   </div>
 
-  <!-- Exercise List (current content from Settings page) -->
+  <!-- Sort Header (Table-Column-Style) -->
+  <div class="sort-header">
+    <button class="sort-button" on:click={() => toggleSort('name')}>
+      <span>Name</span>
+      <span class="material-icons sort-icon">
+        {sortField === 'name' ? (sortAsc ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+      </span>
+    </button>
+    <button class="sort-button" on:click={() => toggleSort('dateAdded')}>
+      <span>Created</span>
+      <span class="material-icons sort-icon">
+        {sortField === 'dateAdded' ? (sortAsc ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+      </span>
+    </button>
+    <button class="sort-button" on:click={() => toggleSort('frequency')}>
+      <span>Usage</span>
+      <span class="material-icons sort-icon">
+        {sortField === 'frequency' ? (sortAsc ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+      </span>
+    </button>
+  </div>
+
+  <!-- Exercise List (scrollable) -->
   <div class="exercise-list">
-    {#each filteredExercises as exercise}
-      <div class="exercise-card">
-        <!-- Current exercise card content -->
+    {#if filteredExercises.length === 0}
+      <div class="empty-state">
+        <span class="material-icons">fitness_center</span>
+        <p>{searchQuery ? 'No exercises found' : 'No exercises yet'}</p>
       </div>
-    {/each}
+    {:else}
+      {#each sortedAndFilteredExercises as exercise (exercise.id)}
+        <div class="exercise-card" on:click={() => openEditExercise(exercise)}>
+          <!-- Exercise card content - clickable to edit -->
+          <div class="exercise-info">
+            <h4>{exercise.name}</h4>
+            <span class="exercise-type">{exercise.type}</span>
+          </div>
+          <button
+            class="icon-button delete"
+            on:click|stopPropagation={() => confirmDeleteExercise(exercise)}
+            aria-label="Delete exercise"
+          >
+            <span class="material-icons">delete</span>
+          </button>
+        </div>
+      {/each}
+    {/if}
   </div>
 </Modal>
 
 <!-- Nested modals for add/edit -->
 {#if showExerciseFormModal}
-  <Modal title="{editingExercise ? 'Edit' : 'Add'} Exercise">
+  <Modal title="{editingExercise ? 'Edit' : 'Add'} Exercise" on:close={closeExerciseForm}>
     <!-- Exercise form -->
   </Modal>
 {/if}
 ```
 
 **Features:**
-- Full-screen modal for desktop, takes over screen on mobile
-- Search/filter capabilities
+- Full-screen with scrollable content
+- Search functionality
+- Table-heading-style sort buttons (Name, Created, Usage)
+- Click card to edit
+- Delete button on each card with stopPropagation
 - Add button in header
 - Nested modals for add/edit forms
-- Delete confirmations
 
 **Code to Move:**
-- Exercise list rendering (lines 648-710 from current Settings)
-- Exercise form modal (lines ~800-950)
+- Exercise list rendering (from current Settings)
+- Exercise form modal
 - Exercise CRUD functions
+- Add sort logic for frequency (usage tracking)
 
 ---
 
 ### 2. SessionManagementModal.svelte
 
-**Purpose:** Manage all session definitions in a dedicated modal
+**Purpose:** Manage all session definitions in a dedicated full-screen modal
 
 **Structure:**
 ```svelte
-<Modal fullScreen={true} title="Manage Sessions" on:close>
+<Modal fullScreen={true} title="Sessions" on:close>
   <div slot="headerActions">
-    <button on:click={openAddSession}>
+    <button class="icon-button" on:click={openAddSession} aria-label="Add session">
       <span class="material-icons">add</span>
     </button>
   </div>
 
-  <!-- Sessions List -->
+  <!-- Search Bar -->
+  <div class="search-bar">
+    <span class="material-icons search-icon">search</span>
+    <input
+      type="text"
+      placeholder="Search sessions..."
+      bind:value={searchQuery}
+      class="search-input"
+    />
+    {#if searchQuery}
+      <button class="clear-search" on:click={() => searchQuery = ''}>
+        <span class="material-icons">close</span>
+      </button>
+    {/if}
+  </div>
+
+  <!-- Sort Header (Table-Column-Style) -->
+  <div class="sort-header">
+    <button class="sort-button" on:click={() => toggleSort('name')}>
+      <span>Name</span>
+      <span class="material-icons sort-icon">
+        {sortField === 'name' ? (sortAsc ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+      </span>
+    </button>
+    <button class="sort-button" on:click={() => toggleSort('dateCreated')}>
+      <span>Created</span>
+      <span class="material-icons sort-icon">
+        {sortField === 'dateCreated' ? (sortAsc ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+      </span>
+    </button>
+    <button class="sort-button" on:click={() => toggleSort('frequency')}>
+      <span>Usage</span>
+      <span class="material-icons sort-icon">
+        {sortField === 'frequency' ? (sortAsc ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+      </span>
+    </button>
+  </div>
+
+  <!-- Sessions List (scrollable) -->
   <div class="session-list">
-    {#each sessions as session}
-      <div class="session-card">
-        <!-- Current session card content -->
-        <!-- Show default badge, exercise count, etc. -->
+    {#if filteredSessions.length === 0}
+      <div class="empty-state">
+        <span class="material-icons">playlist_play</span>
+        <p>{searchQuery ? 'No sessions found' : 'No sessions yet'}</p>
       </div>
-    {/each}
+    {:else}
+      {#each sortedAndFilteredSessions as session (session.id)}
+        <div class="session-card" on:click={() => openEditSession(session)}>
+          <!-- Session card content - clickable to edit -->
+          <div class="session-info">
+            <div class="session-header">
+              <h4>{session.name}</h4>
+              {#if session.isDefault}
+                <span class="default-badge">DEFAULT</span>
+              {/if}
+            </div>
+            <span class="session-detail">
+              {session.exercises.length} {session.exercises.length === 1 ? 'exercise' : 'exercises'}
+            </span>
+          </div>
+          <button
+            class="icon-button delete"
+            on:click|stopPropagation={() => confirmDeleteSession(session)}
+            aria-label="Delete session"
+          >
+            <span class="material-icons">delete</span>
+          </button>
+        </div>
+      {/each}
+    {/if}
   </div>
 </Modal>
 
 <!-- Nested modals for add/edit -->
 {#if showSessionFormModal}
-  <Modal title="{editingSession ? 'Edit' : 'New'} Session">
+  <Modal title="{editingSession ? 'Edit' : 'New'} Session" on:close={closeSessionForm}>
     <!-- Session form -->
   </Modal>
 {/if}
 ```
 
 **Features:**
-- Full-screen modal
+- Full-screen with scrollable content
+- Search functionality
+- Table-heading-style sort buttons (Name, Created, Usage)
+- Click card to edit
+- Delete button on each card with stopPropagation
+- Default badge prominently displayed
 - Add button in header
 - Nested modals for add/edit forms
-- Delete confirmations with empty session warnings
 
 **Code to Move:**
-- Session list rendering (lines 574-636 from current Settings)
-- Session form modal (lines ~800-900)
+- Session list rendering (from current Settings)
+- Session form modal
 - Session CRUD functions
+- Add sort logic for frequency (usage tracking)
 
 ---
 
-### 3. BackupModal.svelte
+### 3. TimingSettingsModal.svelte
+
+**Purpose:** Manage all timing-related settings in one dedicated full-screen modal
+
+**Structure:**
+```svelte
+<Modal fullScreen={true} title="Timing Settings" on:close>
+  <div class="timing-settings-content">
+    <p class="modal-description">
+      Adjust timing preferences for your exercise sessions and rest periods.
+    </p>
+
+    <!-- Settings List -->
+    <div class="settings-list">
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Default Rep Duration</span>
+          <span class="setting-description">Seconds per rep (for timing estimates)</span>
+        </div>
+        <div class="setting-control">
+          <input
+            type="number"
+            bind:value={defaultRepDuration}
+            min="1"
+            max="60"
+            class="setting-input"
+          />
+          <span class="input-suffix">s</span>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Start Countdown</span>
+          <span class="setting-description">Countdown before exercise starts</span>
+        </div>
+        <div class="setting-control">
+          <input
+            type="number"
+            bind:value={startCountdownDuration}
+            min="0"
+            max="30"
+            class="setting-input"
+          />
+          <span class="input-suffix">s</span>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">End Countdown</span>
+          <span class="setting-description">Countdown shown at end of exercise</span>
+        </div>
+        <div class="setting-control">
+          <input
+            type="number"
+            bind:value={endCountdownDuration}
+            min="0"
+            max="30"
+            class="setting-input"
+          />
+          <span class="input-suffix">s</span>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Rest Between Sets</span>
+          <span class="setting-description">Default rest time between sets</span>
+        </div>
+        <div class="setting-control">
+          <input
+            type="number"
+            bind:value={restBetweenSets}
+            min="0"
+            max="300"
+            step="5"
+            class="setting-input"
+          />
+          <span class="input-suffix">s</span>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Rest Between Exercises</span>
+          <span class="setting-description">Transition time between exercises</span>
+        </div>
+        <div class="setting-control">
+          <input
+            type="number"
+            bind:value={restBetweenExercises}
+            min="0"
+            max="300"
+            step="5"
+            class="setting-input"
+          />
+          <span class="input-suffix">s</span>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">End Session Delay</span>
+          <span class="setting-description">Delay before closing session player after completion</span>
+        </div>
+        <div class="setting-control">
+          <input
+            type="number"
+            bind:value={endSessionDelay}
+            min="0"
+            max="60"
+            class="setting-input"
+          />
+          <span class="input-suffix">s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div slot="footer" class="modal-actions">
+    <button class="btn btn-secondary" on:click={() => dispatch('close')}>
+      Cancel
+    </button>
+    <button class="btn btn-primary" on:click={saveTimingSettings}>
+      <span class="material-icons">save</span>
+      Save Settings
+    </button>
+  </div>
+</Modal>
+```
+
+**Features:**
+- Full-screen modal for all timing settings
+- Clear labels and descriptions for each setting
+- Number inputs with min/max validation
+- Save/Cancel actions in footer
+- Changes saved on explicit Save button
+
+**Code to Move:**
+- App settings timing fields (from current Settings modal)
+- `saveTimingSettings` function
+
+---
+
+### 4. BackupModal.svelte
 
 **Purpose:** Create and download backup files
 
@@ -347,133 +618,16 @@ Restructure into clean sections with navigation items.
       <h1>Settings</h1>
     </header>
 
-    <!-- App Settings Section -->
+    <!-- Quick Access Settings (Inline at Top) -->
     <div class="settings-section">
-      <h3 class="section-title">App Settings</h3>
+      <h3 class="section-title">Quick Access</h3>
 
-      <div class="setting-item inline">
-        <span class="material-icons setting-icon">palette</span>
-        <div class="setting-info">
-          <span class="setting-title">Theme</span>
-          <span class="setting-subtitle">Choose your preferred appearance</span>
-        </div>
-        <div class="setting-control">
-          <select bind:value={theme} on:change={saveTheme}>
-            <option value="auto">Auto</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="setting-item inline">
-        <span class="material-icons setting-icon">sort</span>
-        <div class="setting-info">
-          <span class="setting-title">Exercise Sort Order</span>
-          <span class="setting-subtitle">How exercises are sorted</span>
-        </div>
-        <div class="setting-control">
-          <select bind:value={exerciseSortOrder} on:change={saveSortOrder}>
-            <option value="alphabetical">Alphabetical</option>
-            <option value="dateAdded">Recently Added</option>
-            <option value="frequency">Most Used</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <!-- Timing Section -->
-    <div class="settings-section">
-      <h3 class="section-title">Timing</h3>
-
-      <div class="setting-item inline">
-        <span class="material-icons setting-icon">timer</span>
-        <div class="setting-info">
-          <span class="setting-title">Default Rep Duration</span>
-          <span class="setting-subtitle">Seconds per rep</span>
-        </div>
-        <div class="setting-control">
-          <input
-            type="number"
-            bind:value={defaultRepDuration}
-            on:blur={saveTimingSettings}
-            min="1"
-            max="60"
-            class="setting-input"
-          />
-          <span class="input-suffix">s</span>
-        </div>
-      </div>
-
-      <div class="setting-item inline">
-        <span class="material-icons setting-icon">hourglass_top</span>
-        <div class="setting-info">
-          <span class="setting-title">Start Countdown</span>
-          <span class="setting-subtitle">Countdown before exercise starts</span>
-        </div>
-        <div class="setting-control">
-          <input
-            type="number"
-            bind:value={startCountdownDuration}
-            on:blur={saveTimingSettings}
-            min="0"
-            max="30"
-            class="setting-input"
-          />
-          <span class="input-suffix">s</span>
-        </div>
-      </div>
-
-      <div class="setting-item inline">
-        <span class="material-icons setting-icon">pause</span>
-        <div class="setting-info">
-          <span class="setting-title">Rest Between Sets</span>
-          <span class="setting-subtitle">Default rest time</span>
-        </div>
-        <div class="setting-control">
-          <input
-            type="number"
-            bind:value={restBetweenSets}
-            on:blur={saveTimingSettings}
-            min="0"
-            max="300"
-            step="5"
-            class="setting-input"
-          />
-          <span class="input-suffix">s</span>
-        </div>
-      </div>
-
-      <div class="setting-item inline">
-        <span class="material-icons setting-icon">fast_forward</span>
-        <div class="setting-info">
-          <span class="setting-title">Rest Between Exercises</span>
-          <span class="setting-subtitle">Transition time</span>
-        </div>
-        <div class="setting-control">
-          <input
-            type="number"
-            bind:value={restBetweenExercises}
-            on:blur={saveTimingSettings}
-            min="0"
-            max="300"
-            step="5"
-            class="setting-input"
-          />
-          <span class="input-suffix">s</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sound Section -->
-    <div class="settings-section">
-      <h3 class="section-title">Sound</h3>
-
+      <!-- Audio (inline) -->
       <div class="setting-item inline">
         <span class="material-icons setting-icon">volume_up</span>
         <div class="setting-info">
-          <span class="setting-title">Sound Enabled</span>
-          <span class="setting-subtitle">Audio cues during sessions</span>
+          <span class="setting-title">Audio</span>
+          <span class="setting-subtitle">Sound cues during sessions</span>
         </div>
         <div class="setting-control">
           <label class="toggle-switch">
@@ -487,8 +641,9 @@ Restructure into clean sections with navigation items.
         </div>
       </div>
 
+      <!-- Volume (shown when audio enabled) -->
       {#if soundEnabled}
-        <div class="setting-item inline">
+        <div class="setting-item inline sub-setting">
           <span class="material-icons setting-icon">tune</span>
           <div class="setting-info">
             <span class="setting-title">Volume</span>
@@ -508,22 +663,22 @@ Restructure into clean sections with navigation items.
           </div>
         </div>
       {/if}
-    </div>
 
-    <!-- Exercises Section -->
-    <div class="settings-section">
-      <h3 class="section-title">Exercises</h3>
-
-      <button class="setting-nav-item" on:click={() => showExerciseManagement = true}>
-        <span class="material-icons setting-icon">fitness_center</span>
+      <!-- Theme (inline) -->
+      <div class="setting-item inline">
+        <span class="material-icons setting-icon">palette</span>
         <div class="setting-info">
-          <span class="setting-title">Manage Exercises</span>
-          <span class="setting-subtitle">
-            {exercisesCount} {exercisesCount === 1 ? 'exercise' : 'exercises'}
-          </span>
+          <span class="setting-title">Theme</span>
+          <span class="setting-subtitle">Choose your appearance</span>
         </div>
-        <span class="material-icons nav-chevron">chevron_right</span>
-      </button>
+        <div class="setting-control">
+          <select bind:value={theme} on:change={saveTheme} class="theme-select">
+            <option value="auto">Auto</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <!-- Sessions Section -->
@@ -535,8 +690,38 @@ Restructure into clean sections with navigation items.
         <div class="setting-info">
           <span class="setting-title">Manage Sessions</span>
           <span class="setting-subtitle">
-            {sessionsCount} {sessionsCount === 1 ? 'session' : 'sessions'}
+            {$ptState.sessionDefinitions.length} {$ptState.sessionDefinitions.length === 1 ? 'session' : 'sessions'}
           </span>
+        </div>
+        <span class="material-icons nav-chevron">chevron_right</span>
+      </button>
+    </div>
+
+    <!-- Exercise Library Section -->
+    <div class="settings-section">
+      <h3 class="section-title">Exercise Library</h3>
+
+      <button class="setting-nav-item" on:click={() => showExerciseManagement = true}>
+        <span class="material-icons setting-icon">fitness_center</span>
+        <div class="setting-info">
+          <span class="setting-title">Manage Exercise Library</span>
+          <span class="setting-subtitle">
+            {$ptState.exercises.length} {$ptState.exercises.length === 1 ? 'exercise' : 'exercises'}
+          </span>
+        </div>
+        <span class="material-icons nav-chevron">chevron_right</span>
+      </button>
+    </div>
+
+    <!-- Timing Section -->
+    <div class="settings-section">
+      <h3 class="section-title">Timing</h3>
+
+      <button class="setting-nav-item" on:click={() => showTimingSettings = true}>
+        <span class="material-icons setting-icon">timer</span>
+        <div class="setting-info">
+          <span class="setting-title">Timing Settings</span>
+          <span class="setting-subtitle">Adjust countdowns and rest periods</span>
         </div>
         <span class="material-icons nav-chevron">chevron_right</span>
       </button>
@@ -565,7 +750,7 @@ Restructure into clean sections with navigation items.
       </button>
     </div>
 
-    <!-- Help & About Section (NEW) -->
+    <!-- Help & About Section -->
     <div class="settings-section">
       <h3 class="section-title">Help & About</h3>
 
@@ -592,13 +777,17 @@ Restructure into clean sections with navigation items.
   <BottomTabs currentTab="settings" />
 </div>
 
-<!-- Modal Components -->
+<!-- Modal Components (All Full-Screen) -->
+{#if showSessionManagement}
+  <SessionManagementModal on:close={() => showSessionManagement = false} />
+{/if}
+
 {#if showExerciseManagement}
   <ExerciseManagementModal on:close={() => showExerciseManagement = false} />
 {/if}
 
-{#if showSessionManagement}
-  <SessionManagementModal on:close={() => showSessionManagement = false} />
+{#if showTimingSettings}
+  <TimingSettingsModal on:close={() => showTimingSettings = false} />
 {/if}
 
 {#if showBackupModal}
@@ -617,6 +806,16 @@ Restructure into clean sections with navigation items.
   <AboutDialog on:close={() => showAboutDialog = false} />
 {/if}
 ```
+
+**Section Order (Top to Bottom):**
+1. **Quick Access** - Audio toggle/volume, Theme select (inline)
+2. **Sessions** - Manage Sessions button
+3. **Exercise Library** - Manage Exercise Library button
+4. **Timing** - Timing Settings button
+5. **Data** - Backup and Restore buttons
+6. **Help & About** - User Guide and About buttons
+
+**All modals are full-screen for consistent UX**
 
 ---
 
