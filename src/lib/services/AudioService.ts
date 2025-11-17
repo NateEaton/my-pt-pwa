@@ -19,7 +19,6 @@ export class AudioService {
   private leadInEnabled = true;
   private continuousTicksEnabled = false;
   private perRepBeepsEnabled = false;
-  private warningTonesEnabled = true;
 
   constructor() {}
 
@@ -84,24 +83,6 @@ export class AudioService {
     };
   }
 
-  /**
-   * Play double-chirp warning tone
-   */
-  private playWarningChirp(): void {
-    if (!this.unlocked || !this.audioContext) return;
-
-    const now = this.audioContext.currentTime;
-
-    // First chirp at 1000Hz
-    this.playBeep(1000, 0.12);
-
-    // Second chirp at 1200Hz, scheduled 130ms later using AudioContext time
-    setTimeout(() => {
-      if (this.audioContext) {
-        this.playBeep(1200, 0.10);
-      }
-    }, 130);
-  }
 
   // === Phase-based public methods ===
 
@@ -124,6 +105,13 @@ export class AudioService {
    */
   public onRestStart(): void {
     this.playBeep(350, 0.20); // Calming low tone
+  }
+
+  /**
+   * Called when a rest period ends
+   */
+  public onRestEnd(): void {
+    this.playBeep(500, 0.20); // Medium tone - end of rest
   }
 
   /**
@@ -159,14 +147,6 @@ export class AudioService {
   public onRepComplete(): void {
     if (!this.perRepBeepsEnabled) return;
     this.playBeep(1000, 0.06); // Quick, high ping
-  }
-
-  /**
-   * Called for warning (e.g., approaching end of exercise/rest)
-   */
-  public onWarning(): void {
-    if (!this.warningTonesEnabled) return;
-    this.playWarningChirp();
   }
 
   /**
@@ -290,13 +270,6 @@ export class AudioService {
    */
   public setPerRepBeepsEnabled(enabled: boolean): void {
     this.perRepBeepsEnabled = enabled;
-  }
-
-  /**
-   * Enable/disable warning tones
-   */
-  public setWarningTonesEnabled(enabled: boolean): void {
-    this.warningTonesEnabled = enabled;
   }
 
   /**

@@ -40,8 +40,7 @@
   let exerciseTimerInterval: number | undefined;
 
   // Settings
-  let startCountdownDuration = 5;
-  let endCountdownDuration = 5;
+  let startCountdownDuration = 3;
   let endSessionDelay = 5;
   let restBetweenSets = 30;
   let restBetweenExercises = 30;
@@ -68,32 +67,11 @@
     audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
     audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
     audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
-    audioService.setWarningTonesEnabled($ptState.settings.audioWarningTonesEnabled);
   }
 
-  // Audio helper function
-  function playSound(soundType: 'countdown' | 'duration' | 'rep' | 'rest' | 'complete') {
-    if (!$ptState.settings?.soundEnabled) return;
-
-    const volume = $ptState.settings.soundVolume || 0.3;
-
-    switch (soundType) {
-      case 'countdown':
-        audioService.playCountdownTick(volume);
-        break;
-      case 'duration':
-        audioService.playDurationTick(volume);
-        break;
-      case 'rep':
-        audioService.playRepBeep(volume);
-        break;
-      case 'rest':
-        audioService.playRestTick(volume);
-        break;
-      case 'complete':
-        audioService.playComplete(volume);
-        break;
-    }
+  // Check if audio is enabled
+  function shouldPlayAudio(): boolean {
+    return $ptState.settings?.soundEnabled ?? false;
   }
 
   // Request wake lock to keep screen awake
@@ -137,7 +115,6 @@
       audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
       audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
       audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
-      audioService.setWarningTonesEnabled($ptState.settings.audioWarningTonesEnabled);
     }
   });
 
@@ -179,7 +156,6 @@
     // Load settings
     if ($ptState.settings) {
       startCountdownDuration = $ptState.settings.startCountdownDuration;
-      endCountdownDuration = $ptState.settings.endCountdownDuration;
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
       restBetweenExercises = $ptState.settings.restBetweenExercises;
@@ -319,11 +295,20 @@
     timerState = 'countdown';
     countdownSeconds = startCountdownDuration;
 
+    // Play initial countdown tone if at 3, 2, or 1
+    if (shouldPlayAudio() && countdownSeconds <= 3 && countdownSeconds >= 1) {
+      audioService.onCountdown(countdownSeconds);
+    }
+
     exerciseTimerInterval = window.setInterval(() => {
       if (isPaused) return;
 
       countdownSeconds--;
-      playSound('countdown'); // Play tick sound on each countdown second
+
+      // Play countdown tone at 3, 2, 1
+      if (shouldPlayAudio() && countdownSeconds <= 3 && countdownSeconds >= 1) {
+        audioService.onCountdown(countdownSeconds);
+      }
 
       if (countdownSeconds <= 0) {
         clearInterval(exerciseTimerInterval);
@@ -351,15 +336,39 @@
     if (!currentExercise) return;
 
     const totalDuration = currentExercise.defaultDuration || 60;
+    const continuousTicksEnabled = $ptState.settings?.audioContinuousTicksEnabled ?? false;
+    const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
+
+    // Play exercise start tone
+    if (shouldPlayAudio()) {
+      audioService.onExerciseStart();
+    }
 
     exerciseTimerInterval = window.setInterval(() => {
       if (isPaused) return;
 
       exerciseElapsedSeconds++;
-      playSound('duration'); // Play tick sound for each second of duration exercise
+      const remaining = totalDuration - exerciseElapsedSeconds;
+
+      // Audio cues during exercise
+      if (shouldPlayAudio()) {
+        if (continuousTicksEnabled) {
+          // Play tick every second
+          audioService.onTick();
+        } else if (leadInEnabled && remaining >= 1 && remaining <= 3) {
+          // Play 3-2-1 countdown at end
+          audioService.onCountdown(remaining);
+        }
+      }
 
       if (exerciseElapsedSeconds >= totalDuration) {
         clearInterval(exerciseTimerInterval);
+
+        // Play end tone if countdown wasn't used
+        if (shouldPlayAudio() && !continuousTicksEnabled && !leadInEnabled) {
+          audioService.onExerciseEnd();
+        }
+
         completeCurrentExercise();
       }
     }, 1000);
@@ -378,9 +387,9 @@
       exerciseElapsedSeconds++;
       currentRep = Math.floor((exerciseElapsedSeconds % (reps * repDuration)) / repDuration) + 1;
 
-      // Play beep at the end of each rep
-      if (exerciseElapsedSeconds % repDuration === 0) {
-        playSound('rep');
+      // Play beep at the end of each rep (controlled by audioService setting)
+      if (exerciseElapsedSeconds % repDuration === 0 && shouldPlayAudio()) {
+        audioService.onRepComplete();
       }
 
       // Check if set is complete
@@ -402,14 +411,38 @@
     timerState = 'rest';
     restCountdown = restBetweenSets;
 
+    const continuousTicksEnabled = $ptState.settings?.audioContinuousTicksEnabled ?? false;
+    const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
+
+    // Play rest start tone
+    if (shouldPlayAudio()) {
+      audioService.onRestStart();
+    }
+
     exerciseTimerInterval = window.setInterval(() => {
       if (isPaused) return;
 
       restCountdown--;
-      playSound('rest'); // Play tick sound during rest between sets
+
+      // Audio cues during rest
+      if (shouldPlayAudio()) {
+        if (continuousTicksEnabled) {
+          // Play tick every second
+          audioService.onTick();
+        } else if (leadInEnabled && restCountdown >= 1 && restCountdown <= 3) {
+          // Play 3-2-1 countdown at end of rest
+          audioService.onCountdown(restCountdown);
+        }
+      }
 
       if (restCountdown <= 0) {
         clearInterval(exerciseTimerInterval);
+
+        // Play rest end tone if countdown wasn't used
+        if (shouldPlayAudio() && !continuousTicksEnabled && !leadInEnabled) {
+          audioService.onRestEnd();
+        }
+
         timerState = 'active';
         // Increment to next set AFTER rest completes
         currentSet++;
@@ -447,14 +480,38 @@
         timerState = 'rest';
         restCountdown = restBetweenExercises;
 
+        const continuousTicksEnabled = $ptState.settings?.audioContinuousTicksEnabled ?? false;
+        const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
+
+        // Play rest start tone
+        if (shouldPlayAudio()) {
+          audioService.onRestStart();
+        }
+
         exerciseTimerInterval = window.setInterval(() => {
           if (isPaused) return;
 
           restCountdown--;
-          playSound('rest'); // Play tick sound during rest between exercises
+
+          // Audio cues during rest
+          if (shouldPlayAudio()) {
+            if (continuousTicksEnabled) {
+              // Play tick every second
+              audioService.onTick();
+            } else if (leadInEnabled && restCountdown >= 1 && restCountdown <= 3) {
+              // Play 3-2-1 countdown at end of rest
+              audioService.onCountdown(restCountdown);
+            }
+          }
 
           if (restCountdown <= 0) {
             clearInterval(exerciseTimerInterval);
+
+            // Play rest end tone if countdown wasn't used
+            if (shouldPlayAudio() && !continuousTicksEnabled && !leadInEnabled) {
+              audioService.onRestEnd();
+            }
+
             startExerciseCountdown();
           }
         }, 1000);
@@ -475,7 +532,10 @@
     sessionInstance.status = 'completed';
     sessionInstance.endTime = new Date().toISOString();
 
-    playSound('complete'); // Play completion chime
+    // Play completion chime
+    if (shouldPlayAudio()) {
+      audioService.onSessionComplete();
+    }
 
     await ptService.updateSessionInstance(sessionInstance);
 

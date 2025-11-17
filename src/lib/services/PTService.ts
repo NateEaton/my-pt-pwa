@@ -46,8 +46,7 @@ const STORES = {
 // Default application settings
 const DEFAULT_SETTINGS: AppSettings = {
   defaultRepDuration: 2, // 2 seconds per rep
-  startCountdownDuration: 5, // 5 second countdown before start
-  endCountdownDuration: 5, // 5 second countdown at end
+  startCountdownDuration: 3, // 3 second countdown before start (3-2-1)
   endSessionDelay: 5, // 5 second delay before session player closes
   restBetweenSets: 30, // 30 seconds between sets
   restBetweenExercises: 15, // 15 seconds between exercises
@@ -55,10 +54,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   exerciseSortOrder: 'alphabetical',
   soundEnabled: true,
   soundVolume: 0.7, // 70% volume (master volume)
-  audioLeadInEnabled: true, // 3-2-1 countdown enabled by default
+  audioLeadInEnabled: true, // 3-2-1 countdown at end of periods (enabled by default)
   audioContinuousTicksEnabled: false, // Continuous ticks OFF by default
   audioPerRepBeepsEnabled: false, // Per-rep beeps OFF by default
-  audioWarningTonesEnabled: true, // Warning tones enabled by default
   enableNotifications: false
 };
 

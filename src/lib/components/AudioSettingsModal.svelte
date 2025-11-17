@@ -26,7 +26,6 @@
   let audioLeadInEnabled = true;
   let audioContinuousTicksEnabled = false;
   let audioPerRepBeepsEnabled = false;
-  let audioWarningTonesEnabled = true;
 
   // Load current settings
   onMount(() => {
@@ -36,12 +35,16 @@
       audioLeadInEnabled = $ptState.settings.audioLeadInEnabled;
       audioContinuousTicksEnabled = $ptState.settings.audioContinuousTicksEnabled;
       audioPerRepBeepsEnabled = $ptState.settings.audioPerRepBeepsEnabled;
-      audioWarningTonesEnabled = $ptState.settings.audioWarningTonesEnabled;
     }
 
     // Unlock audio context on mount
     audioService.unlock();
   });
+
+  // Enforce mutual exclusivity: continuous ticks and 3-2-1 countdown
+  $: if (audioContinuousTicksEnabled && audioLeadInEnabled) {
+    audioLeadInEnabled = false;
+  }
 
   function handleClose() {
     dispatch('close');
@@ -56,8 +59,7 @@
       soundVolume,
       audioLeadInEnabled,
       audioContinuousTicksEnabled,
-      audioPerRepBeepsEnabled,
-      audioWarningTonesEnabled
+      audioPerRepBeepsEnabled
     };
 
     try {
@@ -72,7 +74,6 @@
       audioService.setLeadInEnabled(audioLeadInEnabled);
       audioService.setContinuousTicksEnabled(audioContinuousTicksEnabled);
       audioService.setPerRepBeepsEnabled(audioPerRepBeepsEnabled);
-      audioService.setWarningTonesEnabled(audioWarningTonesEnabled);
 
       toastStore.show('Audio settings saved', 'success');
       handleClose();
@@ -98,26 +99,25 @@
     audioService.onRestStart();
   }
 
+  function previewRestEnd() {
+    audioService.setMasterVolume(soundVolume);
+    audioService.onRestEnd();
+  }
+
   function previewCountdown() {
     audioService.setMasterVolume(soundVolume);
     audioService.setLeadInEnabled(true); // Temporarily enable for preview
 
     // Play 3-2-1 sequence
     audioService.onCountdown(3);
-    setTimeout(() => audioService.onCountdown(2), 400);
-    setTimeout(() => audioService.onCountdown(1), 800);
+    setTimeout(() => audioService.onCountdown(2), 1000);
+    setTimeout(() => audioService.onCountdown(1), 2000);
   }
 
   function previewRepComplete() {
     audioService.setMasterVolume(soundVolume);
     audioService.setPerRepBeepsEnabled(true); // Temporarily enable for preview
     audioService.onRepComplete();
-  }
-
-  function previewWarning() {
-    audioService.setMasterVolume(soundVolume);
-    audioService.setWarningTonesEnabled(true); // Temporarily enable for preview
-    audioService.onWarning();
   }
 
   function previewSessionComplete() {
@@ -171,6 +171,64 @@
         </div>
       </div>
 
+      <!-- Audio Cue Options -->
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Continuous Ticks</span>
+          <span class="setting-description">
+            Play a tick sound every second during duration exercises and rest periods. When disabled, plays a single tone at start and end of each period. (Mutually exclusive with 3-2-1 Countdown)
+          </span>
+        </div>
+        <div class="setting-control">
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              bind:checked={audioContinuousTicksEnabled}
+              disabled={!soundEnabled}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">3-2-1 Countdown</span>
+          <span class="setting-description">
+            Play rising countdown tones (3-2-1) at the end of duration exercises and rest periods, replacing the normal end tone. Disabled when Continuous Ticks is enabled.
+          </span>
+        </div>
+        <div class="setting-control">
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              bind:checked={audioLeadInEnabled}
+              disabled={!soundEnabled || audioContinuousTicksEnabled}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Per-Rep Beeps</span>
+          <span class="setting-description">
+            Play a beep sound on each rep completion during rep exercises
+          </span>
+        </div>
+        <div class="setting-control">
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              bind:checked={audioPerRepBeepsEnabled}
+              disabled={!soundEnabled}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
       <!-- Sound Preview -->
       <div class="preview-section">
         <h4 class="preview-title">Preview Sounds</h4>
@@ -201,6 +259,14 @@
           </button>
           <button
             class="btn-preview"
+            on:click={previewRestEnd}
+            disabled={!soundEnabled}
+          >
+            <span class="material-icons">bedtime</span>
+            Rest End
+          </button>
+          <button
+            class="btn-preview"
             on:click={previewCountdown}
             disabled={!soundEnabled}
           >
@@ -217,97 +283,12 @@
           </button>
           <button
             class="btn-preview"
-            on:click={previewWarning}
-            disabled={!soundEnabled}
-          >
-            <span class="material-icons">warning</span>
-            Warning
-          </button>
-          <button
-            class="btn-preview"
             on:click={previewSessionComplete}
             disabled={!soundEnabled}
           >
             <span class="material-icons">celebration</span>
             Session Complete
           </button>
-        </div>
-      </div>
-
-      <!-- Audio Cue Options -->
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-label">3-2-1 Countdown</span>
-          <span class="setting-description">
-            Play rising countdown tones before each exercise starts
-          </span>
-        </div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input
-              type="checkbox"
-              bind:checked={audioLeadInEnabled}
-              disabled={!soundEnabled}
-            />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-label">Continuous Ticks</span>
-          <span class="setting-description">
-            Play a tick sound every second during duration exercises (can be distracting)
-          </span>
-        </div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input
-              type="checkbox"
-              bind:checked={audioContinuousTicksEnabled}
-              disabled={!soundEnabled}
-            />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-label">Per-Rep Beeps</span>
-          <span class="setting-description">
-            Play a beep sound on each rep completion during rep exercises
-          </span>
-        </div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input
-              type="checkbox"
-              bind:checked={audioPerRepBeepsEnabled}
-              disabled={!soundEnabled}
-            />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-label">Warning Tones</span>
-          <span class="setting-description">
-            Play distinctive warning sounds when approaching end of exercise or rest
-          </span>
-        </div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input
-              type="checkbox"
-              bind:checked={audioWarningTonesEnabled}
-              disabled={!soundEnabled}
-            />
-            <span class="toggle-slider"></span>
-          </label>
         </div>
       </div>
     </div>

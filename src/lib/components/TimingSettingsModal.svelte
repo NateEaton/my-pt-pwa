@@ -21,8 +21,7 @@
 
   // Form state
   let defaultRepDuration = 2;
-  let startCountdownDuration = 5;
-  let endCountdownDuration = 5;
+  let startCountdownDuration = 3;
   let endSessionDelay = 5;
   let restBetweenSets = 30;
   let restBetweenExercises = 15;
@@ -32,7 +31,6 @@
     if ($ptState.settings) {
       defaultRepDuration = $ptState.settings.defaultRepDuration;
       startCountdownDuration = $ptState.settings.startCountdownDuration;
-      endCountdownDuration = $ptState.settings.endCountdownDuration;
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
       restBetweenExercises = $ptState.settings.restBetweenExercises;
@@ -50,7 +48,6 @@
       ...$ptState.settings,
       defaultRepDuration,
       startCountdownDuration,
-      endCountdownDuration,
       endSessionDelay,
       restBetweenSets,
       restBetweenExercises
@@ -100,29 +97,12 @@
       <div class="setting-item">
         <div class="setting-info">
           <span class="setting-label">Start Countdown</span>
-          <span class="setting-description">Countdown before exercise starts</span>
+          <span class="setting-description">Countdown before exercise starts (3-2-1)</span>
         </div>
         <div class="setting-control">
           <input
             type="number"
             bind:value={startCountdownDuration}
-            min="0"
-            max="30"
-            class="setting-input"
-          />
-          <span class="input-suffix">s</span>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-label">End Countdown</span>
-          <span class="setting-description">Countdown shown at end of exercise</span>
-        </div>
-        <div class="setting-control">
-          <input
-            type="number"
-            bind:value={endCountdownDuration}
             min="0"
             max="30"
             class="setting-input"
