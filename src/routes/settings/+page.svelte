@@ -119,30 +119,6 @@
       </div>
     </section>
 
-    <!-- Audio & Sound Section -->
-    <section class="settings-section">
-      <h2 class="section-title">Audio & Sound</h2>
-
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <div class="settings-card" on:click={() => (showAudioSettings = true)}>
-        <div class="card-icon">
-          <span class="material-icons">volume_up</span>
-        </div>
-        <div class="card-content">
-          <h3>Audio Settings</h3>
-          <p>Configure audio cues and sound preferences</p>
-          <div class="card-meta">
-            <span class="material-icons">settings</span>
-            <span>Volume, countdown, warnings, and more</span>
-          </div>
-        </div>
-        <div class="card-arrow">
-          <span class="material-icons">chevron_right</span>
-        </div>
-      </div>
-    </section>
-
     <!-- Exercise Library Section -->
     <section class="settings-section">
       <h2 class="section-title">Exercise Library</h2>
@@ -183,6 +159,30 @@
           <div class="card-meta">
             <span class="material-icons">settings</span>
             <span>Countdowns, rest periods, and more</span>
+          </div>
+        </div>
+        <div class="card-arrow">
+          <span class="material-icons">chevron_right</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Audio & Sound Section -->
+    <section class="settings-section">
+      <h2 class="section-title">Audio & Sound</h2>
+
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <div class="settings-card" on:click={() => (showAudioSettings = true)}>
+        <div class="card-icon">
+          <span class="material-icons">volume_up</span>
+        </div>
+        <div class="card-content">
+          <h3>Audio Settings</h3>
+          <p>Configure audio cues and sound preferences</p>
+          <div class="card-meta">
+            <span class="material-icons">settings</span>
+            <span>Volume, countdown, warnings, and more</span>
           </div>
         </div>
         <div class="card-arrow">
