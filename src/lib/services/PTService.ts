@@ -414,11 +414,19 @@ export class PTService {
   // ==================== Settings Operations ====================
 
   /**
-   * Get application settings
+   * Get application settings (merges with defaults for any missing fields)
    */
   async getSettings(): Promise<AppSettings | null> {
     this.ensureInitialized();
-    return this._getByKey<AppSettings>(STORES.SETTINGS, 'appSettings');
+    const stored = await this._getByKey<AppSettings>(STORES.SETTINGS, 'appSettings');
+
+    // Merge stored settings with defaults to ensure all fields exist
+    // This handles schema updates where new settings fields are added
+    if (stored) {
+      return { ...DEFAULT_SETTINGS, ...stored };
+    }
+
+    return stored;
   }
 
   /**
