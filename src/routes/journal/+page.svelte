@@ -11,7 +11,6 @@
 -->
 
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { ptState } from '$lib/stores/pt';
   import { ptService } from '$lib/services/PTService';
   import { toastStore } from '$lib/stores/toast';
@@ -26,6 +25,7 @@
   let showDetailsModal = false;
   let showDeleteConfirm = false;
   let loading = true;
+  let sessionsLoadAttempted = false;
 
   // Date navigation
   let selectedDate: string = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -37,11 +37,13 @@
   let thisWeekSessions = 0;
   let thisMonthSessions = 0;
 
-  onMount(async () => {
-    await loadSessions();
-  });
+  // Wait for ptState to be initialized, then load sessions
+  $: if ($ptState.initialized && !sessionsLoadAttempted) {
+    loadSessions();
+  }
 
   async function loadSessions() {
+    sessionsLoadAttempted = true;
     loading = true;
     try {
       const instances = await ptService.getSessionInstances();
