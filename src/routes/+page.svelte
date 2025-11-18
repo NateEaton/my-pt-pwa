@@ -325,6 +325,9 @@
       // Save to database
       await ptService.addSessionInstance(sessionInstance);
 
+      // Reload today's session state to update UI
+      await loadTodaySessionInstance();
+
       toastStore.show('Workout logged successfully!', 'success');
     } catch (error) {
       console.error('Error logging workout:', error);
