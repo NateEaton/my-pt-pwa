@@ -155,6 +155,22 @@
     loadTodaySessionInstance();
   }
 
+  // Reload state when returning to this page (e.g., from player)
+  onMount(() => {
+    // Listen for when page becomes visible again
+    const handleVisibilityChange = () => {
+      if (!document.hidden && selectedSession) {
+        loadTodaySessionInstance();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  });
+
   function calculateTotalDurationSeconds(): number {
     if (sessionExercises.length === 0) return 0;
 
