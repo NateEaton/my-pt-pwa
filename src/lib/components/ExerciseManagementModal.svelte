@@ -11,7 +11,7 @@
 -->
 
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import Modal from './Modal.svelte';
   import ConfirmDialog from './ConfirmDialog.svelte';
   import { ptState, ptService } from '$lib/stores/pt';
@@ -33,10 +33,40 @@
   let emptySessionsAfterDeletion: SessionDefinition[] = [];
   let currentEmptySessionIndex = 0;
 
-  // Search and sort state
+  // LocalStorage keys for persisting sort preferences
+  const SORT_FIELD_KEY = 'exercise-library-sort-field';
+  const SORT_ASC_KEY = 'exercise-library-sort-asc';
+
+  // Load sort preferences from localStorage
+  function loadSortPreferences(): {
+    field: 'name' | 'dateAdded' | 'usage';
+    asc: boolean;
+  } {
+    if (typeof window === 'undefined') {
+      return { field: 'name', asc: true };
+    }
+
+    const savedField = localStorage.getItem(SORT_FIELD_KEY);
+    const savedAsc = localStorage.getItem(SORT_ASC_KEY);
+
+    return {
+      field: (savedField as 'name' | 'dateAdded' | 'usage') || 'name',
+      asc: savedAsc === 'false' ? false : true
+    };
+  }
+
+  // Save sort preferences to localStorage
+  function saveSortPreferences(field: 'name' | 'dateAdded' | 'usage', asc: boolean) {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(SORT_FIELD_KEY, field);
+    localStorage.setItem(SORT_ASC_KEY, String(asc));
+  }
+
+  // Search and sort state - load from localStorage
   let searchQuery = '';
-  let sortField: 'name' | 'dateAdded' | 'usage' = 'name';
-  let sortAsc = true;
+  const sortPrefs = loadSortPreferences();
+  let sortField: 'name' | 'dateAdded' | 'usage' = sortPrefs.field;
+  let sortAsc = sortPrefs.asc;
 
   // Exercise form data
   let exerciseFormData = {
@@ -100,6 +130,8 @@
       sortField = field;
       sortAsc = true;
     }
+    // Persist sort preferences
+    saveSortPreferences(sortField, sortAsc);
   }
 
   function handleClose() {
@@ -312,9 +344,9 @@
   }
 </script>
 
-<Modal fullScreen={true} title="Exercise Library" on:close={handleClose}>
+<Modal fullScreen={true} title="Exercise Library" iosStyle={true} on:close={handleClose}>
   <div slot="headerActions">
-    <button class="icon-button" on:click={openAddExercise} aria-label="Add exercise">
+    <button class="icon-button add-button" on:click={openAddExercise} aria-label="Add exercise">
       <span class="material-icons">add</span>
     </button>
   </div>
@@ -424,6 +456,7 @@
 {#if showExerciseForm}
   <Modal
     title={editingExercise ? 'Edit Exercise' : 'Add Exercise'}
+    iosStyle={true}
     on:close={closeExerciseForm}
   >
     <form on:submit|preventDefault={saveExercise} class="exercise-form">
@@ -506,11 +539,11 @@
     </form>
 
     <div slot="footer" class="modal-actions">
-      <button class="btn btn-secondary" on:click={closeExerciseForm}>
+      <button class="btn btn-secondary" on:click={closeExerciseForm} type="button">
         Cancel
       </button>
-      <button class="btn btn-primary" on:click={saveExercise}>
-        {editingExercise ? 'Update' : 'Add'} Exercise
+      <button class="btn btn-primary" on:click={saveExercise} type="button">
+        {editingExercise ? 'Save' : 'Add'}
       </button>
     </div>
   </Modal>
@@ -771,6 +804,20 @@
   .icon-button.delete:hover {
     background-color: rgba(244, 67, 54, 0.1);
     color: var(--error-color);
+  }
+
+  /* Larger, bolder add button in header */
+  .icon-button.add-button {
+    color: var(--primary-color);
+  }
+
+  .icon-button.add-button .material-icons {
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  .icon-button.add-button:hover {
+    background-color: var(--primary-alpha-10);
   }
 
   /* Empty State */

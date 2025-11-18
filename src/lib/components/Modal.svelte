@@ -18,6 +18,7 @@
   export let showCloseButton: boolean = true;
   export let closeOnBackdrop: boolean = true;
   export let fullScreen: boolean = false;
+  export let iosStyle: boolean = false; // Use iOS-style back button instead of close X
 
   const dispatch = createEventDispatcher();
   let modalElement: HTMLDivElement;
@@ -149,13 +150,22 @@
 >
   <div class="modal-container" class:full-screen={fullScreen}>
     {#if title || showCloseButton || $$slots.headerActions}
-      <header class="modal-header">
+      <header class="modal-header" class:ios-style={iosStyle}>
+        {#if iosStyle && showCloseButton}
+          <button
+            class="modal-back-button"
+            on:click={handleClose}
+            aria-label="Go back"
+          >
+            <span class="material-icons">arrow_back</span>
+          </button>
+        {/if}
         <h2 id="modal-title" class="modal-title">{title}</h2>
         <div class="modal-header-actions">
           {#if $$slots.headerActions}
             <slot name="headerActions" />
           {/if}
-          {#if showCloseButton}
+          {#if showCloseButton && !iosStyle}
             <button
               class="modal-close-button"
               on:click={handleClose}
@@ -216,6 +226,13 @@
     flex-shrink: 0;
   }
 
+  /* iOS-style header with back button on left */
+  .modal-header.ios-style {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: var(--spacing-md);
+  }
+
   .modal-title {
     margin: 0;
     font-size: var(--font-size-xl);
@@ -223,10 +240,39 @@
     color: var(--text-primary);
   }
 
+  /* Center title in iOS style */
+  .modal-header.ios-style .modal-title {
+    text-align: center;
+  }
+
   .modal-header-actions {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
+  }
+
+  /* iOS-style back button */
+  .modal-back-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    transition: background-color 0.2s ease;
+  }
+
+  .modal-back-button:hover {
+    background-color: var(--hover-overlay);
+  }
+
+  .modal-back-button .material-icons {
+    font-size: var(--icon-size-lg);
   }
 
   .modal-close-button {

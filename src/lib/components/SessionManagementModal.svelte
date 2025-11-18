@@ -11,7 +11,7 @@
 -->
 
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import Modal from './Modal.svelte';
   import ConfirmDialog from './ConfirmDialog.svelte';
   import { ptState, ptService } from '$lib/stores/pt';
@@ -28,10 +28,40 @@
   let showDeleteConfirm = false;
   let sessionToDelete: SessionDefinition | null = null;
 
-  // Search and sort state
+  // LocalStorage keys for persisting sort preferences
+  const SORT_FIELD_KEY = 'session-library-sort-field';
+  const SORT_ASC_KEY = 'session-library-sort-asc';
+
+  // Load sort preferences from localStorage
+  function loadSortPreferences(): {
+    field: 'name' | 'dateCreated' | 'usage';
+    asc: boolean;
+  } {
+    if (typeof window === 'undefined') {
+      return { field: 'name', asc: true };
+    }
+
+    const savedField = localStorage.getItem(SORT_FIELD_KEY);
+    const savedAsc = localStorage.getItem(SORT_ASC_KEY);
+
+    return {
+      field: (savedField as 'name' | 'dateCreated' | 'usage') || 'name',
+      asc: savedAsc === 'false' ? false : true
+    };
+  }
+
+  // Save sort preferences to localStorage
+  function saveSortPreferences(field: 'name' | 'dateCreated' | 'usage', asc: boolean) {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(SORT_FIELD_KEY, field);
+    localStorage.setItem(SORT_ASC_KEY, String(asc));
+  }
+
+  // Search and sort state - load from localStorage
   let searchQuery = '';
-  let sortField: 'name' | 'dateCreated' | 'usage' = 'name';
-  let sortAsc = true;
+  const sortPrefs = loadSortPreferences();
+  let sortField: 'name' | 'dateCreated' | 'usage' = sortPrefs.field;
+  let sortAsc = sortPrefs.asc;
 
   // Session form data
   let sessionFormData = {
@@ -89,6 +119,8 @@
       sortField = field;
       sortAsc = true;
     }
+    // Persist sort preferences
+    saveSortPreferences(sortField, sortAsc);
   }
 
   function handleClose() {
@@ -240,9 +272,9 @@
   }
 </script>
 
-<Modal fullScreen={true} title="Sessions" on:close={handleClose}>
+<Modal fullScreen={true} title="Sessions" iosStyle={true} on:close={handleClose}>
   <div slot="headerActions">
-    <button class="icon-button" on:click={openAddSession} aria-label="Create session">
+    <button class="icon-button add-button" on:click={openAddSession} aria-label="Create session">
       <span class="material-icons">add</span>
     </button>
   </div>
@@ -347,6 +379,7 @@
 {#if showSessionForm}
   <Modal
     title={editingSession ? 'Edit Session' : 'New Session'}
+    iosStyle={true}
     on:close={closeSessionForm}
   >
     <form on:submit|preventDefault={saveSession} class="session-form">
@@ -454,11 +487,11 @@
     </form>
 
     <div slot="footer" class="modal-actions">
-      <button class="btn btn-secondary" on:click={closeSessionForm}>
+      <button class="btn btn-secondary" on:click={closeSessionForm} type="button">
         Cancel
       </button>
-      <button class="btn btn-primary" on:click={saveSession}>
-        {editingSession ? 'Update' : 'Create'} Session
+      <button class="btn btn-primary" on:click={saveSession} type="button">
+        {editingSession ? 'Save' : 'Create'}
       </button>
     </div>
   </Modal>
@@ -689,6 +722,20 @@
   .icon-button.delete:hover {
     background-color: rgba(244, 67, 54, 0.1);
     color: var(--error-color);
+  }
+
+  /* Larger, bolder add button in header */
+  .icon-button.add-button {
+    color: var(--primary-color);
+  }
+
+  .icon-button.add-button .material-icons {
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  .icon-button.add-button:hover {
+    background-color: var(--primary-alpha-10);
   }
 
   /* Empty State */
