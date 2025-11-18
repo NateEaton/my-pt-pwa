@@ -50,6 +50,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   endSessionDelay: 5, // 5 second delay before session player closes
   restBetweenSets: 30, // 30 seconds between sets
   restBetweenExercises: 15, // 15 seconds between exercises
+  enableAutoRest: true, // Auto-rest enabled by default
   theme: 'auto',
   exerciseSortOrder: 'alphabetical',
   soundEnabled: false, // Sound OFF by default

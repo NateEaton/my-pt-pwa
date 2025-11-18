@@ -26,10 +26,11 @@
   let currentExercise: Exercise | null = null;
 
   // Timer state
-  let timerState: 'paused' | 'countdown' | 'active' | 'completed' = 'paused';
+  let timerState: 'paused' | 'countdown' | 'active' | 'resting' | 'completed' = 'paused';
   let totalElapsedSeconds = 0;
   let exerciseElapsedSeconds = 0;
   let countdownSeconds = 3; // Fixed 3-second countdown
+  let restElapsedSeconds = 0; // Time elapsed during rest period
   let currentSet = 1;
   let currentRep = 1;
   let repElapsedSeconds = 0; // Track time within current rep for countdown
@@ -43,6 +44,7 @@
   let endSessionDelay = 5;
   let restBetweenSets = 30;
   let restBetweenExercises = 30;
+  let enableAutoRest = true;
 
   let sessionLoadAttempted = false;
 
@@ -158,6 +160,7 @@
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
       restBetweenExercises = $ptState.settings.restBetweenExercises;
+      enableAutoRest = $ptState.settings.enableAutoRest;
     }
 
     // Check for existing in-progress session for today
@@ -404,12 +407,41 @@
           // Exercise complete - all sets done
           completeCurrentExercise();
         } else {
-          // Pause after set, user will manually start next set
+          // Set complete, more sets to go
           currentSet++;
-          timerState = 'paused';
           exerciseElapsedSeconds = 0;
           repElapsedSeconds = 0;
+
+          // Start rest timer if auto-rest is enabled, otherwise pause
+          if (enableAutoRest) {
+            startRestTimer();
+          } else {
+            timerState = 'paused';
+          }
         }
+      }
+    }, 1000);
+  }
+
+  function startRestTimer() {
+    if (!currentExercise) return;
+
+    // Get rest duration - use exercise override if available, otherwise global setting
+    const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
+
+    restElapsedSeconds = 0;
+    timerState = 'resting';
+
+    exerciseTimerInterval = window.setInterval(() => {
+      restElapsedSeconds++;
+
+      // Check if rest period is complete
+      if (restElapsedSeconds >= restDuration) {
+        clearInterval(exerciseTimerInterval);
+
+        // Auto-pause when rest is done - user must press Play to continue
+        timerState = 'paused';
+        restElapsedSeconds = 0;
       }
     }, 1000);
   }
@@ -475,20 +507,28 @@
   // VCR-style controls
   function togglePlayPause() {
     if (timerState === 'paused') {
-      // Check if we're mid-exercise (resuming a set within the same exercise)
-      const isMidExercise = currentSet > 1;
+      // Check if we're resuming a paused rest (restElapsedSeconds > 0 indicates partial rest)
+      const isResumingRest = currentSet > 1 && restElapsedSeconds > 0;
 
-      if (isMidExercise) {
-        // Skip countdown when resuming between sets
-        timerState = 'active';
-        if (currentExercise?.type === 'reps') {
-          startRepsExercise();
-        } else {
-          startDurationExercise();
-        }
+      if (isResumingRest) {
+        // Resume rest timer where we left off
+        startRestTimer();
       } else {
-        // Normal start - do countdown
-        startExerciseCountdown();
+        // Check if we're mid-exercise (resuming a set within the same exercise)
+        const isMidExercise = currentSet > 1;
+
+        if (isMidExercise) {
+          // Skip countdown when resuming between sets
+          timerState = 'active';
+          if (currentExercise?.type === 'reps') {
+            startRepsExercise();
+          } else {
+            startDurationExercise();
+          }
+        } else {
+          // Normal start - do countdown
+          startExerciseCountdown();
+        }
       }
     } else if (timerState === 'active') {
       // Pause current exercise
@@ -496,6 +536,10 @@
       timerState = 'paused';
     } else if (timerState === 'countdown') {
       // Pause during countdown
+      clearInterval(exerciseTimerInterval);
+      timerState = 'paused';
+    } else if (timerState === 'resting') {
+      // Pause rest timer
       clearInterval(exerciseTimerInterval);
       timerState = 'paused';
     }
@@ -633,6 +677,14 @@
     }
   })();
 
+  // Rest timer display - countdown from rest duration to 0
+  $: restTimeDisplay = (() => {
+    if (!currentExercise) return '0:00';
+    const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
+    const remaining = Math.max(0, restDuration - restElapsedSeconds);
+    return formatTime(remaining);
+  })();
+
   function getExerciseProgress(exerciseIndex: number): number {
     if (exerciseIndex < currentExerciseIndex) return 100;
     if (exerciseIndex > currentExerciseIndex) return 0;
@@ -701,6 +753,17 @@
             ({currentExercise.defaultReps || 10} reps)
           </div>
         {/if}
+      </div>
+    {:else if timerState === 'resting' && currentExercise}
+      <div class="rest-display">
+        <div class="rest-icon-wrapper">
+          <span class="material-icons rest-icon">timer</span>
+        </div>
+        <div class="rest-label">Rest Between Sets</div>
+        <div class="rest-timer">{restTimeDisplay}</div>
+        <div class="rest-details">
+          Completed Set {currentSet - 1} of {currentExercise.defaultSets || 3}
+        </div>
       </div>
     {:else if currentExercise && timerState === 'active'}
       <div class="current-exercise-card">
@@ -1051,6 +1114,45 @@
   }
 
   .paused-details {
+    font-size: var(--font-size-base);
+    opacity: 0.9;
+  }
+
+  /* Rest display */
+  .rest-display {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .rest-icon-wrapper {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .rest-icon {
+    font-size: 4rem;
+    opacity: 0.8;
+    color: var(--primary);
+  }
+
+  .rest-label {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .rest-timer {
+    font-size: 4rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: var(--spacing-md);
+    color: var(--primary);
+  }
+
+  .rest-details {
     font-size: var(--font-size-base);
     opacity: 0.9;
   }

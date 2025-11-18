@@ -37,6 +37,7 @@ export interface Exercise {
   defaultReps?: number;
   defaultSets?: number;
   defaultRepDuration?: number; // seconds per rep for timing calculations
+  restBetweenSets?: number; // seconds of rest between sets (optional override)
 
   // Optional metadata
   instructions?: string;
@@ -134,6 +135,7 @@ export interface AppSettings {
   endSessionDelay: number; // Delay before session player closes after completion
   restBetweenSets: number; // Rest period between sets
   restBetweenExercises: number; // Rest period between exercises
+  enableAutoRest: boolean; // Enable automatic rest timer between sets
 
   // UI preferences
   theme: 'light' | 'dark' | 'auto';

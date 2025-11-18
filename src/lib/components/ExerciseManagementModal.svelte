@@ -76,6 +76,7 @@
     defaultReps: 10,
     defaultSets: 3,
     defaultRepDuration: 2,
+    restBetweenSets: undefined as number | undefined,
     instructions: '',
     includeInDefault: true
   };
@@ -155,6 +156,7 @@
       defaultReps: exercise.defaultReps || 10,
       defaultSets: exercise.defaultSets || 3,
       defaultRepDuration: exercise.defaultRepDuration || 2,
+      restBetweenSets: exercise.restBetweenSets,
       instructions: exercise.instructions || '',
       includeInDefault: exercise.includeInDefault
     };
@@ -169,6 +171,7 @@
       defaultReps: 10,
       defaultSets: 3,
       defaultRepDuration: 2,
+      restBetweenSets: undefined,
       instructions: '',
       includeInDefault: true
     };
@@ -195,6 +198,7 @@
           defaultReps: exerciseFormData.type === 'reps' ? exerciseFormData.defaultReps : undefined,
           defaultSets: exerciseFormData.type === 'reps' ? exerciseFormData.defaultSets : undefined,
           defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
+          restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
           instructions: exerciseFormData.instructions.trim() || undefined,
           includeInDefault: exerciseFormData.includeInDefault
         };
@@ -209,6 +213,7 @@
           defaultReps: exerciseFormData.type === 'reps' ? exerciseFormData.defaultReps : undefined,
           defaultSets: exerciseFormData.type === 'reps' ? exerciseFormData.defaultSets : undefined,
           defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
+          restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
           instructions: exerciseFormData.instructions.trim() || undefined,
           includeInDefault: exerciseFormData.includeInDefault,
           dateAdded: new Date().toISOString()
@@ -524,6 +529,19 @@
             min="1"
             step="0.5"
           />
+        </div>
+        <div class="form-group">
+          <label for="rest-between-sets">Rest Between Sets (seconds, optional)</label>
+          <input
+            id="rest-between-sets"
+            type="number"
+            bind:value={exerciseFormData.restBetweenSets}
+            min="0"
+            max="300"
+            step="5"
+            placeholder="Default from settings"
+          />
+          <small class="help-text">Leave empty to use global setting</small>
         </div>
       {/if}
 
@@ -900,6 +918,13 @@
 
   .form-group textarea {
     resize: vertical;
+  }
+
+  .help-text {
+    display: block;
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
   }
 
   .modal-actions {

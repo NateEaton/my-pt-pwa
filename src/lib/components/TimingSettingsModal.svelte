@@ -25,6 +25,7 @@
   let endSessionDelay = 5;
   let restBetweenSets = 30;
   let restBetweenExercises = 15;
+  let enableAutoRest = true;
 
   // Load current settings
   onMount(() => {
@@ -34,6 +35,7 @@
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
       restBetweenExercises = $ptState.settings.restBetweenExercises;
+      enableAutoRest = $ptState.settings.enableAutoRest;
     }
   });
 
@@ -50,7 +52,8 @@
       startCountdownDuration,
       endSessionDelay,
       restBetweenSets,
-      restBetweenExercises
+      restBetweenExercises,
+      enableAutoRest
     };
 
     try {
@@ -114,7 +117,7 @@
       <div class="setting-item">
         <div class="setting-info">
           <span class="setting-label">Rest Between Sets</span>
-          <span class="setting-description">Default rest time between sets</span>
+          <span class="setting-description">Default rest time between sets (reps exercises only)</span>
         </div>
         <div class="setting-control">
           <input
@@ -131,8 +134,23 @@
 
       <div class="setting-item">
         <div class="setting-info">
+          <span class="setting-label">Enable Auto-Rest Timer</span>
+          <span class="setting-description">Automatically start rest timer after completing a set</span>
+        </div>
+        <div class="setting-control">
+          <label class="toggle-switch">
+            <input type="checkbox" bind:checked={enableAutoRest} />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Future feature: Rest Between Exercises (Phase 2) -->
+      <!--
+      <div class="setting-item disabled">
+        <div class="setting-info">
           <span class="setting-label">Rest Between Exercises</span>
-          <span class="setting-description">Transition time between exercises</span>
+          <span class="setting-description">Transition time between exercises (coming soon)</span>
         </div>
         <div class="setting-control">
           <input
@@ -142,10 +160,12 @@
             max="300"
             step="5"
             class="setting-input"
+            disabled
           />
           <span class="input-suffix">s</span>
         </div>
       </div>
+      -->
 
       <div class="setting-item">
         <div class="setting-info">
@@ -251,6 +271,52 @@
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
     min-width: 1rem;
+  }
+
+  /* Toggle Switch */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 28px;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--divider);
+    transition: 0.3s;
+    border-radius: 28px;
+  }
+
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+  }
+
+  .toggle-switch input:checked + .toggle-slider {
+    background-color: var(--primary);
+  }
+
+  .toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(20px);
   }
 
   .modal-actions {
