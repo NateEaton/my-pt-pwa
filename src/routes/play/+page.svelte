@@ -195,7 +195,7 @@
   async function createSessionInstance() {
     if (!sessionDefinition) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = ptService.formatDate(new Date());
     const completedExercises: CompletedExercise[] = exercises.map(ex => ({
       exerciseId: ex.id,
 
