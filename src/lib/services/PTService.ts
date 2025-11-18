@@ -52,7 +52,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   restBetweenExercises: 15, // 15 seconds between exercises
   theme: 'auto',
   exerciseSortOrder: 'alphabetical',
-  soundEnabled: true,
+  soundEnabled: false, // Sound OFF by default
   soundVolume: 0.7, // 70% volume (master volume)
   audioLeadInEnabled: true, // 3-2-1 countdown at end of periods (enabled by default)
   audioContinuousTicksEnabled: false, // Continuous ticks OFF by default
