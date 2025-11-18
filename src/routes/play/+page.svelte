@@ -343,8 +343,6 @@
     }
 
     exerciseTimerInterval = window.setInterval(() => {
-      if (isPaused) return;
-
       exerciseElapsedSeconds++;
       const remaining = totalDuration - exerciseElapsedSeconds;
 
@@ -477,8 +475,21 @@
   // VCR-style controls
   function togglePlayPause() {
     if (timerState === 'paused') {
-      // Start countdown before exercise
-      startExerciseCountdown();
+      // Check if we're mid-exercise (resuming a set within the same exercise)
+      const isMidExercise = currentSet > 1;
+
+      if (isMidExercise) {
+        // Skip countdown when resuming between sets
+        timerState = 'active';
+        if (currentExercise?.type === 'reps') {
+          startRepsExercise();
+        } else {
+          startDurationExercise();
+        }
+      } else {
+        // Normal start - do countdown
+        startExerciseCountdown();
+      }
     } else if (timerState === 'active') {
       // Pause current exercise
       clearInterval(exerciseTimerInterval);
