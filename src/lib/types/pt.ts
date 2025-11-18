@@ -130,8 +130,7 @@ export interface SessionInstance {
 export interface AppSettings {
   // Timing defaults (in seconds)
   defaultRepDuration: number; // Default seconds per rep
-  startCountdownDuration: number; // Countdown before exercise starts
-  endCountdownDuration: number; // Countdown shown at end of exercise
+  startCountdownDuration: number; // Countdown before exercise starts (3-2-1)
   endSessionDelay: number; // Delay before session player closes after completion
   restBetweenSets: number; // Rest period between sets
   restBetweenExercises: number; // Rest period between exercises
@@ -142,7 +141,12 @@ export interface AppSettings {
 
   // Sound preferences
   soundEnabled: boolean;
-  soundVolume: number; // 0.0 to 1.0
+  soundVolume: number; // 0.0 to 1.0 (master volume)
+
+  // Audio cue preferences
+  audioLeadInEnabled: boolean; // 3-2-1 countdown at END of duration/rest periods
+  audioContinuousTicksEnabled: boolean; // Tick every second during duration exercises and rest periods
+  audioPerRepBeepsEnabled: boolean; // Beep on each rep completion
 
   // Feature flags (for future use)
   enableNotifications?: boolean;

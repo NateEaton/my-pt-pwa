@@ -2,7 +2,7 @@
  * My PT - Physical Therapy Tracker PWA
  * Copyright (C) 2025 Your Name
  *
- * AudioService - Handles audio generation for timer events
+ * AudioService - Enhanced audio generation for timer events
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,198 +14,262 @@ export class AudioService {
   private audioContext: AudioContext | null = null;
   private unlocked = false;
 
+  // Audio settings (injected from settings store)
+  private masterVolume = 0.7;
+  private leadInEnabled = true;
+  private continuousTicksEnabled = false;
+  private perRepBeepsEnabled = false;
+
+  constructor() {}
+
   /**
-   * Initialize the AudioContext (call on first user interaction for mobile)
+   * Initialize and unlock audio context (must be called on user gesture)
    */
-  private initAudioContext(): void {
-    if (this.audioContext) {
-      return;
-    }
-
-    try {
-      // Create AudioContext
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-
-      // Resume context if suspended (mobile browsers)
-      if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume();
+  public unlock(): void {
+    if (!this.audioContext) {
+      try {
+        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      } catch (error) {
+        console.error('Failed to create AudioContext:', error);
+        return;
       }
-
-      this.unlocked = true;
-    } catch (error) {
-      console.error('Failed to initialize AudioContext:', error);
-    }
-  }
-
-  /**
-   * Ensure audio context is ready before playing sounds
-   */
-  private ensureAudioContext(): AudioContext | null {
-    if (!this.audioContext || this.audioContext.state === 'closed') {
-      this.initAudioContext();
     }
 
-    if (this.audioContext && this.audioContext.state === 'suspended') {
-      this.audioContext.resume();
-    }
-
-    return this.audioContext;
-  }
-
-  /**
-   * Play a tone with specified frequency and duration
-   */
-  private playTone(
-    frequency: number,
-    duration: number,
-    volume: number = 0.3,
-    waveType: OscillatorType = 'sine'
-  ): void {
-    const context = this.ensureAudioContext();
-    if (!context) {
-      return;
-    }
-
-    try {
-      const currentTime = context.currentTime;
-
-      // Create oscillator for tone
-      const oscillator = context.createOscillator();
-      oscillator.type = waveType;
-      oscillator.frequency.setValueAtTime(frequency, currentTime);
-
-      // Create gain node for volume control and envelope
-      const gainNode = context.createGain();
-
-      // Envelope to prevent clicks: quick attack, sustain, quick release
-      const attackTime = 0.01; // 10ms attack
-      const releaseTime = 0.02; // 20ms release
-      const sustainTime = duration / 1000 - attackTime - releaseTime;
-
-      gainNode.gain.setValueAtTime(0, currentTime);
-      gainNode.gain.linearRampToValueAtTime(volume, currentTime + attackTime);
-      gainNode.gain.setValueAtTime(volume, currentTime + attackTime + sustainTime);
-      gainNode.gain.linearRampToValueAtTime(0, currentTime + duration / 1000);
-
-      // Connect nodes
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-
-      // Start and stop
-      oscillator.start(currentTime);
-      oscillator.stop(currentTime + duration / 1000);
-    } catch (error) {
-      console.error('Failed to play tone:', error);
-    }
-  }
-
-  /**
-   * Play a multi-tone chime (for completion sound)
-   */
-  private playChime(volume: number = 0.3): void {
-    const context = this.ensureAudioContext();
-    if (!context) {
-      return;
-    }
-
-    try {
-      const currentTime = context.currentTime;
-      const notes = [523.25, 659.25, 783.99]; // C5, E5, G5 (C major chord)
-      const noteDuration = 0.15; // 150ms per note
-
-      notes.forEach((frequency, index) => {
-        const startTime = currentTime + (index * noteDuration);
-
-        const oscillator = context.createOscillator();
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(frequency, startTime);
-
-        const gainNode = context.createGain();
-        const attackTime = 0.01;
-        const releaseTime = 0.05;
-        const sustainTime = noteDuration - attackTime - releaseTime;
-
-        gainNode.gain.setValueAtTime(0, startTime);
-        gainNode.gain.linearRampToValueAtTime(volume, startTime + attackTime);
-        gainNode.gain.setValueAtTime(volume, startTime + attackTime + sustainTime);
-        gainNode.gain.linearRampToValueAtTime(0, startTime + noteDuration);
-
-        oscillator.connect(gainNode);
-        gainNode.connect(context.destination);
-
-        oscillator.start(startTime);
-        oscillator.stop(startTime + noteDuration);
+    if (this.audioContext.state === 'suspended') {
+      this.audioContext.resume().catch(err => {
+        console.error('Failed to resume AudioContext:', err);
       });
-    } catch (error) {
-      console.error('Failed to play chime:', error);
     }
+
+    this.unlocked = true;
   }
 
   /**
-   * Play countdown tick sound (start countdown)
-   * Sharp 830Hz beep, 100ms
+   * Play a tone with smooth envelope to prevent clicks
+   * @param frequency - Frequency in Hz
+   * @param duration - Duration in seconds
+   */
+  private playBeep(frequency: number, duration: number): void {
+    if (!this.unlocked || !this.audioContext) return;
+
+    const now = this.audioContext.currentTime;
+    const osc = this.audioContext.createOscillator();
+    const gain = this.audioContext.createGain();
+
+    // Smooth envelope to prevent clicks
+    const attack = 0.015;  // 15ms attack
+    const release = 0.030; // 30ms release
+    const volume = this.masterVolume ?? 0.7;
+
+    osc.frequency.value = frequency;
+    osc.type = 'sine';
+
+    // Envelope: 0 -> volume -> volume -> 0
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(volume, now + attack);
+    gain.gain.setValueAtTime(volume, now + duration - release);
+    gain.gain.linearRampToValueAtTime(0, now + duration);
+
+    osc.connect(gain);
+    gain.connect(this.audioContext.destination);
+
+    osc.start(now);
+    osc.stop(now + duration);
+
+    // Automatic cleanup to prevent memory leaks
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+    };
+  }
+
+
+  // === Phase-based public methods ===
+
+  /**
+   * Called when an exercise starts
+   */
+  public onExerciseStart(): void {
+    this.playBeep(880, 0.20); // A5 - bright start tone
+  }
+
+  /**
+   * Called when an exercise ends
+   */
+  public onExerciseEnd(): void {
+    this.playBeep(440, 0.20); // A4 - lower end tone
+  }
+
+  /**
+   * Called when a rest period starts
+   */
+  public onRestStart(): void {
+    this.playBeep(350, 0.20); // Calming low tone
+  }
+
+  /**
+   * Called when a rest period ends
+   */
+  public onRestEnd(): void {
+    this.playBeep(500, 0.20); // Medium tone - end of rest
+  }
+
+  /**
+   * Called for countdown steps (3, 2, 1)
+   * @param step - The countdown number (3, 2, or 1)
+   */
+  public onCountdown(step: number): void {
+    if (!this.leadInEnabled) return;
+
+    const frequencyMap: Record<number, number> = {
+      3: 500,  // Low
+      2: 650,  // Medium
+      1: 800   // High - creates rising urgency
+    };
+
+    const freq = frequencyMap[step] ?? 650;
+    const duration = step === 1 ? 0.22 : 0.18;
+
+    this.playBeep(freq, duration);
+  }
+
+  /**
+   * Called on each tick during continuous exercise timing
+   */
+  public onTick(): void {
+    if (!this.continuousTicksEnabled) return;
+    this.playBeep(750, 0.08); // Short, neutral tick
+  }
+
+  /**
+   * Called for rep completion during rep-based exercises
+   */
+  public onRepComplete(): void {
+    if (!this.perRepBeepsEnabled) return;
+    this.playBeep(1000, 0.06); // Quick, high ping
+  }
+
+  /**
+   * Called when session completes - plays ascending chime
+   */
+  public onSessionComplete(): void {
+    if (!this.audioContext) return;
+
+    const now = this.audioContext.currentTime;
+    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5 (C major chord)
+    const noteDuration = 0.15;
+
+    notes.forEach((frequency, index) => {
+      const startTime = now + (index * noteDuration);
+
+      const osc = this.audioContext!.createOscillator();
+      const gain = this.audioContext!.createGain();
+
+      osc.frequency.value = frequency;
+      osc.type = 'sine';
+
+      const attack = 0.01;
+      const release = 0.05;
+      const volume = this.masterVolume ?? 0.7;
+
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(volume, startTime + attack);
+      gain.gain.setValueAtTime(volume, startTime + noteDuration - release);
+      gain.gain.linearRampToValueAtTime(0, startTime + noteDuration);
+
+      osc.connect(gain);
+      gain.connect(this.audioContext!.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + noteDuration);
+
+      osc.onended = () => {
+        osc.disconnect();
+        gain.disconnect();
+      };
+    });
+  }
+
+  // === Legacy methods for backward compatibility ===
+
+  /**
+   * @deprecated Use onCountdown(step) instead
    */
   playCountdownTick(volume: number = 0.3): void {
-    this.playTone(830, 100, volume, 'square');
+    const prevVolume = this.masterVolume;
+    this.masterVolume = volume;
+    this.onCountdown(3); // Use middle frequency as default
+    this.masterVolume = prevVolume;
   }
 
   /**
-   * Play duration exercise countdown tick
-   * Medium 700Hz beep, 100ms
+   * @deprecated Use onTick() instead
    */
   playDurationTick(volume: number = 0.3): void {
-    this.playTone(700, 100, volume, 'sine');
+    const prevVolume = this.masterVolume;
+    this.masterVolume = volume;
+    this.onTick();
+    this.masterVolume = prevVolume;
   }
 
   /**
-   * Play rep completion beep
-   * Quick 1000Hz ping, 50ms
+   * @deprecated Use onRepComplete() instead
    */
   playRepBeep(volume: number = 0.3): void {
-    this.playTone(1000, 50, volume, 'sine');
+    const prevVolume = this.masterVolume;
+    this.masterVolume = volume;
+    this.onRepComplete();
+    this.masterVolume = prevVolume;
   }
 
   /**
-   * Play rest period countdown tick
-   * Lower 600Hz beep, 100ms
+   * @deprecated Use onRestStart() instead
    */
   playRestTick(volume: number = 0.3): void {
-    this.playTone(600, 100, volume, 'triangle');
+    const prevVolume = this.masterVolume;
+    this.masterVolume = volume;
+    this.onRestStart();
+    this.masterVolume = prevVolume;
   }
 
   /**
-   * Play session complete chime
-   * Pleasant ascending chime
+   * @deprecated Use onSessionComplete() instead
    */
   playComplete(volume: number = 0.3): void {
-    this.playChime(volume);
+    const prevVolume = this.masterVolume;
+    this.masterVolume = volume;
+    this.onSessionComplete();
+    this.masterVolume = prevVolume;
+  }
+
+  // === Configuration methods ===
+
+  /**
+   * Set master volume (0.0 to 1.0)
+   */
+  public setMasterVolume(value: number): void {
+    this.masterVolume = Math.max(0, Math.min(1, value));
   }
 
   /**
-   * Unlock audio context (call on first user interaction)
-   * Required for mobile browsers
+   * Enable/disable 3-2-1 countdown lead-in
    */
-  unlock(): void {
-    if (this.unlocked) {
-      return;
-    }
+  public setLeadInEnabled(enabled: boolean): void {
+    this.leadInEnabled = enabled;
+  }
 
-    this.initAudioContext();
+  /**
+   * Enable/disable continuous ticks during duration exercises
+   */
+  public setContinuousTicksEnabled(enabled: boolean): void {
+    this.continuousTicksEnabled = enabled;
+  }
 
-    // Play a silent sound to unlock audio on mobile
-    if (this.audioContext) {
-      const oscillator = this.audioContext.createOscillator();
-      const gainNode = this.audioContext.createGain();
-      gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(this.audioContext.destination);
-
-      oscillator.start(this.audioContext.currentTime);
-      oscillator.stop(this.audioContext.currentTime + 0.01);
-
-      this.unlocked = true;
-    }
+  /**
+   * Enable/disable beeps on each rep completion
+   */
+  public setPerRepBeepsEnabled(enabled: boolean): void {
+    this.perRepBeepsEnabled = enabled;
   }
 
   /**
@@ -213,7 +277,9 @@ export class AudioService {
    */
   destroy(): void {
     if (this.audioContext) {
-      this.audioContext.close();
+      this.audioContext.close().catch(err => {
+        console.error('Failed to close AudioContext:', err);
+      });
       this.audioContext = null;
       this.unlocked = false;
     }

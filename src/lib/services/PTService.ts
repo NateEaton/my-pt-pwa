@@ -46,15 +46,17 @@ const STORES = {
 // Default application settings
 const DEFAULT_SETTINGS: AppSettings = {
   defaultRepDuration: 2, // 2 seconds per rep
-  startCountdownDuration: 5, // 5 second countdown before start
-  endCountdownDuration: 5, // 5 second countdown at end
+  startCountdownDuration: 3, // 3 second countdown before start (3-2-1)
   endSessionDelay: 5, // 5 second delay before session player closes
   restBetweenSets: 30, // 30 seconds between sets
   restBetweenExercises: 15, // 15 seconds between exercises
   theme: 'auto',
   exerciseSortOrder: 'alphabetical',
   soundEnabled: true,
-  soundVolume: 0.3, // 30% volume
+  soundVolume: 0.7, // 70% volume (master volume)
+  audioLeadInEnabled: true, // 3-2-1 countdown at end of periods (enabled by default)
+  audioContinuousTicksEnabled: false, // Continuous ticks OFF by default
+  audioPerRepBeepsEnabled: false, // Per-rep beeps OFF by default
   enableNotifications: false
 };
 
@@ -410,11 +412,19 @@ export class PTService {
   // ==================== Settings Operations ====================
 
   /**
-   * Get application settings
+   * Get application settings (merges with defaults for any missing fields)
    */
   async getSettings(): Promise<AppSettings | null> {
     this.ensureInitialized();
-    return this._getByKey<AppSettings>(STORES.SETTINGS, 'appSettings');
+    const stored = await this._getByKey<AppSettings>(STORES.SETTINGS, 'appSettings');
+
+    // Merge stored settings with defaults to ensure all fields exist
+    // This handles schema updates where new settings fields are added
+    if (stored) {
+      return { ...DEFAULT_SETTINGS, ...stored };
+    }
+
+    return stored;
   }
 
   /**

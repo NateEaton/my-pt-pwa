@@ -40,8 +40,7 @@
   let exerciseTimerInterval: number | undefined;
 
   // Settings
-  let startCountdownDuration = 5;
-  let endCountdownDuration = 5;
+  let startCountdownDuration = 3;
   let endSessionDelay = 5;
   let restBetweenSets = 30;
   let restBetweenExercises = 30;
@@ -51,6 +50,9 @@
   // Auto-scroll support for exercise list
   let exerciseElements: HTMLElement[] = [];
 
+  // Wake Lock to keep screen awake during session
+  let wakeLock: any = null;
+
   // Scroll active exercise into view when index changes
   $: if (currentExerciseIndex >= 0 && exerciseElements[currentExerciseIndex]) {
     exerciseElements[currentExerciseIndex].scrollIntoView({
@@ -59,34 +61,61 @@
     });
   }
 
-  // Audio helper function
-  function playSound(soundType: 'countdown' | 'duration' | 'rep' | 'rest' | 'complete') {
-    if (!$ptState.settings?.soundEnabled) return;
+  // Update audio service when settings change
+  $: if ($ptState.settings) {
+    audioService.setMasterVolume($ptState.settings.soundVolume);
+    audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
+    audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
+    audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
+  }
 
-    const volume = $ptState.settings.soundVolume || 0.3;
+  // Check if audio is enabled
+  function shouldPlayAudio(): boolean {
+    return $ptState.settings?.soundEnabled ?? false;
+  }
 
-    switch (soundType) {
-      case 'countdown':
-        audioService.playCountdownTick(volume);
-        break;
-      case 'duration':
-        audioService.playDurationTick(volume);
-        break;
-      case 'rep':
-        audioService.playRepBeep(volume);
-        break;
-      case 'rest':
-        audioService.playRestTick(volume);
-        break;
-      case 'complete':
-        audioService.playComplete(volume);
-        break;
+  // Request wake lock to keep screen awake
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await (navigator as any).wakeLock.request('screen');
+        console.log('Wake Lock activated');
+
+        // Re-request wake lock if it's released (e.g., user switches tabs)
+        wakeLock.addEventListener('release', () => {
+          console.log('Wake Lock released');
+        });
+      }
+    } catch (err) {
+      console.error('Wake Lock request failed:', err);
     }
   }
 
-  // Unlock audio on mount (required for mobile browsers)
+  // Release wake lock
+  async function releaseWakeLock() {
+    if (wakeLock) {
+      try {
+        await wakeLock.release();
+        wakeLock = null;
+        console.log('Wake Lock released manually');
+      } catch (err) {
+        console.error('Wake Lock release failed:', err);
+      }
+    }
+  }
+
+  // Unlock audio and configure settings on mount
   onMount(() => {
     audioService.unlock();
+    requestWakeLock();
+
+    // Configure audio service with user settings
+    if ($ptState.settings) {
+      audioService.setMasterVolume($ptState.settings.soundVolume);
+      audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
+      audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
+      audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
+    }
   });
 
   // Wait for ptState to be initialized, then load session
@@ -127,7 +156,6 @@
     // Load settings
     if ($ptState.settings) {
       startCountdownDuration = $ptState.settings.startCountdownDuration;
-      endCountdownDuration = $ptState.settings.endCountdownDuration;
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
       restBetweenExercises = $ptState.settings.restBetweenExercises;
@@ -161,6 +189,7 @@
 
   onDestroy(() => {
     clearTimers();
+    releaseWakeLock();
   });
 
   async function createSessionInstance() {
@@ -266,11 +295,20 @@
     timerState = 'countdown';
     countdownSeconds = startCountdownDuration;
 
+    // Play initial countdown tone if at 3, 2, or 1
+    if (shouldPlayAudio() && countdownSeconds <= 3 && countdownSeconds >= 1) {
+      audioService.onCountdown(countdownSeconds);
+    }
+
     exerciseTimerInterval = window.setInterval(() => {
       if (isPaused) return;
 
       countdownSeconds--;
-      playSound('countdown'); // Play tick sound on each countdown second
+
+      // Play countdown tone at 3, 2, 1
+      if (shouldPlayAudio() && countdownSeconds <= 3 && countdownSeconds >= 1) {
+        audioService.onCountdown(countdownSeconds);
+      }
 
       if (countdownSeconds <= 0) {
         clearInterval(exerciseTimerInterval);
@@ -298,15 +336,39 @@
     if (!currentExercise) return;
 
     const totalDuration = currentExercise.defaultDuration || 60;
+    const continuousTicksEnabled = $ptState.settings?.audioContinuousTicksEnabled ?? false;
+    const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
+
+    // Play exercise start tone
+    if (shouldPlayAudio()) {
+      audioService.onExerciseStart();
+    }
 
     exerciseTimerInterval = window.setInterval(() => {
       if (isPaused) return;
 
       exerciseElapsedSeconds++;
-      playSound('duration'); // Play tick sound for each second of duration exercise
+      const remaining = totalDuration - exerciseElapsedSeconds;
+
+      // Audio cues during exercise
+      if (shouldPlayAudio()) {
+        if (continuousTicksEnabled) {
+          // Play tick every second
+          audioService.onTick();
+        } else if (leadInEnabled && remaining >= 1 && remaining <= 3) {
+          // Play 3-2-1 countdown at end
+          audioService.onCountdown(remaining);
+        }
+      }
 
       if (exerciseElapsedSeconds >= totalDuration) {
         clearInterval(exerciseTimerInterval);
+
+        // Play end tone if countdown wasn't used
+        if (shouldPlayAudio() && !continuousTicksEnabled && !leadInEnabled) {
+          audioService.onExerciseEnd();
+        }
+
         completeCurrentExercise();
       }
     }, 1000);
@@ -325,9 +387,9 @@
       exerciseElapsedSeconds++;
       currentRep = Math.floor((exerciseElapsedSeconds % (reps * repDuration)) / repDuration) + 1;
 
-      // Play beep at the end of each rep
-      if (exerciseElapsedSeconds % repDuration === 0) {
-        playSound('rep');
+      // Play beep at the end of each rep (controlled by audioService setting)
+      if (exerciseElapsedSeconds % repDuration === 0 && shouldPlayAudio()) {
+        audioService.onRepComplete();
       }
 
       // Check if set is complete
@@ -349,14 +411,38 @@
     timerState = 'rest';
     restCountdown = restBetweenSets;
 
+    const continuousTicksEnabled = $ptState.settings?.audioContinuousTicksEnabled ?? false;
+    const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
+
+    // Play rest start tone
+    if (shouldPlayAudio()) {
+      audioService.onRestStart();
+    }
+
     exerciseTimerInterval = window.setInterval(() => {
       if (isPaused) return;
 
       restCountdown--;
-      playSound('rest'); // Play tick sound during rest between sets
+
+      // Audio cues during rest
+      if (shouldPlayAudio()) {
+        if (continuousTicksEnabled) {
+          // Play tick every second
+          audioService.onTick();
+        } else if (leadInEnabled && restCountdown >= 1 && restCountdown <= 3) {
+          // Play 3-2-1 countdown at end of rest
+          audioService.onCountdown(restCountdown);
+        }
+      }
 
       if (restCountdown <= 0) {
         clearInterval(exerciseTimerInterval);
+
+        // Play rest end tone if countdown wasn't used
+        if (shouldPlayAudio() && !continuousTicksEnabled && !leadInEnabled) {
+          audioService.onRestEnd();
+        }
+
         timerState = 'active';
         // Increment to next set AFTER rest completes
         currentSet++;
@@ -394,14 +480,38 @@
         timerState = 'rest';
         restCountdown = restBetweenExercises;
 
+        const continuousTicksEnabled = $ptState.settings?.audioContinuousTicksEnabled ?? false;
+        const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
+
+        // Play rest start tone
+        if (shouldPlayAudio()) {
+          audioService.onRestStart();
+        }
+
         exerciseTimerInterval = window.setInterval(() => {
           if (isPaused) return;
 
           restCountdown--;
-          playSound('rest'); // Play tick sound during rest between exercises
+
+          // Audio cues during rest
+          if (shouldPlayAudio()) {
+            if (continuousTicksEnabled) {
+              // Play tick every second
+              audioService.onTick();
+            } else if (leadInEnabled && restCountdown >= 1 && restCountdown <= 3) {
+              // Play 3-2-1 countdown at end of rest
+              audioService.onCountdown(restCountdown);
+            }
+          }
 
           if (restCountdown <= 0) {
             clearInterval(exerciseTimerInterval);
+
+            // Play rest end tone if countdown wasn't used
+            if (shouldPlayAudio() && !continuousTicksEnabled && !leadInEnabled) {
+              audioService.onRestEnd();
+            }
+
             startExerciseCountdown();
           }
         }, 1000);
@@ -422,7 +532,10 @@
     sessionInstance.status = 'completed';
     sessionInstance.endTime = new Date().toISOString();
 
-    playSound('complete'); // Play completion chime
+    // Play completion chime
+    if (shouldPlayAudio()) {
+      audioService.onSessionComplete();
+    }
 
     await ptService.updateSessionInstance(sessionInstance);
 
@@ -748,24 +861,25 @@
   .control-buttons {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-md);
+    gap: 1rem;
+    margin-top: 1.25rem;
     align-items: center;
   }
 
   .pause-btn {
     background-color: rgba(255, 255, 255, 0.2);
     border: none;
-    border-radius: var(--border-radius);
-    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 12px;
+    padding: 1rem var(--spacing-md);
     color: white;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    font-size: var(--font-size-base);
+    font-size: 1.1rem;
     transition: background-color 0.2s;
     justify-self: start;
+    min-height: 48px;
   }
 
   .pause-btn:hover {
@@ -781,7 +895,7 @@
   }
 
   .countdown-number {
-    font-size: 4rem;
+    font-size: clamp(3rem, 10vw, 5rem);
     font-weight: 700;
     line-height: 1;
   }
@@ -820,6 +934,7 @@
   }
 
   .exercise-header {
+    min-height: 3.5rem;
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
@@ -850,7 +965,7 @@
   }
 
   .timer-display {
-    font-size: 4rem;
+    font-size: clamp(3rem, 10vw, 5rem);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     line-height: 1;
@@ -899,16 +1014,17 @@
   .skip-btn {
     background-color: rgba(255, 255, 255, 0.2);
     border: none;
-    border-radius: var(--border-radius);
-    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 12px;
+    padding: 1rem var(--spacing-md);
     color: white;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    font-size: var(--font-size-base);
+    font-size: 1.1rem;
     transition: background-color 0.2s;
     justify-self: end;
+    min-height: 48px;
   }
 
   .skip-btn:hover {
@@ -919,15 +1035,16 @@
     background-color: white;
     color: var(--primary-color);
     border: none;
-    border-radius: var(--border-radius);
-    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 12px;
+    padding: 1rem var(--spacing-md);
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    font-size: var(--font-size-base);
+    font-size: 1.1rem;
     font-weight: 600;
     transition: all 0.2s;
+    min-height: 48px;
   }
 
   .start-now-btn:hover {
@@ -937,19 +1054,20 @@
 
   .exit-buttons {
     display: flex;
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-md);
+    gap: 1rem;
+    margin-top: 2rem;
   }
 
   .btn {
     flex: 1;
-    padding: var(--spacing-md);
-    border-radius: var(--border-radius);
-    font-size: var(--font-size-base);
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 1.1rem;
     font-weight: 500;
     cursor: pointer;
     border: none;
     transition: all 0.2s ease;
+    min-height: 48px;
   }
 
   .btn-primary {
