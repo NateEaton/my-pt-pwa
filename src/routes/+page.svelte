@@ -404,6 +404,7 @@
 {#if showSessionSelectModal}
   <Modal
     title="Select Session"
+    iosStyle={true}
     on:close={() => (showSessionSelectModal = false)}
   >
     {#if $ptState.sessionDefinitions.length === 0}
@@ -440,6 +441,7 @@
       <button
         class="btn btn-secondary"
         on:click={() => (showSessionSelectModal = false)}
+        type="button"
       >
         Cancel
       </button>
@@ -451,6 +453,7 @@
 {#if showExerciseListModal}
   <Modal
     title="{selectedSession?.name || 'Session'} Exercises"
+    iosStyle={true}
     on:close={() => (showExerciseListModal = false)}
   >
     <div class="exercise-list-full">
@@ -466,10 +469,11 @@
       <button
         class="btn btn-secondary"
         on:click={() => (showExerciseListModal = false)}
+        type="button"
       >
         Close
       </button>
-      <button class="btn btn-primary" on:click={handlePlaySession}>
+      <button class="btn btn-primary" on:click={handlePlaySession} type="button">
         <span class="material-icons">play_arrow</span>
         Play Session
       </button>

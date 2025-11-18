@@ -69,7 +69,7 @@
   }
 </script>
 
-<Modal fullScreen={true} title="Timing Settings" on:close={handleClose}>
+<Modal fullScreen={true} title="Timing Settings" iosStyle={true} on:close={handleClose}>
   <div class="timing-settings-content">
     <p class="modal-description">
       Adjust timing preferences for your exercise sessions and rest periods.
@@ -167,12 +167,11 @@
   </div>
 
   <div slot="footer" class="modal-actions">
-    <button class="btn btn-secondary" on:click={handleClose}>
+    <button class="btn btn-secondary" on:click={handleClose} type="button">
       Cancel
     </button>
-    <button class="btn btn-primary" on:click={saveSettings}>
-      <span class="material-icons">save</span>
-      Save Settings
+    <button class="btn btn-primary" on:click={saveSettings} type="button">
+      Save
     </button>
   </div>
 </Modal>

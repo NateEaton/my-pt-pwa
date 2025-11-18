@@ -129,7 +129,7 @@
   $: volumePercentage = Math.round(soundVolume * 100);
 </script>
 
-<Modal fullScreen={true} title="Audio & Sound Settings" on:close={handleClose}>
+<Modal fullScreen={true} title="Audio & Sound Settings" iosStyle={true} on:close={handleClose}>
   <div class="audio-settings-content">
     <p class="modal-description">
       Configure audio cues and sound preferences for your exercise sessions.
@@ -295,12 +295,11 @@
   </div>
 
   <div slot="footer" class="modal-actions">
-    <button class="btn btn-secondary" on:click={handleClose}>
+    <button class="btn btn-secondary" on:click={handleClose} type="button">
       Cancel
     </button>
-    <button class="btn btn-primary" on:click={saveSettings}>
-      <span class="material-icons">save</span>
-      Save Settings
+    <button class="btn btn-primary" on:click={saveSettings} type="button">
+      Save
     </button>
   </div>
 </Modal>

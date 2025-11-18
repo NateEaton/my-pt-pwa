@@ -21,7 +21,7 @@
   }
 </script>
 
-<Modal fullScreen={true} title="User Guide" on:close={handleClose}>
+<Modal fullScreen={true} title="User Guide" iosStyle={true} on:close={handleClose}>
   <div class="guide-content">
     <!-- Getting Started -->
     <details class="guide-section" open>

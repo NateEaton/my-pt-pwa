@@ -455,7 +455,7 @@
 
 <!-- Session Details Modal -->
 {#if showDetailsModal && selectedSession}
-  <Modal title="Session Details" on:close={closeDetailsModal}>
+  <Modal title="Session Details" iosStyle={true} on:close={closeDetailsModal}>
     <button
       slot="headerActions"
       class="modal-action-button delete-button"

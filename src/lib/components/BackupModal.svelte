@@ -86,7 +86,7 @@
   }
 </script>
 
-<Modal fullScreen={true} title="Create Backup" on:close={handleClose}>
+<Modal fullScreen={true} title="Create Backup" iosStyle={true} on:close={handleClose}>
   <div class="backup-content">
     <p class="modal-description">
       Download all your exercises, sessions, and journal entries as a JSON file.
@@ -123,12 +123,12 @@
   </div>
 
   <div slot="footer" class="modal-actions">
-    <button class="btn btn-secondary" on:click={handleClose}>
+    <button class="btn btn-secondary" on:click={handleClose} type="button">
       Cancel
     </button>
-    <button class="btn btn-primary" on:click={handleBackup}>
+    <button class="btn btn-primary" on:click={handleBackup} type="button">
       <span class="material-icons">download</span>
-      Download Backup
+      Download
     </button>
   </div>
 </Modal>
