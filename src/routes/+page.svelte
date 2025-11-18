@@ -32,7 +32,6 @@
   const formattedDate = dateFormatter.format(today);
 
   // Modal states
-  let showExerciseListModal = false;
   let showSessionSelectModal = false;
   let showManualLogConfirm = false;
 
@@ -45,6 +44,9 @@
   let todaySessionInstance: SessionInstance | null = null;
   type SessionState = 'not-started' | 'in-progress' | 'completed';
   let sessionState: SessionState = 'not-started';
+
+  // Exercise preview expansion state
+  let showAllExercises = false;
 
   // Load persisted session selection from localStorage
   const STORAGE_KEY = 'pt-today-session-id';
@@ -113,10 +115,24 @@
       const today = ptService.formatDate(new Date());
       const instances = await ptService.getSessionInstancesByDate(today);
 
-      // Find instance for the selected session
-      todaySessionInstance = instances.find(
+      // Filter instances for the selected session
+      const sessionInstances = instances.filter(
         inst => inst.sessionDefinitionId === selectedSession!.id
-      ) || null;
+      );
+
+      // Find the most relevant instance: prioritize in-progress, then most recent
+      if (sessionInstances.length === 0) {
+        todaySessionInstance = null;
+      } else {
+        // First look for an in-progress session
+        const inProgress = sessionInstances.find(inst => inst.status === 'in-progress');
+        if (inProgress) {
+          todaySessionInstance = inProgress;
+        } else {
+          // Otherwise use the most recent (last) instance
+          todaySessionInstance = sessionInstances[sessionInstances.length - 1];
+        }
+      }
 
       // Determine state based on instance status
       if (!todaySessionInstance) {
@@ -399,8 +415,8 @@
     handlePlaySession();
   }
 
-  function viewExercises() {
-    showExerciseListModal = true;
+  function toggleShowAllExercises() {
+    showAllExercises = !showAllExercises;
   }
 
   function openSessionSelect() {
@@ -477,14 +493,6 @@
                   title="Change session"
                 >
                   <span class="material-icons">swap_horiz</span>
-                </button>
-                <button
-                  class="icon-button"
-                  on:click={viewExercises}
-                  aria-label="View exercises"
-                  title="View all exercises"
-                >
-                  <span class="material-icons">visibility</span>
                 </button>
               </div>
             </div>
@@ -567,7 +575,7 @@
           <div class="exercise-preview">
             <h3 class="preview-title">Exercises ({sessionExercises.length})</h3>
             <div class="exercise-list-preview">
-              {#each sessionExercises.slice(0, 3) as exercise (exercise.id)}
+              {#each (showAllExercises ? sessionExercises : sessionExercises.slice(0, 3)) as exercise (exercise.id)}
                 <div class="exercise-preview-item" class:completed={isExerciseCompleted(exercise.id)}>
                   {#if isExerciseCompleted(exercise.id)}
                     <span class="exercise-check-icon material-icons">check_circle</span>
@@ -578,9 +586,9 @@
                 </div>
               {/each}
               {#if sessionExercises.length > 3}
-                <button class="show-more-btn" on:click={viewExercises}>
-                  <span class="material-icons">expand_more</span>
-                  Show {sessionExercises.length - 3} more exercises
+                <button class="show-more-btn" on:click={toggleShowAllExercises}>
+                  <span class="material-icons">{showAllExercises ? 'expand_less' : 'expand_more'}</span>
+                  {showAllExercises ? 'Show less' : `Show ${sessionExercises.length - 3} more exercises`}
                 </button>
               {/if}
             </div>
@@ -659,39 +667,6 @@
     </div>
   </Modal>
 {/if}
-
-<!-- Exercise List Modal -->
-{#if showExerciseListModal}
-  <Modal
-    title="{selectedSession?.name || 'Session'} Exercises"
-    iosStyle={true}
-    on:close={() => (showExerciseListModal = false)}
-  >
-    <div class="exercise-list-full">
-      {#each sessionExercises as exercise, index (exercise.id)}
-        <div class="exercise-number-wrapper">
-          <span class="exercise-number">{index + 1}</span>
-          <ExerciseCard {exercise} />
-        </div>
-      {/each}
-    </div>
-
-    <div slot="footer" class="modal-actions">
-      <button
-        class="btn btn-secondary"
-        on:click={() => (showExerciseListModal = false)}
-        type="button"
-      >
-        Close
-      </button>
-      <button class="btn btn-primary" on:click={handlePlaySession} type="button">
-        <span class="material-icons">play_arrow</span>
-        Play Session
-      </button>
-    </div>
-  </Modal>
-{/if}
-
 <style>
   .page-container {
     display: flex;
@@ -1085,34 +1060,6 @@
     color: var(--primary-color);
     font-size: var(--icon-size-lg);
   }
-
-  /* Exercise List Modal */
-  .exercise-list-full {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-
-  .exercise-number-wrapper {
-    display: flex;
-    gap: var(--spacing-md);
-    align-items: flex-start;
-  }
-
-  .exercise-number {
-    flex-shrink: 0;
-    width: 2rem;
-    height: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--primary-color);
-    color: white;
-    border-radius: 50%;
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-  }
-
   .modal-actions {
     display: flex;
     gap: var(--spacing-md);
