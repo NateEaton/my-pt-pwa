@@ -24,8 +24,6 @@
   let soundEnabled = true;
   let soundVolume = 0.7;
   let audioLeadInEnabled = true;
-  let audioContinuousTicksEnabled = false;
-  let audioPerRepBeepsEnabled = false;
 
   // Load current settings
   onMount(() => {
@@ -33,18 +31,11 @@
       soundEnabled = $ptState.settings.soundEnabled;
       soundVolume = $ptState.settings.soundVolume;
       audioLeadInEnabled = $ptState.settings.audioLeadInEnabled;
-      audioContinuousTicksEnabled = $ptState.settings.audioContinuousTicksEnabled;
-      audioPerRepBeepsEnabled = $ptState.settings.audioPerRepBeepsEnabled;
     }
 
     // Unlock audio context on mount
     audioService.unlock();
   });
-
-  // Enforce mutual exclusivity: continuous ticks and 3-2-1 countdown
-  $: if (audioContinuousTicksEnabled && audioLeadInEnabled) {
-    audioLeadInEnabled = false;
-  }
 
   function handleClose() {
     dispatch('close');
@@ -57,9 +48,7 @@
       ...$ptState.settings,
       soundEnabled,
       soundVolume,
-      audioLeadInEnabled,
-      audioContinuousTicksEnabled,
-      audioPerRepBeepsEnabled
+      audioLeadInEnabled
     };
 
     try {
@@ -72,8 +61,6 @@
       // Update audio service with new settings
       audioService.setMasterVolume(soundVolume);
       audioService.setLeadInEnabled(audioLeadInEnabled);
-      audioService.setContinuousTicksEnabled(audioContinuousTicksEnabled);
-      audioService.setPerRepBeepsEnabled(audioPerRepBeepsEnabled);
 
       toastStore.show('Audio settings saved', 'success');
       handleClose();
@@ -112,12 +99,6 @@
     audioService.onCountdown(3);
     setTimeout(() => audioService.onCountdown(2), 1000);
     setTimeout(() => audioService.onCountdown(1), 2000);
-  }
-
-  function previewRepComplete() {
-    audioService.setMasterVolume(soundVolume);
-    audioService.setPerRepBeepsEnabled(true); // Temporarily enable for preview
-    audioService.onRepComplete();
   }
 
   function previewSessionComplete() {
@@ -174,28 +155,9 @@
       <!-- Audio Cue Options -->
       <div class="setting-item">
         <div class="setting-info">
-          <span class="setting-label">Continuous Ticks</span>
+          <span class="setting-label">Countdown Before Exercise</span>
           <span class="setting-description">
-            Play a tick sound every second during duration exercises and rest periods. When disabled, plays a single tone at start and end of each period. (Mutually exclusive with 3-2-1 Countdown)
-          </span>
-        </div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input
-              type="checkbox"
-              bind:checked={audioContinuousTicksEnabled}
-              disabled={!soundEnabled}
-            />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-label">3-2-1 Countdown</span>
-          <span class="setting-description">
-            Play rising countdown tones (3-2-1) at the end of duration exercises and rest periods, replacing the normal end tone. Disabled when Continuous Ticks is enabled.
+            Play 3-2-1 countdown tones when starting each exercise (helps you get ready before movement begins)
           </span>
         </div>
         <div class="setting-control">
@@ -203,29 +165,26 @@
             <input
               type="checkbox"
               bind:checked={audioLeadInEnabled}
-              disabled={!soundEnabled || audioContinuousTicksEnabled}
+              disabled={!soundEnabled}
             />
             <span class="toggle-slider"></span>
           </label>
         </div>
       </div>
 
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-label">Per-Rep Beeps</span>
-          <span class="setting-description">
-            Play a beep sound on each rep completion during rep exercises
-          </span>
+      <!-- Info about always-on audio cues -->
+      <div class="info-box">
+        <div class="info-title">
+          <span class="material-icons">info</span>
+          Audio Cues
         </div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input
-              type="checkbox"
-              bind:checked={audioPerRepBeepsEnabled}
-              disabled={!soundEnabled}
-            />
-            <span class="toggle-slider"></span>
-          </label>
+        <div class="info-text">
+          The app plays audio cues when sound is enabled:
+          <ul>
+            <li>Exercise start and completion</li>
+            <li>Rest period start and end</li>
+            <li>Session completion</li>
+          </ul>
         </div>
       </div>
 
@@ -272,14 +231,6 @@
           >
             <span class="material-icons">timer</span>
             3-2-1 Countdown
-          </button>
-          <button
-            class="btn-preview"
-            on:click={previewRepComplete}
-            disabled={!soundEnabled}
-          >
-            <span class="material-icons">check</span>
-            Rep Complete
           </button>
           <button
             class="btn-preview"
@@ -404,6 +355,44 @@
     color: var(--text-secondary);
     min-width: 3rem;
     text-align: right;
+  }
+
+  /* Info Box */
+  .info-box {
+    padding: var(--spacing-md);
+    background-color: var(--primary-alpha-10);
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--primary-color);
+  }
+
+  .info-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .info-title .material-icons {
+    font-size: var(--icon-size-md);
+    color: var(--primary-color);
+  }
+
+  .info-text {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .info-text ul {
+    margin: var(--spacing-xs) 0 0 var(--spacing-lg);
+    padding: 0;
+  }
+
+  .info-text li {
+    margin-bottom: var(--spacing-xs);
   }
 
   /* Toggle Switch */

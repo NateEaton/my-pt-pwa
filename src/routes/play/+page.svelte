@@ -382,6 +382,11 @@
 
     repElapsedSeconds = 0;
 
+    // Play exercise start tone
+    if (shouldPlayAudio()) {
+      audioService.onExerciseStart();
+    }
+
     exerciseTimerInterval = window.setInterval(() => {
       exerciseElapsedSeconds++;
       repElapsedSeconds++;
@@ -432,12 +437,22 @@
     restElapsedSeconds = 0;
     timerState = 'resting';
 
+    // Play rest start tone
+    if (shouldPlayAudio()) {
+      audioService.onRestStart();
+    }
+
     exerciseTimerInterval = window.setInterval(() => {
       restElapsedSeconds++;
 
       // Check if rest period is complete
       if (restElapsedSeconds >= restDuration) {
         clearInterval(exerciseTimerInterval);
+
+        // Play rest end tone
+        if (shouldPlayAudio()) {
+          audioService.onRestEnd();
+        }
 
         // Auto-pause when rest is done - user must press Play to continue
         timerState = 'paused';
