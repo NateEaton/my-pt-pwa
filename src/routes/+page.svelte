@@ -12,7 +12,7 @@
 
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
+  import { goto, afterNavigate } from '$app/navigation';
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
@@ -155,9 +155,15 @@
     loadTodaySessionInstance();
   }
 
-  // Reload state when returning to this page (e.g., from player)
+  // Reload state when navigating to this page (e.g., returning from player)
+  afterNavigate(() => {
+    if (selectedSession) {
+      loadTodaySessionInstance();
+    }
+  });
+
+  // Also reload when tab becomes visible (for external navigation)
   onMount(() => {
-    // Listen for when page becomes visible again
     const handleVisibilityChange = () => {
       if (!document.hidden && selectedSession) {
         loadTodaySessionInstance();
