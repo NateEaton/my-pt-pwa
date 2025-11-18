@@ -19,7 +19,7 @@
   import ExerciseCard from '$lib/components/ExerciseCard.svelte';
   import Modal from '$lib/components/Modal.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-  import type { Exercise, SessionDefinition, CompletedExercise } from '$lib/types/pt';
+  import type { Exercise, SessionDefinition, SessionInstance, CompletedExercise } from '$lib/types/pt';
 
   // Format today's date
   const today = new Date();
@@ -40,6 +40,11 @@
   let selectedSession: SessionDefinition | null = null;
   let sessionExercises: Exercise[] = [];
   let initialized = false;
+
+  // Today's session instance (if exists)
+  let todaySessionInstance: SessionInstance | null = null;
+  type SessionState = 'not-started' | 'in-progress' | 'completed';
+  let sessionState: SessionState = 'not-started';
 
   // Load persisted session selection from localStorage
   const STORAGE_KEY = 'pt-today-session-id';
@@ -95,6 +100,41 @@
       .filter((e): e is Exercise => e !== undefined);
   }
 
+  // Load today's session instance and determine state
+  async function loadTodaySessionInstance() {
+    if (!selectedSession) {
+      todaySessionInstance = null;
+      sessionState = 'not-started';
+      return;
+    }
+
+    try {
+      // Get today's date in YYYY-MM-DD format
+      const today = ptService.formatDate(new Date());
+      const instances = await ptService.getSessionInstancesByDate(today);
+
+      // Find instance for the selected session
+      todaySessionInstance = instances.find(
+        inst => inst.sessionDefinitionId === selectedSession!.id
+      ) || null;
+
+      // Determine state based on instance status
+      if (!todaySessionInstance) {
+        sessionState = 'not-started';
+      } else if (todaySessionInstance.status === 'in-progress') {
+        sessionState = 'in-progress';
+      } else if (todaySessionInstance.status === 'completed' || todaySessionInstance.status === 'logged') {
+        sessionState = 'completed';
+      } else {
+        sessionState = 'not-started';
+      }
+    } catch (error) {
+      console.error('Error loading today session instance:', error);
+      todaySessionInstance = null;
+      sessionState = 'not-started';
+    }
+  }
+
   // Reactive: Load session when store is initialized or session definitions change
   $: if ($ptState.initialized && !initialized) {
     loadSelectedSession();
@@ -112,6 +152,7 @@
   // Reactive: Reload exercises when selected session changes
   $: if (selectedSession) {
     loadSessionExercises();
+    loadTodaySessionInstance();
   }
 
   function calculateTotalDurationSeconds(): number {
@@ -163,6 +204,52 @@
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  }
+
+  function calculateActualDuration(): string {
+    if (!todaySessionInstance || !todaySessionInstance.startTime) {
+      return '0m';
+    }
+
+    const startTime = new Date(todaySessionInstance.startTime);
+    const endTime = todaySessionInstance.endTime
+      ? new Date(todaySessionInstance.endTime)
+      : new Date();
+
+    const durationMs = endTime.getTime() - startTime.getTime();
+    const totalSeconds = Math.floor(durationMs / 1000);
+
+    if (totalSeconds < 60) return `${totalSeconds}s`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  }
+
+  function formatCompletionTime(): string {
+    if (!todaySessionInstance || !todaySessionInstance.endTime) {
+      return '';
+    }
+
+    const endTime = new Date(todaySessionInstance.endTime);
+    const timeFormatter = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    return timeFormatter.format(endTime);
+  }
+
+  function getCompletedExerciseCount(): number {
+    if (!todaySessionInstance) return 0;
+    return todaySessionInstance.completedExercises.filter(ex => ex.completed).length;
+  }
+
+  function isExerciseCompleted(exerciseId: number): boolean {
+    if (!todaySessionInstance) return false;
+    const completedEx = todaySessionInstance.completedExercises.find(
+      ex => ex.exerciseId === exerciseId
+    );
+    return completedEx?.completed || false;
   }
 
   function handlePlaySession() {
@@ -249,6 +336,44 @@
     showManualLogConfirm = false;
   }
 
+  function handleResumeSession() {
+    if (!selectedSession || !todaySessionInstance) {
+      toastStore.show('No in-progress session found', 'error');
+      return;
+    }
+
+    // Store session instance ID for player to resume
+    localStorage.setItem('pt-active-session-instance-id', todaySessionInstance.id.toString());
+
+    // Navigate to player
+    goto('/play');
+  }
+
+  function handleStartOver() {
+    if (!selectedSession) {
+      toastStore.show('No session selected', 'error');
+      return;
+    }
+
+    // Just start a fresh session (same as Play Session)
+    handlePlaySession();
+  }
+
+  function handleViewDetails() {
+    // Navigate to journal page which will show today's entry
+    goto('/journal');
+  }
+
+  function handleRepeatSession() {
+    if (!selectedSession) {
+      toastStore.show('No session selected', 'error');
+      return;
+    }
+
+    // Start a new session even though one was completed today
+    handlePlaySession();
+  }
+
   function viewExercises() {
     showExerciseListModal = true;
   }
@@ -261,6 +386,7 @@
     selectedSession = session;
     persistSessionId(session.id);
     loadSessionExercises();
+    loadTodaySessionInstance();
     showSessionSelectModal = false;
     toastStore.show(`Switched to "${session.name}"`, 'success');
   }
@@ -306,6 +432,17 @@
             <div class="session-header">
               <div class="session-title">
                 <h2>{selectedSession?.name || 'Session'}</h2>
+                {#if sessionState === 'completed'}
+                  <span class="status-badge status-completed">
+                    <span class="material-icons">check_circle</span>
+                    Completed
+                  </span>
+                {:else if sessionState === 'in-progress'}
+                  <span class="status-badge status-in-progress">
+                    <span class="material-icons">pending</span>
+                    In Progress
+                  </span>
+                {/if}
               </div>
               <div class="session-header-actions">
                 <button
@@ -331,31 +468,73 @@
               <div class="stat-item">
                 <span class="material-icons stat-icon">fitness_center</span>
                 <div class="stat-content">
-                  <span class="stat-value">{sessionExercises.length}</span>
-                  <span class="stat-label">
-                    {sessionExercises.length === 1 ? 'Exercise' : 'Exercises'}
-                  </span>
+                  {#if sessionState === 'in-progress'}
+                    <span class="stat-value">
+                      {getCompletedExerciseCount()}/{sessionExercises.length}
+                    </span>
+                    <span class="stat-label">Completed</span>
+                  {:else if sessionState === 'completed'}
+                    <span class="stat-value">{sessionExercises.length}</span>
+                    <span class="stat-label">
+                      {sessionExercises.length === 1 ? 'Exercise' : 'Exercises'}
+                    </span>
+                  {:else}
+                    <span class="stat-value">{sessionExercises.length}</span>
+                    <span class="stat-label">
+                      {sessionExercises.length === 1 ? 'Exercise' : 'Exercises'}
+                    </span>
+                  {/if}
                 </div>
               </div>
 
               <div class="stat-item">
                 <span class="material-icons stat-icon">schedule</span>
                 <div class="stat-content">
-                  <span class="stat-value">{calculateTotalDuration()}</span>
-                  <span class="stat-label">Estimated</span>
+                  {#if sessionState === 'completed'}
+                    <span class="stat-value">{calculateActualDuration()}</span>
+                    <span class="stat-label">
+                      Completed at {formatCompletionTime()}
+                    </span>
+                  {:else if sessionState === 'in-progress'}
+                    <span class="stat-value">{calculateActualDuration()}</span>
+                    <span class="stat-label">Elapsed</span>
+                  {:else}
+                    <span class="stat-value">{calculateTotalDuration()}</span>
+                    <span class="stat-label">Estimated</span>
+                  {/if}
                 </div>
               </div>
             </div>
 
             <div class="session-actions">
-              <button class="btn btn-primary btn-large" on:click={handlePlaySession}>
-                <span class="material-icons">play_arrow</span>
-                Play Session
-              </button>
-              <button class="btn btn-secondary btn-large" on:click={handleLogSession}>
-                <span class="material-icons">check</span>
-                Log as Done
-              </button>
+              {#if sessionState === 'not-started'}
+                <button class="btn btn-primary btn-large" on:click={handlePlaySession}>
+                  <span class="material-icons">play_arrow</span>
+                  Play Session
+                </button>
+                <button class="btn btn-secondary btn-large" on:click={handleLogSession}>
+                  <span class="material-icons">check</span>
+                  Log as Done
+                </button>
+              {:else if sessionState === 'in-progress'}
+                <button class="btn btn-primary btn-large" on:click={handleResumeSession}>
+                  <span class="material-icons">play_arrow</span>
+                  Resume Session
+                </button>
+                <button class="btn btn-secondary btn-large" on:click={handleStartOver}>
+                  <span class="material-icons">refresh</span>
+                  Start Over
+                </button>
+              {:else if sessionState === 'completed'}
+                <button class="btn btn-primary btn-large" on:click={handleViewDetails}>
+                  <span class="material-icons">visibility</span>
+                  View Details
+                </button>
+                <button class="btn btn-secondary btn-large" on:click={handleRepeatSession}>
+                  <span class="material-icons">replay</span>
+                  Repeat Session
+                </button>
+              {/if}
             </div>
           </div>
 
@@ -364,7 +543,14 @@
             <h3 class="preview-title">Exercises ({sessionExercises.length})</h3>
             <div class="exercise-list-preview">
               {#each sessionExercises.slice(0, 3) as exercise (exercise.id)}
-                <ExerciseCard {exercise} compact={true} />
+                <div class="exercise-preview-item" class:completed={isExerciseCompleted(exercise.id)}>
+                  {#if isExerciseCompleted(exercise.id)}
+                    <span class="exercise-check-icon material-icons">check_circle</span>
+                  {/if}
+                  <div class="exercise-card-wrapper">
+                    <ExerciseCard {exercise} compact={true} />
+                  </div>
+                </div>
               {/each}
               {#if sessionExercises.length > 3}
                 <button class="show-more-btn" on:click={viewExercises}>
@@ -585,6 +771,43 @@
     color: var(--text-primary);
   }
 
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+  }
+
+  .status-badge .material-icons {
+    font-size: var(--icon-size-sm);
+  }
+
+  .status-completed {
+    background-color: rgba(46, 125, 50, 0.1);
+    color: #4caf50;
+  }
+
+  .status-in-progress {
+    background-color: rgba(245, 124, 0, 0.1);
+    color: #ff9800;
+  }
+
+  /* Dark mode adjustments */
+  @media (prefers-color-scheme: dark) {
+    .status-completed {
+      background-color: rgba(76, 175, 80, 0.2);
+      color: #81c784;
+    }
+
+    .status-in-progress {
+      background-color: rgba(255, 152, 0, 0.2);
+      color: #ffb74d;
+    }
+  }
+
   .session-header-actions {
     display: flex;
     gap: var(--spacing-xs);
@@ -714,6 +937,34 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+  }
+
+  .exercise-preview-item {
+    position: relative;
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+  }
+
+  .exercise-preview-item.completed {
+    opacity: 0.7;
+  }
+
+  .exercise-check-icon {
+    flex-shrink: 0;
+    color: #4caf50;
+    font-size: var(--icon-size-lg);
+    margin-top: var(--spacing-xs);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .exercise-check-icon {
+      color: #81c784;
+    }
+  }
+
+  .exercise-card-wrapper {
+    flex: 1;
   }
 
   .show-more-btn {
