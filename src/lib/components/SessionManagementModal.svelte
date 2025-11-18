@@ -270,6 +270,13 @@
   function getExerciseById(exerciseId: number): Exercise | undefined {
     return $ptState.exercises.find(e => e.id === exerciseId);
   }
+
+  // Auto-open Add dialog if no sessions exist
+  onMount(() => {
+    if ($ptState.sessionDefinitions.length === 0) {
+      openAddSession();
+    }
+  });
 </script>
 
 <Modal fullScreen={true} title="Sessions" iosStyle={true} on:close={handleClose}>

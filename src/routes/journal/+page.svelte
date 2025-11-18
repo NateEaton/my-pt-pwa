@@ -1147,8 +1147,8 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    width: 2rem;
-    height: 2rem;
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
     transition: background-color 0.2s ease, color 0.2s ease;
   }
 

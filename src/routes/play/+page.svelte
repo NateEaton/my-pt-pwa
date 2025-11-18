@@ -726,7 +726,8 @@
       {/if}
     </div>
 
-    <!-- Main display area -->
+    <!-- Main display area with fixed height container -->
+    <div class="main-display-area">
     {#if timerState === 'countdown'}
       <div class="countdown-display">
         <div class="countdown-number">{countdownSeconds}</div>
@@ -784,6 +785,7 @@
         {/if}
       </div>
     {/if}
+    </div>
 
     <!-- VCR-style control bar -->
     <div class="vcr-controls">
@@ -880,8 +882,16 @@
     padding: var(--spacing-lg);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    gap: var(--spacing-md);
     position: relative;
+  }
+
+  .main-display-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
   }
 
   .session-timer {

@@ -347,6 +347,13 @@
     const secs = seconds % 60;
     return secs > 0 ? `${minutes}m ${secs}s` : `${minutes}m`;
   }
+
+  // Auto-open Add dialog if no exercises exist
+  onMount(() => {
+    if ($ptState.exercises.length === 0) {
+      openAddExercise();
+    }
+  });
 </script>
 
 <Modal fullScreen={true} title="Exercise Library" iosStyle={true} on:close={handleClose}>
