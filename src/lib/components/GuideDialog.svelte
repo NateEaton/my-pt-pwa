@@ -72,30 +72,64 @@
         <h4>During a Session</h4>
         <ul>
           <li>
+            <strong>3-Second Countdown:</strong> Before each exercise begins, you'll get
+            a 3-2-1 countdown with audio/haptic cues (if enabled) to prepare.
+          </li>
+          <li>
             <strong>Exercise Timer:</strong> Each exercise displays with a countdown
             timer based on your configured duration or rep settings.
+            <ul class="nested-list">
+              <li><strong>Duration exercises:</strong> Show remaining time with optional
+                end-of-exercise countdown</li>
+              <li><strong>Rep/Set exercises:</strong> Show current set, current rep,
+                and play tones at start/end of each rep</li>
+            </ul>
           </li>
           <li>
-            <strong>Rest Periods:</strong> The app automatically includes rest time
-            between sets and exercises according to your timing settings.
+            <strong>Audio & Haptic Cues:</strong> Distinct tones and vibrations signal
+            exercise start/end, rep start/end, rest periods, and session completion.
           </li>
           <li>
-            <strong>Pause/Resume:</strong> Use the
-            <span class="material-icons inline-icon">pause</span> pause button to
-            take a break, or <span class="material-icons inline-icon">play_arrow</span>
-            resume to continue.
+            <strong>Auto-Rest:</strong> If enabled in Timing Settings, the app automatically
+            starts rest timers between sets (can be disabled to manually control rest).
+          </li>
+          <li>
+            <strong>Screen Wake Lock:</strong> Your screen stays awake during active sessions
+            so you can focus on your exercises.
+          </li>
+          <li>
+            <strong>Pause/Resume:</strong> Tap
+            <span class="material-icons inline-icon">pause</span> to pause or
+            <span class="material-icons inline-icon">play_arrow</span> to resume.
           </li>
           <li>
             <strong>Skip:</strong> Tap
-            <span class="material-icons inline-icon">skip_next</span> to move to the
-            next exercise or set.
+            <span class="material-icons inline-icon">skip_next</span> to skip to the
+            next exercise (marks current as skipped).
           </li>
           <li>
-            <strong>Stop:</strong> Tap
-            <span class="material-icons inline-icon">stop</span> to end the session
-            early. Completed exercises will still be saved.
+            <strong>Previous:</strong> Tap
+            <span class="material-icons inline-icon">skip_previous</span> to go back
+            to the previous exercise (while paused).
+          </li>
+          <li>
+            <strong>Exit:</strong> Tap
+            <span class="material-icons inline-icon">exit_to_app</span> to save progress
+            and exit (you can resume later from Today page).
+          </li>
+          <li>
+            <strong>Finish:</strong> Tap
+            <span class="material-icons inline-icon">check_circle</span> to end the session
+            and mark it as completed.
           </li>
         </ul>
+
+        <h4>Resuming Sessions</h4>
+        <p>
+          If you exit a session before completing it, you can resume from where you
+          left off. The Today page will show an "in-progress" session that you can
+          tap to continue.
+        </p>
 
         <h4>Today's Summary</h4>
         <p>
@@ -253,6 +287,37 @@
           </li>
         </ul>
 
+        <h4>Cue Settings (Audio & Haptic)</h4>
+        <p>
+          Tap <strong>Cues</strong> to customize audio and haptic feedback:
+        </p>
+        <ul>
+          <li>
+            <strong>Sound Enabled:</strong> Master toggle for all audio cues
+          </li>
+          <li>
+            <strong>Master Volume:</strong> Adjust volume for all audio cues (0-100%)
+          </li>
+          <li>
+            <strong>Countdown Before Exercise:</strong> Enable 3-2-1 countdown tones
+            when starting exercises (helps you get ready)
+          </li>
+          <li>
+            <strong>Haptic Feedback:</strong> Enable vibration for all audio cues
+            (requires device support)
+          </li>
+          <li>
+            <strong>Preview Sounds:</strong> Test all audio cues:
+            <ul class="nested-list">
+              <li><strong>Duration Start/End:</strong> Tones for timed exercises (A5/A4, 0.20s)</li>
+              <li><strong>Rep Start/End:</strong> Tones for each rep (C6/F5, 0.12s, crisp)</li>
+              <li><strong>Rest Start/End:</strong> Tones for rest periods</li>
+              <li><strong>3-2-1 Countdown:</strong> Rising tones before exercises</li>
+              <li><strong>Session Complete:</strong> Celebratory three-note chime</li>
+            </ul>
+          </li>
+        </ul>
+
         <h4>Timing Settings</h4>
         <p>
           Tap <strong>Timing Settings</strong> to customize:
@@ -262,12 +327,8 @@
             <strong>Default Rep Duration:</strong> Seconds per rep for rep-based exercises
           </li>
           <li>
-            <strong>Start Countdown:</strong> Countdown before each exercise begins
-            (gives you time to get into position)
-          </li>
-          <li>
-            <strong>End Countdown:</strong> Countdown before exercise ends
-            (prepare to rest)
+            <strong>Start Countdown:</strong> Duration of 3-2-1 countdown before each
+            exercise begins (gives you time to get into position)
           </li>
           <li>
             <strong>Rest Between Sets:</strong> Rest time between sets of the same exercise
@@ -276,7 +337,12 @@
             <strong>Rest Between Exercises:</strong> Rest time when moving to a new exercise
           </li>
           <li>
-            <strong>End Session Delay:</strong> Time before session automatically ends
+            <strong>End Session Delay:</strong> Time before session player automatically
+            returns to Today page after completion
+          </li>
+          <li>
+            <strong>Auto-Rest:</strong> Automatically start rest timers between sets
+            (disable to manually control rest periods)
           </li>
         </ul>
 
@@ -306,6 +372,13 @@
           <li>
             Add all exercises prescribed by your physical therapist, even if you
             don't use them daily
+          </li>
+          <li>
+            Choose the right exercise type:
+            <ul class="nested-list">
+              <li><strong>Duration:</strong> For holds, planks, stretches (e.g., "Hold 30 seconds")</li>
+              <li><strong>Reps & Sets:</strong> For count-based exercises (e.g., "10 reps × 3 sets")</li>
+            </ul>
           </li>
           <li>
             Include detailed instructions for proper form, especially for complex
@@ -341,6 +414,10 @@
           <li>
             Set a regular time each day for your exercises - consistency is key
             to rehabilitation
+          </li>
+          <li>
+            Enable audio and haptic cues to stay focused on form without constantly
+            watching the timer - the app will guide you through each phase
           </li>
           <li>
             Use the Journal to track your progress and see how far you've come
@@ -386,10 +463,20 @@
 
         <p><strong>Audio cues aren't working:</strong></p>
         <ul>
-          <li>Check that Audio is enabled in Settings</li>
-          <li>Increase the volume slider in Settings</li>
+          <li>Check that Sound is enabled in Settings > Cues</li>
+          <li>Increase the Master Volume slider in Cue Settings</li>
           <li>Check your device's volume settings</li>
-          <li>Some browsers require user interaction before playing audio</li>
+          <li>Test with the Preview Sounds buttons in Cue Settings</li>
+          <li>Some browsers require user interaction before playing audio -
+            tap the Play button to unlock audio on first session</li>
+        </ul>
+
+        <p><strong>Haptic feedback (vibration) isn't working:</strong></p>
+        <ul>
+          <li>Check that Haptic Feedback is enabled in Settings > Cues</li>
+          <li>Some devices don't support the Vibration API</li>
+          <li>Check your device's vibration/haptic settings</li>
+          <li>iOS Safari may have limited haptic support</li>
         </ul>
 
         <p><strong>Data disappeared after updating:</strong></p>
