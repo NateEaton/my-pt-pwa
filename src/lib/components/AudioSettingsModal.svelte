@@ -24,6 +24,7 @@
   let soundEnabled = true;
   let soundVolume = 0.7;
   let audioLeadInEnabled = true;
+  let hapticsEnabled = false;
 
   // Load current settings
   onMount(() => {
@@ -31,6 +32,7 @@
       soundEnabled = $ptState.settings.soundEnabled;
       soundVolume = $ptState.settings.soundVolume;
       audioLeadInEnabled = $ptState.settings.audioLeadInEnabled;
+      hapticsEnabled = $ptState.settings.hapticsEnabled;
     }
 
     // Unlock audio context on mount
@@ -48,7 +50,8 @@
       ...$ptState.settings,
       soundEnabled,
       soundVolume,
-      audioLeadInEnabled
+      audioLeadInEnabled,
+      hapticsEnabled
     };
 
     try {
@@ -61,11 +64,12 @@
       // Update audio service with new settings
       audioService.setMasterVolume(soundVolume);
       audioService.setLeadInEnabled(audioLeadInEnabled);
+      audioService.setHapticsEnabled(hapticsEnabled);
 
-      toastStore.show('Audio settings saved', 'success');
+      toastStore.show('Cue settings saved', 'success');
       handleClose();
     } catch (error) {
-      console.error('Error saving audio settings:', error);
+      console.error('Error saving cue settings:', error);
       toastStore.show('Failed to save settings', 'error');
     }
   }
@@ -110,10 +114,10 @@
   $: volumePercentage = Math.round(soundVolume * 100);
 </script>
 
-<Modal fullScreen={true} title="Audio & Sound Settings" iosStyle={true} on:close={handleClose}>
+<Modal fullScreen={true} title="Cue Settings" iosStyle={true} on:close={handleClose}>
   <div class="audio-settings-content">
     <p class="modal-description">
-      Configure audio cues and sound preferences for your exercise sessions.
+      Configure audio and haptic feedback for your exercise sessions.
     </p>
 
     <!-- Settings List -->
@@ -167,6 +171,22 @@
               bind:checked={audioLeadInEnabled}
               disabled={!soundEnabled}
             />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Haptic Feedback -->
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Haptic Feedback</span>
+          <span class="setting-description">
+            Vibrate for each audio cue (requires device support)
+          </span>
+        </div>
+        <div class="setting-control">
+          <label class="toggle-switch">
+            <input type="checkbox" bind:checked={hapticsEnabled} />
             <span class="toggle-slider"></span>
           </label>
         </div>

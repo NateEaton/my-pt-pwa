@@ -312,7 +312,7 @@
   }
 
   .toggle-switch input:checked + .toggle-slider {
-    background-color: var(--primary);
+    background-color: var(--primary-color);
   }
 
   .toggle-switch input:checked + .toggle-slider:before {

@@ -55,6 +55,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   exerciseSortOrder: 'alphabetical',
   soundEnabled: false, // Sound OFF by default
   soundVolume: 0.7, // 70% volume (master volume)
+  hapticsEnabled: false, // Haptic feedback OFF by default
   audioLeadInEnabled: true, // 3-2-1 countdown at end of periods (enabled by default)
   audioContinuousTicksEnabled: false, // Continuous ticks OFF by default
   audioPerRepBeepsEnabled: false, // Per-rep beeps OFF by default

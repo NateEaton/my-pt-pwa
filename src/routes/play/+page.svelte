@@ -68,6 +68,7 @@
     audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
     audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
     audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
+    audioService.setHapticsEnabled($ptState.settings.hapticsEnabled);
   }
 
   // Check if audio is enabled
@@ -116,6 +117,7 @@
       audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
       audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
       audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
+      audioService.setHapticsEnabled($ptState.settings.hapticsEnabled);
     }
   });
 
@@ -340,9 +342,9 @@
     const continuousTicksEnabled = $ptState.settings?.audioContinuousTicksEnabled ?? false;
     const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
 
-    // Play exercise start tone
+    // Play duration exercise start tone
     if (shouldPlayAudio()) {
-      audioService.onExerciseStart();
+      audioService.onDurationStart();
     }
 
     exerciseTimerInterval = window.setInterval(() => {
@@ -355,8 +357,8 @@
           // Play tick every second
           audioService.onTick();
         } else if (leadInEnabled && remaining >= 1 && remaining <= 3) {
-          // Play 3-2-1 countdown at end
-          audioService.onCountdown(remaining);
+          // Play subtle 3-2-1 countdown at end of duration
+          audioService.onCountdownEnd(remaining);
         }
       }
 
@@ -365,7 +367,7 @@
 
         // Play end tone if countdown wasn't used
         if (shouldPlayAudio() && !continuousTicksEnabled && !leadInEnabled) {
-          audioService.onExerciseEnd();
+          audioService.onDurationEnd();
         }
 
         completeCurrentExercise();
@@ -382,9 +384,9 @@
 
     repElapsedSeconds = 0;
 
-    // Play exercise start tone
+    // Play rep start tone for first rep
     if (shouldPlayAudio()) {
-      audioService.onExerciseStart();
+      audioService.onRepStart();
     }
 
     exerciseTimerInterval = window.setInterval(() => {
@@ -394,13 +396,20 @@
       // Determine current rep within the set
       currentRep = Math.floor((exerciseElapsedSeconds % (reps * repDuration)) / repDuration) + 1;
 
-      // Reset rep timer at start of each rep
+      // Check if rep is complete
       if (repElapsedSeconds >= repDuration) {
+        // Play rep end tone
+        if (shouldPlayAudio()) {
+          audioService.onRepEnd();
+        }
+
+        // Reset rep timer for next rep
         repElapsedSeconds = 0;
 
-        // Play beep at the end of each rep
-        if (shouldPlayAudio()) {
-          audioService.onRepComplete();
+        // Play rep start tone for next rep (if not at end of set)
+        const isEndOfSet = (exerciseElapsedSeconds % (reps * repDuration) === 0);
+        if (!isEndOfSet && shouldPlayAudio()) {
+          audioService.onRepStart();
         }
       }
 
@@ -488,11 +497,6 @@
 
       // Auto-pause, waiting for user to press play for next exercise
       timerState = 'paused';
-
-      // Play completion chime
-      if (shouldPlayAudio()) {
-        audioService.onExerciseEnd();
-      }
     } else {
       // Session complete
       await completeSession();
@@ -501,6 +505,9 @@
 
   async function completeSession() {
     if (!sessionInstance) return;
+
+    // Wait 2 seconds to create clear delineation between final exercise tone and session completion
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     timerState = 'completed';
     sessionInstance.status = 'completed';

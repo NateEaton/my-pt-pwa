@@ -144,6 +144,7 @@ export interface AppSettings {
   // Sound preferences
   soundEnabled: boolean;
   soundVolume: number; // 0.0 to 1.0 (master volume)
+  hapticsEnabled: boolean; // Enable vibration feedback
 
   // Audio cue preferences
   audioLeadInEnabled: boolean; // 3-2-1 countdown at END of duration/rest periods

@@ -168,20 +168,20 @@
           </div>
         </div>
 
-        <!-- Audio & Sound Card (only visible in development) -->
+        <!-- Cue Settings Card (only visible in development) -->
         {#if showDevFeatures}
           <!-- svelte-ignore a11y-click-events-have-key-events -->
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div class="settings-card" on:click={() => (showAudioSettings = true)}>
             <div class="card-icon">
-              <span class="material-icons">volume_up</span>
+              <span class="material-icons">notifications_active</span>
             </div>
             <div class="card-content">
-              <h3>Audio & Sound</h3>
-              <p>Configure audio cues and sound preferences</p>
+              <h3>Cues</h3>
+              <p>Configure audio and haptic feedback</p>
               <div class="card-meta">
                 <span class="material-icons">settings</span>
-                <span>Volume, countdown, warnings, and more</span>
+                <span>Sound, vibration, and timing cues</span>
               </div>
             </div>
             <div class="card-arrow">
