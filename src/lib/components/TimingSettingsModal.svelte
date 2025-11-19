@@ -25,6 +25,7 @@
   let endSessionDelay = 5;
   let restBetweenSets = 30;
   let restBetweenExercises = 15;
+  let enableAutoRest = true;
 
   // Load current settings
   onMount(() => {
@@ -34,6 +35,7 @@
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
       restBetweenExercises = $ptState.settings.restBetweenExercises;
+      enableAutoRest = $ptState.settings.enableAutoRest;
     }
   });
 
@@ -50,7 +52,8 @@
       startCountdownDuration,
       endSessionDelay,
       restBetweenSets,
-      restBetweenExercises
+      restBetweenExercises,
+      enableAutoRest
     };
 
     try {
@@ -69,7 +72,7 @@
   }
 </script>
 
-<Modal fullScreen={true} title="Timing Settings" on:close={handleClose}>
+<Modal fullScreen={true} title="Timing Settings" iosStyle={true} on:close={handleClose}>
   <div class="timing-settings-content">
     <p class="modal-description">
       Adjust timing preferences for your exercise sessions and rest periods.
@@ -113,26 +116,23 @@
 
       <div class="setting-item">
         <div class="setting-info">
-          <span class="setting-label">Rest Between Sets</span>
-          <span class="setting-description">Default rest time between sets</span>
+          <span class="setting-label">Enable Auto-Rest Timer</span>
+          <span class="setting-description">Automatically start rest timer after completing a set (rest duration is set per exercise, default: 30s)</span>
         </div>
         <div class="setting-control">
-          <input
-            type="number"
-            bind:value={restBetweenSets}
-            min="0"
-            max="300"
-            step="5"
-            class="setting-input"
-          />
-          <span class="input-suffix">s</span>
+          <label class="toggle-switch">
+            <input type="checkbox" bind:checked={enableAutoRest} />
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
 
-      <div class="setting-item">
+      <!-- Future feature: Rest Between Exercises (Phase 2) -->
+      <!--
+      <div class="setting-item disabled">
         <div class="setting-info">
           <span class="setting-label">Rest Between Exercises</span>
-          <span class="setting-description">Transition time between exercises</span>
+          <span class="setting-description">Transition time between exercises (coming soon)</span>
         </div>
         <div class="setting-control">
           <input
@@ -142,10 +142,12 @@
             max="300"
             step="5"
             class="setting-input"
+            disabled
           />
           <span class="input-suffix">s</span>
         </div>
       </div>
+      -->
 
       <div class="setting-item">
         <div class="setting-info">
@@ -167,12 +169,11 @@
   </div>
 
   <div slot="footer" class="modal-actions">
-    <button class="btn btn-secondary" on:click={handleClose}>
+    <button class="btn btn-secondary" on:click={handleClose} type="button">
       Cancel
     </button>
-    <button class="btn btn-primary" on:click={saveSettings}>
-      <span class="material-icons">save</span>
-      Save Settings
+    <button class="btn btn-primary" on:click={saveSettings} type="button">
+      Save
     </button>
   </div>
 </Modal>
@@ -254,12 +255,66 @@
     min-width: 1rem;
   }
 
+  /* Toggle Switch */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 28px;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--divider);
+    transition: 0.3s;
+    border-radius: 28px;
+  }
+
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+  }
+
+  .toggle-switch input:checked + .toggle-slider {
+    background-color: var(--primary-color);
+  }
+
+  .toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+  }
+
   .modal-actions {
     display: flex;
     gap: var(--spacing-md);
     justify-content: flex-end;
     padding: var(--spacing-lg);
+    padding-bottom: calc(var(--spacing-lg) + var(--spacing-xl));
     border-top: 1px solid var(--divider);
+  }
+
+  /* Add safe area padding on iOS devices */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .modal-actions {
+      padding-bottom: calc(var(--spacing-lg) + var(--spacing-xl) + env(safe-area-inset-bottom));
+    }
   }
 
   @media (max-width: 480px) {

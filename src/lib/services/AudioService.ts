@@ -19,6 +19,7 @@ export class AudioService {
   private leadInEnabled = true;
   private continuousTicksEnabled = false;
   private perRepBeepsEnabled = false;
+  private hapticsEnabled = false;
 
   constructor() {}
 
@@ -83,21 +84,74 @@ export class AudioService {
     };
   }
 
+  /**
+   * Trigger haptic vibration if enabled
+   * @param duration - Vibration duration in milliseconds (default: 50ms)
+   */
+  private triggerHaptic(duration: number = 50): void {
+    if (!this.hapticsEnabled) return;
+
+    try {
+      if ('vibrate' in navigator) {
+        const success = navigator.vibrate(duration);
+        if (!success) {
+          console.warn('Haptic vibration request returned false - device may not support vibration or settings may prevent it');
+        }
+      } else {
+        console.warn('Vibration API not supported on this device/browser');
+      }
+    } catch (error) {
+      console.error('Haptic vibration failed:', error);
+    }
+  }
+
 
   // === Phase-based public methods ===
 
   /**
-   * Called when an exercise starts
+   * Called when a duration exercise starts
    */
-  public onExerciseStart(): void {
+  public onDurationStart(): void {
     this.playBeep(880, 0.20); // A5 - bright start tone
+    this.triggerHaptic(50);
   }
 
   /**
-   * Called when an exercise ends
+   * Called when a duration exercise ends
+   */
+  public onDurationEnd(): void {
+    this.playBeep(440, 0.20); // A4 - lower end tone
+    this.triggerHaptic(50);
+  }
+
+  /**
+   * Called when a rep starts (for rep-based exercises)
+   */
+  public onRepStart(): void {
+    this.playBeep(1046.50, 0.12); // C6 - crisp, quick start for each rep
+    this.triggerHaptic(30); // Shorter vibration for quick rep cue
+  }
+
+  /**
+   * Called when a rep ends (for rep-based exercises)
+   */
+  public onRepEnd(): void {
+    this.playBeep(698.46, 0.12); // F5 - medium-high completion for each rep
+    this.triggerHaptic(30); // Shorter vibration for quick rep cue
+  }
+
+  /**
+   * @deprecated Use onDurationStart() or onRepStart() instead
+   */
+  public onExerciseStart(): void {
+    this.onDurationStart();
+  }
+
+  /**
+   * @deprecated Use onDurationEnd() or onRepEnd() instead
    */
   public onExerciseEnd(): void {
-    this.playBeep(440, 0.20); // A4 - lower end tone
+    this.onDurationEnd();
   }
 
   /**
@@ -105,6 +159,7 @@ export class AudioService {
    */
   public onRestStart(): void {
     this.playBeep(350, 0.20); // Calming low tone
+    this.triggerHaptic(50);
   }
 
   /**
@@ -112,10 +167,11 @@ export class AudioService {
    */
   public onRestEnd(): void {
     this.playBeep(500, 0.20); // Medium tone - end of rest
+    this.triggerHaptic(50);
   }
 
   /**
-   * Called for countdown steps (3, 2, 1)
+   * Called for countdown steps before exercise starts (3, 2, 1)
    * @param step - The countdown number (3, 2, or 1)
    */
   public onCountdown(step: number): void {
@@ -131,6 +187,47 @@ export class AudioService {
     const duration = step === 1 ? 0.22 : 0.18;
 
     this.playBeep(freq, duration);
+    this.triggerHaptic(40);
+  }
+
+  /**
+   * Called for countdown at end of duration exercise (3, 2, 1)
+   * More subtle, quieter tones to signal approaching completion
+   * @param step - The countdown number (3, 2, or 1)
+   */
+  public onCountdownEnd(step: number): void {
+    if (!this.leadInEnabled) return;
+
+    const frequencyMap: Record<number, number> = {
+      3: 400,  // Lower and quieter
+      2: 500,  // Medium
+      1: 600   // Higher but still subtle
+    };
+
+    const volumeMap: Record<number, number> = {
+      3: 0.3,  // Quietest
+      2: 0.5,  // Medium
+      1: 0.7   // Still not full volume
+    };
+
+    const hapticMap: Record<number, number> = {
+      3: 25,  // Subtle vibration
+      2: 30,  // Medium
+      1: 40   // Stronger
+    };
+
+    const freq = frequencyMap[step] ?? 500;
+    const relativeVolume = volumeMap[step] ?? 0.5;
+    const duration = 0.15; // Shorter, more subtle
+
+    // Temporarily adjust volume for this beep
+    const originalVolume = this.masterVolume;
+    this.masterVolume = originalVolume * relativeVolume;
+    this.playBeep(freq, duration);
+    this.masterVolume = originalVolume;
+
+    // Subtle haptic feedback for end countdown
+    this.triggerHaptic(hapticMap[step] ?? 30);
   }
 
   /**
@@ -139,6 +236,7 @@ export class AudioService {
   public onTick(): void {
     if (!this.continuousTicksEnabled) return;
     this.playBeep(750, 0.08); // Short, neutral tick
+    this.triggerHaptic(20); // Very short vibration for ticks
   }
 
   /**
@@ -147,6 +245,7 @@ export class AudioService {
   public onRepComplete(): void {
     if (!this.perRepBeepsEnabled) return;
     this.playBeep(1000, 0.06); // Quick, high ping
+    this.triggerHaptic(25); // Quick vibration
   }
 
   /**
@@ -188,6 +287,11 @@ export class AudioService {
         gain.disconnect();
       };
     });
+
+    // Celebratory haptic pattern: three short vibrations
+    this.triggerHaptic(50);
+    setTimeout(() => this.triggerHaptic(50), 150);
+    setTimeout(() => this.triggerHaptic(50), 300);
   }
 
   // === Legacy methods for backward compatibility ===
@@ -270,6 +374,13 @@ export class AudioService {
    */
   public setPerRepBeepsEnabled(enabled: boolean): void {
     this.perRepBeepsEnabled = enabled;
+  }
+
+  /**
+   * Enable/disable haptic vibration feedback
+   */
+  public setHapticsEnabled(enabled: boolean): void {
+    this.hapticsEnabled = enabled;
   }
 
   /**

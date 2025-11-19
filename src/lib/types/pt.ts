@@ -37,6 +37,8 @@ export interface Exercise {
   defaultReps?: number;
   defaultSets?: number;
   defaultRepDuration?: number; // seconds per rep for timing calculations
+  pauseBetweenReps?: number; // seconds of pause between individual reps (default 0.5)
+  restBetweenSets?: number; // seconds of rest between sets (optional override)
 
   // Optional metadata
   instructions?: string;
@@ -134,6 +136,7 @@ export interface AppSettings {
   endSessionDelay: number; // Delay before session player closes after completion
   restBetweenSets: number; // Rest period between sets
   restBetweenExercises: number; // Rest period between exercises
+  enableAutoRest: boolean; // Enable automatic rest timer between sets
 
   // UI preferences
   theme: 'light' | 'dark' | 'auto';
@@ -142,6 +145,7 @@ export interface AppSettings {
   // Sound preferences
   soundEnabled: boolean;
   soundVolume: number; // 0.0 to 1.0 (master volume)
+  hapticsEnabled: boolean; // Enable vibration feedback
 
   // Audio cue preferences
   audioLeadInEnabled: boolean; // 3-2-1 countdown at END of duration/rest periods

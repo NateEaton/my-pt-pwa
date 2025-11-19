@@ -13,6 +13,7 @@
 <script lang="ts">
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
+  import { isDevelopment } from '$lib/utils/buildInfo';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
   import SessionManagementModal from '$lib/components/SessionManagementModal.svelte';
   import ExerciseManagementModal from '$lib/components/ExerciseManagementModal.svelte';
@@ -23,6 +24,9 @@
   import GuideDialog from '$lib/components/GuideDialog.svelte';
   import AboutDialog from '$lib/components/AboutDialog.svelte';
   import type { AppSettings } from '$lib/types/pt';
+
+  // Check if running in development mode
+  const showDevFeatures = isDevelopment();
 
   // Modal visibility state
   let showSessionManagement = false;
@@ -71,12 +75,9 @@
       <h1>Settings</h1>
     </header>
 
-    <!-- Quick Access Section -->
+    <!-- Theme Setting (no heading) -->
     <section class="settings-section quick-access">
-      <h2 class="section-title">Quick Access</h2>
-
       <div class="quick-settings">
-        <!-- Theme Setting -->
         <div class="quick-setting-item">
           <div class="setting-info">
             <div class="setting-label">
@@ -95,98 +96,96 @@
       </div>
     </section>
 
-    <!-- Sessions Section -->
+    <!-- Library Section -->
     <section class="settings-section">
-      <h2 class="section-title">Sessions</h2>
+      <h2 class="section-title">Library</h2>
 
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <div class="settings-card" on:click={() => (showSessionManagement = true)}>
-        <div class="card-icon">
-          <span class="material-icons">playlist_play</span>
-        </div>
-        <div class="card-content">
-          <h3>Manage Sessions</h3>
-          <p>Create and edit session definitions</p>
-          <div class="card-meta">
-            <span class="material-icons">folder</span>
-            <span>{$ptState.sessionDefinitions.length} {$ptState.sessionDefinitions.length === 1 ? 'session' : 'sessions'}</span>
+      <div class="settings-cards">
+        <!-- Manage Sessions Card -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="settings-card" on:click={() => (showSessionManagement = true)}>
+          <div class="card-icon">
+            <span class="material-icons">playlist_play</span>
+          </div>
+          <div class="card-content">
+            <h3>Manage Sessions</h3>
+            <p>Create and edit session definitions</p>
+            <div class="card-meta">
+              <span class="material-icons">folder</span>
+              <span>{$ptState.sessionDefinitions.length} {$ptState.sessionDefinitions.length === 1 ? 'session' : 'sessions'}</span>
+            </div>
+          </div>
+          <div class="card-arrow">
+            <span class="material-icons">chevron_right</span>
           </div>
         </div>
-        <div class="card-arrow">
-          <span class="material-icons">chevron_right</span>
+
+        <!-- Manage Exercises Card -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="settings-card" on:click={() => (showExerciseManagement = true)}>
+          <div class="card-icon">
+            <span class="material-icons">fitness_center</span>
+          </div>
+          <div class="card-content">
+            <h3>Manage Exercises</h3>
+            <p>Create and edit exercises</p>
+            <div class="card-meta">
+              <span class="material-icons">folder</span>
+              <span>{$ptState.exercises.length} {$ptState.exercises.length === 1 ? 'exercise' : 'exercises'}</span>
+            </div>
+          </div>
+          <div class="card-arrow">
+            <span class="material-icons">chevron_right</span>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- Exercise Library Section -->
+    <!-- Player Section -->
     <section class="settings-section">
-      <h2 class="section-title">Exercise Library</h2>
+      <h2 class="section-title">Player</h2>
 
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <div class="settings-card" on:click={() => (showExerciseManagement = true)}>
-        <div class="card-icon">
-          <span class="material-icons">fitness_center</span>
-        </div>
-        <div class="card-content">
-          <h3>Manage Exercises</h3>
-          <p>Create and edit exercises</p>
-          <div class="card-meta">
-            <span class="material-icons">folder</span>
-            <span>{$ptState.exercises.length} {$ptState.exercises.length === 1 ? 'exercise' : 'exercises'}</span>
+      <div class="settings-cards">
+        <!-- Timing Card -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="settings-card" on:click={() => (showTimingSettings = true)}>
+          <div class="card-icon">
+            <span class="material-icons">timer</span>
+          </div>
+          <div class="card-content">
+            <h3>Timing</h3>
+            <p>Adjust timing preferences for sessions</p>
+            <div class="card-meta">
+              <span class="material-icons">settings</span>
+              <span>Countdowns, rest periods, and more</span>
+            </div>
+          </div>
+          <div class="card-arrow">
+            <span class="material-icons">chevron_right</span>
           </div>
         </div>
-        <div class="card-arrow">
-          <span class="material-icons">chevron_right</span>
-        </div>
-      </div>
-    </section>
 
-    <!-- Timing Section -->
-    <section class="settings-section">
-      <h2 class="section-title">Timing</h2>
-
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <div class="settings-card" on:click={() => (showTimingSettings = true)}>
-        <div class="card-icon">
-          <span class="material-icons">timer</span>
-        </div>
-        <div class="card-content">
-          <h3>Timing Settings</h3>
-          <p>Adjust timing preferences for sessions</p>
-          <div class="card-meta">
-            <span class="material-icons">settings</span>
-            <span>Countdowns, rest periods, and more</span>
+        <!-- Cue Settings Card -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="settings-card" on:click={() => (showAudioSettings = true)}>
+          <div class="card-icon">
+            <span class="material-icons">notifications_active</span>
           </div>
-        </div>
-        <div class="card-arrow">
-          <span class="material-icons">chevron_right</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Audio & Sound Section -->
-    <section class="settings-section">
-      <h2 class="section-title">Audio & Sound</h2>
-
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <div class="settings-card" on:click={() => (showAudioSettings = true)}>
-        <div class="card-icon">
-          <span class="material-icons">volume_up</span>
-        </div>
-        <div class="card-content">
-          <h3>Audio Settings</h3>
-          <p>Configure audio cues and sound preferences</p>
-          <div class="card-meta">
-            <span class="material-icons">settings</span>
-            <span>Volume, countdown, warnings, and more</span>
+          <div class="card-content">
+            <h3>Cues</h3>
+            <p>Configure audio and haptic feedback</p>
+            <div class="card-meta">
+              <span class="material-icons">settings</span>
+              <span>Sound, vibration, and timing cues</span>
+            </div>
           </div>
-        </div>
-        <div class="card-arrow">
-          <span class="material-icons">chevron_right</span>
+          <div class="card-arrow">
+            <span class="material-icons">chevron_right</span>
+          </div>
         </div>
       </div>
     </section>
@@ -204,7 +203,7 @@
             <span class="material-icons">backup</span>
           </div>
           <div class="card-content">
-            <h3>Create Backup</h3>
+            <h3>Backup</h3>
             <p>Download a backup of all your data</p>
           </div>
           <div class="card-arrow">
@@ -220,7 +219,7 @@
             <span class="material-icons">restore</span>
           </div>
           <div class="card-content">
-            <h3>Restore Backup</h3>
+            <h3>Restore</h3>
             <p>Restore data from a backup file</p>
           </div>
           <div class="card-arrow">
@@ -230,9 +229,9 @@
       </div>
     </section>
 
-    <!-- Help & About Section -->
+    <!-- Support Section -->
     <section class="settings-section">
-      <h2 class="section-title">Help & About</h2>
+      <h2 class="section-title">Support</h2>
 
       <div class="settings-cards">
         <!-- User Guide Card -->
@@ -259,7 +258,7 @@
             <span class="material-icons">info</span>
           </div>
           <div class="card-content">
-            <h3>About My PT</h3>
+            <h3>About</h3>
             <p>App information and version</p>
           </div>
           <div class="card-arrow">
@@ -270,7 +269,7 @@
     </section>
   </main>
 
-  <BottomTabs />
+  <BottomTabs currentTab="settings" />
 </div>
 
 <!-- Modals -->

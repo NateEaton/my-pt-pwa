@@ -181,7 +181,7 @@
   }
 </script>
 
-<Modal fullScreen={true} title={showPreview ? 'Confirm Restore' : 'Restore Backup'} on:close={handleClose}>
+<Modal fullScreen={true} title={showPreview ? 'Confirm Restore' : 'Restore Backup'} iosStyle={true} on:close={handleClose}>
   <div class="restore-content">
     {#if !showPreview}
       <!-- Step 1: File Selection -->

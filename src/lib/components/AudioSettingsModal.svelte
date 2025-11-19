@@ -24,8 +24,11 @@
   let soundEnabled = true;
   let soundVolume = 0.7;
   let audioLeadInEnabled = true;
-  let audioContinuousTicksEnabled = false;
-  let audioPerRepBeepsEnabled = false;
+  let hapticsEnabled = false;
+
+  // Feature detection
+  let vibrationSupported = false;
+  let wakeLockSupported = false;
 
   // Load current settings
   onMount(() => {
@@ -33,18 +36,23 @@
       soundEnabled = $ptState.settings.soundEnabled;
       soundVolume = $ptState.settings.soundVolume;
       audioLeadInEnabled = $ptState.settings.audioLeadInEnabled;
-      audioContinuousTicksEnabled = $ptState.settings.audioContinuousTicksEnabled;
-      audioPerRepBeepsEnabled = $ptState.settings.audioPerRepBeepsEnabled;
+      hapticsEnabled = $ptState.settings.hapticsEnabled;
     }
+
+    // Detect feature support
+    vibrationSupported = 'vibrate' in navigator;
+    wakeLockSupported = 'wakeLock' in navigator;
+
+    // Log diagnostics
+    console.log('Feature Support:', {
+      vibration: vibrationSupported,
+      wakeLock: wakeLockSupported,
+      userAgent: navigator.userAgent
+    });
 
     // Unlock audio context on mount
     audioService.unlock();
   });
-
-  // Enforce mutual exclusivity: continuous ticks and 3-2-1 countdown
-  $: if (audioContinuousTicksEnabled && audioLeadInEnabled) {
-    audioLeadInEnabled = false;
-  }
 
   function handleClose() {
     dispatch('close');
@@ -58,8 +66,7 @@
       soundEnabled,
       soundVolume,
       audioLeadInEnabled,
-      audioContinuousTicksEnabled,
-      audioPerRepBeepsEnabled
+      hapticsEnabled
     };
 
     try {
@@ -72,41 +79,57 @@
       // Update audio service with new settings
       audioService.setMasterVolume(soundVolume);
       audioService.setLeadInEnabled(audioLeadInEnabled);
-      audioService.setContinuousTicksEnabled(audioContinuousTicksEnabled);
-      audioService.setPerRepBeepsEnabled(audioPerRepBeepsEnabled);
+      audioService.setHapticsEnabled(hapticsEnabled);
 
-      toastStore.show('Audio settings saved', 'success');
+      toastStore.show('Cue settings saved', 'success');
       handleClose();
     } catch (error) {
-      console.error('Error saving audio settings:', error);
+      console.error('Error saving cue settings:', error);
       toastStore.show('Failed to save settings', 'error');
     }
   }
 
   // Preview sound functions
-  function previewExerciseStart() {
+  function previewDurationStart() {
     audioService.setMasterVolume(soundVolume);
-    audioService.onExerciseStart();
+    audioService.setHapticsEnabled(hapticsEnabled);
+    audioService.onDurationStart();
   }
 
-  function previewExerciseEnd() {
+  function previewDurationEnd() {
     audioService.setMasterVolume(soundVolume);
-    audioService.onExerciseEnd();
+    audioService.setHapticsEnabled(hapticsEnabled);
+    audioService.onDurationEnd();
+  }
+
+  function previewRepStart() {
+    audioService.setMasterVolume(soundVolume);
+    audioService.setHapticsEnabled(hapticsEnabled);
+    audioService.onRepStart();
+  }
+
+  function previewRepEnd() {
+    audioService.setMasterVolume(soundVolume);
+    audioService.setHapticsEnabled(hapticsEnabled);
+    audioService.onRepEnd();
   }
 
   function previewRestStart() {
     audioService.setMasterVolume(soundVolume);
+    audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onRestStart();
   }
 
   function previewRestEnd() {
     audioService.setMasterVolume(soundVolume);
+    audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onRestEnd();
   }
 
   function previewCountdown() {
     audioService.setMasterVolume(soundVolume);
     audioService.setLeadInEnabled(true); // Temporarily enable for preview
+    audioService.setHapticsEnabled(hapticsEnabled);
 
     // Play 3-2-1 sequence
     audioService.onCountdown(3);
@@ -114,25 +137,34 @@
     setTimeout(() => audioService.onCountdown(1), 2000);
   }
 
-  function previewRepComplete() {
-    audioService.setMasterVolume(soundVolume);
-    audioService.setPerRepBeepsEnabled(true); // Temporarily enable for preview
-    audioService.onRepComplete();
-  }
-
   function previewSessionComplete() {
     audioService.setMasterVolume(soundVolume);
+    audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onSessionComplete();
+  }
+
+  // Test vibration directly
+  function testVibration() {
+    if ('vibrate' in navigator) {
+      const success = navigator.vibrate(200);
+      if (success) {
+        toastStore.show('Vibration triggered', 'success');
+      } else {
+        toastStore.show('Vibration failed - check device settings', 'error');
+      }
+    } else {
+      toastStore.show('Vibration not supported', 'error');
+    }
   }
 
   // Convert 0-1 to percentage for display
   $: volumePercentage = Math.round(soundVolume * 100);
 </script>
 
-<Modal fullScreen={true} title="Audio & Sound Settings" on:close={handleClose}>
+<Modal fullScreen={true} title="Cue Settings" iosStyle={true} on:close={handleClose}>
   <div class="audio-settings-content">
     <p class="modal-description">
-      Configure audio cues and sound preferences for your exercise sessions.
+      Configure audio and haptic feedback for your exercise sessions.
     </p>
 
     <!-- Settings List -->
@@ -174,28 +206,9 @@
       <!-- Audio Cue Options -->
       <div class="setting-item">
         <div class="setting-info">
-          <span class="setting-label">Continuous Ticks</span>
+          <span class="setting-label">Countdown Before Exercise</span>
           <span class="setting-description">
-            Play a tick sound every second during duration exercises and rest periods. When disabled, plays a single tone at start and end of each period. (Mutually exclusive with 3-2-1 Countdown)
-          </span>
-        </div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input
-              type="checkbox"
-              bind:checked={audioContinuousTicksEnabled}
-              disabled={!soundEnabled}
-            />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-label">3-2-1 Countdown</span>
-          <span class="setting-description">
-            Play rising countdown tones (3-2-1) at the end of duration exercises and rest periods, replacing the normal end tone. Disabled when Continuous Ticks is enabled.
+            Play 3-2-1 countdown tones when starting each exercise (helps you get ready before movement begins)
           </span>
         </div>
         <div class="setting-control">
@@ -203,29 +216,97 @@
             <input
               type="checkbox"
               bind:checked={audioLeadInEnabled}
-              disabled={!soundEnabled || audioContinuousTicksEnabled}
+              disabled={!soundEnabled}
             />
             <span class="toggle-slider"></span>
           </label>
         </div>
       </div>
 
+      <!-- Haptic Feedback -->
       <div class="setting-item">
         <div class="setting-info">
-          <span class="setting-label">Per-Rep Beeps</span>
+          <span class="setting-label">Haptic Feedback</span>
           <span class="setting-description">
-            Play a beep sound on each rep completion during rep exercises
+            {#if vibrationSupported}
+              Vibrate for each audio cue
+              {#if navigator.userAgent.includes('Android')}
+                <br/><small style="color: var(--warning-color);">
+                  Note: Requires "Touch feedback" enabled in Android settings and device not on silent mode
+                </small>
+              {/if}
+            {:else}
+              <span style="color: var(--error-color);">Not supported on this device/browser (iOS does not support vibration)</span>
+            {/if}
           </span>
         </div>
         <div class="setting-control">
           <label class="toggle-switch">
-            <input
-              type="checkbox"
-              bind:checked={audioPerRepBeepsEnabled}
-              disabled={!soundEnabled}
-            />
+            <input type="checkbox" bind:checked={hapticsEnabled} disabled={!vibrationSupported} />
             <span class="toggle-slider"></span>
           </label>
+        </div>
+      </div>
+
+      <!-- Test Vibration Button (only if supported) -->
+      {#if vibrationSupported}
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">Test Vibration</span>
+            <span class="setting-description">
+              Test if vibration is working on your device
+            </span>
+          </div>
+          <div class="setting-control">
+            <button class="btn-test" on:click={testVibration}>
+              <span class="material-icons">vibration</span>
+              Test
+            </button>
+          </div>
+        </div>
+      {/if}
+
+      <!-- Info about always-on audio cues -->
+      <div class="info-box">
+        <div class="info-title">
+          <span class="material-icons">info</span>
+          Audio Cues
+        </div>
+        <div class="info-text">
+          The app plays audio cues when sound is enabled:
+          <ul>
+            <li>Exercise start and completion</li>
+            <li>Rest period start and end</li>
+            <li>Session completion</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Device Capabilities -->
+      <div class="info-box" style="margin-top: var(--spacing-lg);">
+        <div class="info-title">
+          <span class="material-icons">devices</span>
+          Device Capabilities
+        </div>
+        <div class="info-text">
+          <ul>
+            <li>
+              <strong>Vibration API:</strong>
+              {#if vibrationSupported}
+                <span style="color: var(--success-color);">✓ Supported</span>
+              {:else}
+                <span style="color: var(--error-color);">✗ Not Supported</span>
+              {/if}
+            </li>
+            <li>
+              <strong>Wake Lock API:</strong>
+              {#if wakeLockSupported}
+                <span style="color: var(--success-color);">✓ Supported</span>
+              {:else}
+                <span style="color: var(--error-color);">✗ Not Supported</span>
+              {/if}
+            </li>
+          </ul>
         </div>
       </div>
 
@@ -235,19 +316,35 @@
         <div class="preview-buttons">
           <button
             class="btn-preview"
-            on:click={previewExerciseStart}
+            on:click={previewDurationStart}
             disabled={!soundEnabled}
           >
             <span class="material-icons">play_arrow</span>
-            Exercise Start
+            Duration Start
           </button>
           <button
             class="btn-preview"
-            on:click={previewExerciseEnd}
+            on:click={previewDurationEnd}
             disabled={!soundEnabled}
           >
             <span class="material-icons">stop</span>
-            Exercise End
+            Duration End
+          </button>
+          <button
+            class="btn-preview"
+            on:click={previewRepStart}
+            disabled={!soundEnabled}
+          >
+            <span class="material-icons">fitness_center</span>
+            Rep Start
+          </button>
+          <button
+            class="btn-preview"
+            on:click={previewRepEnd}
+            disabled={!soundEnabled}
+          >
+            <span class="material-icons">fitness_center</span>
+            Rep End
           </button>
           <button
             class="btn-preview"
@@ -275,14 +372,6 @@
           </button>
           <button
             class="btn-preview"
-            on:click={previewRepComplete}
-            disabled={!soundEnabled}
-          >
-            <span class="material-icons">check</span>
-            Rep Complete
-          </button>
-          <button
-            class="btn-preview"
             on:click={previewSessionComplete}
             disabled={!soundEnabled}
           >
@@ -295,12 +384,11 @@
   </div>
 
   <div slot="footer" class="modal-actions">
-    <button class="btn btn-secondary" on:click={handleClose}>
+    <button class="btn btn-secondary" on:click={handleClose} type="button">
       Cancel
     </button>
-    <button class="btn btn-primary" on:click={saveSettings}>
-      <span class="material-icons">save</span>
-      Save Settings
+    <button class="btn btn-primary" on:click={saveSettings} type="button">
+      Save
     </button>
   </div>
 </Modal>
@@ -407,6 +495,44 @@
     text-align: right;
   }
 
+  /* Info Box */
+  .info-box {
+    padding: var(--spacing-md);
+    background-color: var(--primary-alpha-10);
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--primary-color);
+  }
+
+  .info-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .info-title .material-icons {
+    font-size: var(--icon-size-md);
+    color: var(--primary-color);
+  }
+
+  .info-text {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .info-text ul {
+    margin: var(--spacing-xs) 0 0 var(--spacing-lg);
+    padding: 0;
+  }
+
+  .info-text li {
+    margin-bottom: var(--spacing-xs);
+  }
+
   /* Toggle Switch */
   .toggle-switch {
     position: relative;
@@ -456,6 +582,36 @@
   input:disabled + .toggle-slider {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  /* Test Button */
+  .btn-test {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-md);
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: var(--touch-target-min);
+  }
+
+  .btn-test:hover {
+    background-color: var(--primary-color-dark);
+    transform: translateY(-1px);
+  }
+
+  .btn-test:active {
+    transform: translateY(0);
+  }
+
+  .btn-test .material-icons {
+    font-size: var(--icon-size-sm);
   }
 
   /* Preview Section */
@@ -512,7 +668,15 @@
     gap: var(--spacing-md);
     justify-content: flex-end;
     padding: var(--spacing-lg);
+    padding-bottom: calc(var(--spacing-lg) + var(--spacing-xl));
     border-top: 1px solid var(--divider);
+  }
+
+  /* Add safe area padding on iOS devices */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .modal-actions {
+      padding-bottom: calc(var(--spacing-lg) + var(--spacing-xl) + env(safe-area-inset-bottom));
+    }
   }
 
   @media (max-width: 480px) {

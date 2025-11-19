@@ -12,14 +12,14 @@
 
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
+  import { goto, afterNavigate } from '$app/navigation';
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
   import ExerciseCard from '$lib/components/ExerciseCard.svelte';
   import Modal from '$lib/components/Modal.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-  import type { Exercise, SessionDefinition, CompletedExercise } from '$lib/types/pt';
+  import type { Exercise, SessionDefinition, SessionInstance, CompletedExercise } from '$lib/types/pt';
 
   // Format today's date
   const today = new Date();
@@ -32,7 +32,6 @@
   const formattedDate = dateFormatter.format(today);
 
   // Modal states
-  let showExerciseListModal = false;
   let showSessionSelectModal = false;
   let showManualLogConfirm = false;
 
@@ -40,6 +39,14 @@
   let selectedSession: SessionDefinition | null = null;
   let sessionExercises: Exercise[] = [];
   let initialized = false;
+
+  // Today's session instance (if exists)
+  let todaySessionInstance: SessionInstance | null = null;
+  type SessionState = 'not-started' | 'in-progress' | 'completed';
+  let sessionState: SessionState = 'not-started';
+
+  // Exercise preview expansion state
+  let showAllExercises = false;
 
   // Load persisted session selection from localStorage
   const STORAGE_KEY = 'pt-today-session-id';
@@ -95,6 +102,55 @@
       .filter((e): e is Exercise => e !== undefined);
   }
 
+  // Load today's session instance and determine state
+  async function loadTodaySessionInstance() {
+    if (!selectedSession) {
+      todaySessionInstance = null;
+      sessionState = 'not-started';
+      return;
+    }
+
+    try {
+      // Get today's date in YYYY-MM-DD format
+      const today = ptService.formatDate(new Date());
+      const instances = await ptService.getSessionInstancesByDate(today);
+
+      // Filter instances for the selected session
+      const sessionInstances = instances.filter(
+        inst => inst.sessionDefinitionId === selectedSession!.id
+      );
+
+      // Find the most relevant instance: prioritize in-progress, then most recent
+      if (sessionInstances.length === 0) {
+        todaySessionInstance = null;
+      } else {
+        // First look for an in-progress session
+        const inProgress = sessionInstances.find(inst => inst.status === 'in-progress');
+        if (inProgress) {
+          todaySessionInstance = inProgress;
+        } else {
+          // Otherwise use the most recent (last) instance
+          todaySessionInstance = sessionInstances[sessionInstances.length - 1];
+        }
+      }
+
+      // Determine state based on instance status
+      if (!todaySessionInstance) {
+        sessionState = 'not-started';
+      } else if (todaySessionInstance.status === 'in-progress') {
+        sessionState = 'in-progress';
+      } else if (todaySessionInstance.status === 'completed' || todaySessionInstance.status === 'logged') {
+        sessionState = 'completed';
+      } else {
+        sessionState = 'not-started';
+      }
+    } catch (error) {
+      console.error('Error loading today session instance:', error);
+      todaySessionInstance = null;
+      sessionState = 'not-started';
+    }
+  }
+
   // Reactive: Load session when store is initialized or session definitions change
   $: if ($ptState.initialized && !initialized) {
     loadSelectedSession();
@@ -112,7 +168,30 @@
   // Reactive: Reload exercises when selected session changes
   $: if (selectedSession) {
     loadSessionExercises();
+    loadTodaySessionInstance();
   }
+
+  // Reload state when navigating to this page (e.g., returning from player)
+  afterNavigate(() => {
+    if (selectedSession) {
+      loadTodaySessionInstance();
+    }
+  });
+
+  // Also reload when tab becomes visible (for external navigation)
+  onMount(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && selectedSession) {
+        loadTodaySessionInstance();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  });
 
   function calculateTotalDurationSeconds(): number {
     if (sessionExercises.length === 0) return 0;
@@ -163,6 +242,59 @@
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  }
+
+  function calculateActualDuration(): string {
+    if (!todaySessionInstance || !todaySessionInstance.startTime) {
+      return '0m';
+    }
+
+    // For in-progress sessions, use cumulative elapsed time instead of wall clock time
+    let totalSeconds: number;
+    if (todaySessionInstance.status === 'in-progress' && todaySessionInstance.cumulativeElapsedSeconds !== undefined) {
+      totalSeconds = todaySessionInstance.cumulativeElapsedSeconds;
+    } else {
+      // For completed sessions, calculate based on start and end time
+      const startTime = new Date(todaySessionInstance.startTime);
+      const endTime = todaySessionInstance.endTime
+        ? new Date(todaySessionInstance.endTime)
+        : new Date();
+
+      const durationMs = endTime.getTime() - startTime.getTime();
+      totalSeconds = Math.floor(durationMs / 1000);
+    }
+
+    if (totalSeconds < 60) return `${totalSeconds}s`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  }
+
+  function formatCompletionTime(): string {
+    if (!todaySessionInstance || !todaySessionInstance.endTime) {
+      return '';
+    }
+
+    const endTime = new Date(todaySessionInstance.endTime);
+    const timeFormatter = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    return timeFormatter.format(endTime);
+  }
+
+  function getCompletedExerciseCount(): number {
+    if (!todaySessionInstance) return 0;
+    return todaySessionInstance.completedExercises.filter(ex => ex.completed).length;
+  }
+
+  function isExerciseCompleted(exerciseId: number): boolean {
+    if (!todaySessionInstance) return false;
+    const completedEx = todaySessionInstance.completedExercises.find(
+      ex => ex.exerciseId === exerciseId
+    );
+    return completedEx?.completed || false;
   }
 
   function handlePlaySession() {
@@ -238,6 +370,9 @@
       // Save to database
       await ptService.addSessionInstance(sessionInstance);
 
+      // Reload today's session state to update UI
+      await loadTodaySessionInstance();
+
       toastStore.show('Workout logged successfully!', 'success');
     } catch (error) {
       console.error('Error logging workout:', error);
@@ -249,8 +384,46 @@
     showManualLogConfirm = false;
   }
 
-  function viewExercises() {
-    showExerciseListModal = true;
+  function handleResumeSession() {
+    if (!selectedSession || !todaySessionInstance) {
+      toastStore.show('No in-progress session found', 'error');
+      return;
+    }
+
+    // Store session instance ID for player to resume
+    localStorage.setItem('pt-active-session-instance-id', todaySessionInstance.id.toString());
+
+    // Navigate to player
+    goto('/play');
+  }
+
+  function handleStartOver() {
+    if (!selectedSession) {
+      toastStore.show('No session selected', 'error');
+      return;
+    }
+
+    // Just start a fresh session (same as Play Session)
+    handlePlaySession();
+  }
+
+  function handleViewDetails() {
+    // Navigate to journal page which will show today's entry
+    goto('/journal');
+  }
+
+  function handleRepeatSession() {
+    if (!selectedSession) {
+      toastStore.show('No session selected', 'error');
+      return;
+    }
+
+    // Start a new session even though one was completed today
+    handlePlaySession();
+  }
+
+  function toggleShowAllExercises() {
+    showAllExercises = !showAllExercises;
   }
 
   function openSessionSelect() {
@@ -261,6 +434,7 @@
     selectedSession = session;
     persistSessionId(session.id);
     loadSessionExercises();
+    loadTodaySessionInstance();
     showSessionSelectModal = false;
     toastStore.show(`Switched to "${session.name}"`, 'success');
   }
@@ -306,6 +480,17 @@
             <div class="session-header">
               <div class="session-title">
                 <h2>{selectedSession?.name || 'Session'}</h2>
+                {#if sessionState === 'completed'}
+                  <span class="status-badge status-completed">
+                    <span class="material-icons">check_circle</span>
+                    Completed
+                  </span>
+                {:else if sessionState === 'in-progress'}
+                  <span class="status-badge status-in-progress">
+                    <span class="material-icons">pending</span>
+                    In Progress
+                  </span>
+                {/if}
               </div>
               <div class="session-header-actions">
                 <button
@@ -316,14 +501,6 @@
                 >
                   <span class="material-icons">swap_horiz</span>
                 </button>
-                <button
-                  class="icon-button"
-                  on:click={viewExercises}
-                  aria-label="View exercises"
-                  title="View all exercises"
-                >
-                  <span class="material-icons">visibility</span>
-                </button>
               </div>
             </div>
 
@@ -331,31 +508,73 @@
               <div class="stat-item">
                 <span class="material-icons stat-icon">fitness_center</span>
                 <div class="stat-content">
-                  <span class="stat-value">{sessionExercises.length}</span>
-                  <span class="stat-label">
-                    {sessionExercises.length === 1 ? 'Exercise' : 'Exercises'}
-                  </span>
+                  {#if sessionState === 'in-progress'}
+                    <span class="stat-value">
+                      {getCompletedExerciseCount()}/{sessionExercises.length}
+                    </span>
+                    <span class="stat-label">Completed</span>
+                  {:else if sessionState === 'completed'}
+                    <span class="stat-value">{sessionExercises.length}</span>
+                    <span class="stat-label">
+                      {sessionExercises.length === 1 ? 'Exercise' : 'Exercises'}
+                    </span>
+                  {:else}
+                    <span class="stat-value">{sessionExercises.length}</span>
+                    <span class="stat-label">
+                      {sessionExercises.length === 1 ? 'Exercise' : 'Exercises'}
+                    </span>
+                  {/if}
                 </div>
               </div>
 
               <div class="stat-item">
                 <span class="material-icons stat-icon">schedule</span>
                 <div class="stat-content">
-                  <span class="stat-value">{calculateTotalDuration()}</span>
-                  <span class="stat-label">Estimated</span>
+                  {#if sessionState === 'completed'}
+                    <span class="stat-value">{calculateActualDuration()}</span>
+                    <span class="stat-label">
+                      Completed at {formatCompletionTime()}
+                    </span>
+                  {:else if sessionState === 'in-progress'}
+                    <span class="stat-value">{calculateActualDuration()}</span>
+                    <span class="stat-label">Elapsed</span>
+                  {:else}
+                    <span class="stat-value">{calculateTotalDuration()}</span>
+                    <span class="stat-label">Estimated</span>
+                  {/if}
                 </div>
               </div>
             </div>
 
             <div class="session-actions">
-              <button class="btn btn-primary btn-large" on:click={handlePlaySession}>
-                <span class="material-icons">play_arrow</span>
-                Play Session
-              </button>
-              <button class="btn btn-secondary btn-large" on:click={handleLogSession}>
-                <span class="material-icons">check</span>
-                Log as Done
-              </button>
+              {#if sessionState === 'not-started'}
+                <button class="btn btn-primary btn-large" on:click={handlePlaySession}>
+                  <span class="material-icons">play_arrow</span>
+                  Play Session
+                </button>
+                <button class="btn btn-secondary btn-large" on:click={handleLogSession}>
+                  <span class="material-icons">check</span>
+                  Log as Done
+                </button>
+              {:else if sessionState === 'in-progress'}
+                <button class="btn btn-primary btn-large" on:click={handleResumeSession}>
+                  <span class="material-icons">play_arrow</span>
+                  Resume Session
+                </button>
+                <button class="btn btn-secondary btn-large" on:click={handleStartOver}>
+                  <span class="material-icons">refresh</span>
+                  Start Over
+                </button>
+              {:else if sessionState === 'completed'}
+                <button class="btn btn-primary btn-large" on:click={handleViewDetails}>
+                  <span class="material-icons">visibility</span>
+                  View Details
+                </button>
+                <button class="btn btn-secondary btn-large" on:click={handleRepeatSession}>
+                  <span class="material-icons">replay</span>
+                  Repeat Session
+                </button>
+              {/if}
             </div>
           </div>
 
@@ -363,13 +582,20 @@
           <div class="exercise-preview">
             <h3 class="preview-title">Exercises ({sessionExercises.length})</h3>
             <div class="exercise-list-preview">
-              {#each sessionExercises.slice(0, 3) as exercise (exercise.id)}
-                <ExerciseCard {exercise} compact={true} />
+              {#each (showAllExercises ? sessionExercises : sessionExercises.slice(0, 3)) as exercise (exercise.id)}
+                <div class="exercise-preview-item" class:completed={isExerciseCompleted(exercise.id)}>
+                  {#if isExerciseCompleted(exercise.id)}
+                    <span class="exercise-check-icon material-icons">check_circle</span>
+                  {/if}
+                  <div class="exercise-card-wrapper">
+                    <ExerciseCard {exercise} compact={true} />
+                  </div>
+                </div>
               {/each}
               {#if sessionExercises.length > 3}
-                <button class="show-more-btn" on:click={viewExercises}>
-                  <span class="material-icons">expand_more</span>
-                  Show {sessionExercises.length - 3} more exercises
+                <button class="show-more-btn" on:click={toggleShowAllExercises}>
+                  <span class="material-icons">{showAllExercises ? 'expand_less' : 'expand_more'}</span>
+                  {showAllExercises ? 'Show less' : `Show ${sessionExercises.length - 3} more exercises`}
                 </button>
               {/if}
             </div>
@@ -404,6 +630,7 @@
 {#if showSessionSelectModal}
   <Modal
     title="Select Session"
+    iosStyle={true}
     on:close={() => (showSessionSelectModal = false)}
   >
     {#if $ptState.sessionDefinitions.length === 0}
@@ -440,43 +667,13 @@
       <button
         class="btn btn-secondary"
         on:click={() => (showSessionSelectModal = false)}
+        type="button"
       >
         Cancel
       </button>
     </div>
   </Modal>
 {/if}
-
-<!-- Exercise List Modal -->
-{#if showExerciseListModal}
-  <Modal
-    title="{selectedSession?.name || 'Session'} Exercises"
-    on:close={() => (showExerciseListModal = false)}
-  >
-    <div class="exercise-list-full">
-      {#each sessionExercises as exercise, index (exercise.id)}
-        <div class="exercise-number-wrapper">
-          <span class="exercise-number">{index + 1}</span>
-          <ExerciseCard {exercise} />
-        </div>
-      {/each}
-    </div>
-
-    <div slot="footer" class="modal-actions">
-      <button
-        class="btn btn-secondary"
-        on:click={() => (showExerciseListModal = false)}
-      >
-        Close
-      </button>
-      <button class="btn btn-primary" on:click={handlePlaySession}>
-        <span class="material-icons">play_arrow</span>
-        Play Session
-      </button>
-    </div>
-  </Modal>
-{/if}
-
 <style>
   .page-container {
     display: flex;
@@ -579,6 +776,43 @@
     font-size: var(--font-size-xl);
     font-weight: 600;
     color: var(--text-primary);
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+  }
+
+  .status-badge .material-icons {
+    font-size: var(--icon-size-sm);
+  }
+
+  .status-completed {
+    background-color: rgba(46, 125, 50, 0.1);
+    color: #4caf50;
+  }
+
+  .status-in-progress {
+    background-color: rgba(245, 124, 0, 0.1);
+    color: #ff9800;
+  }
+
+  /* Dark mode adjustments */
+  @media (prefers-color-scheme: dark) {
+    .status-completed {
+      background-color: rgba(76, 175, 80, 0.2);
+      color: #81c784;
+    }
+
+    .status-in-progress {
+      background-color: rgba(255, 152, 0, 0.2);
+      color: #ffb74d;
+    }
   }
 
   .session-header-actions {
@@ -712,6 +946,34 @@
     gap: var(--spacing-md);
   }
 
+  .exercise-preview-item {
+    position: relative;
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+  }
+
+  .exercise-preview-item.completed {
+    opacity: 0.7;
+  }
+
+  .exercise-check-icon {
+    flex-shrink: 0;
+    color: #4caf50;
+    font-size: var(--icon-size-lg);
+    margin-top: var(--spacing-xs);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .exercise-check-icon {
+      color: #81c784;
+    }
+  }
+
+  .exercise-card-wrapper {
+    flex: 1;
+  }
+
   .show-more-btn {
     background-color: var(--surface-variant);
     border: 1px dashed var(--divider);
@@ -805,34 +1067,6 @@
     color: var(--primary-color);
     font-size: var(--icon-size-lg);
   }
-
-  /* Exercise List Modal */
-  .exercise-list-full {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-
-  .exercise-number-wrapper {
-    display: flex;
-    gap: var(--spacing-md);
-    align-items: flex-start;
-  }
-
-  .exercise-number {
-    flex-shrink: 0;
-    width: 2rem;
-    height: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--primary-color);
-    color: white;
-    border-radius: 50%;
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-  }
-
   .modal-actions {
     display: flex;
     gap: var(--spacing-md);

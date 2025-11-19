@@ -68,9 +68,23 @@ export function getShortBuildId(): string {
 }
 
 /**
+ * Checks if the app is running in development mode
+ * @returns True if in development mode, false otherwise
+ */
+export function isDevelopment(): boolean {
+  // Check both Vite environment variables for development mode
+  return import.meta.env.MODE === 'development' || import.meta.env.DEV === true;
+}
+
+/**
  * Logs build information to console for debugging
  */
 export function logBuildInfo(): void {
+  // Only log build info in development mode
+  if (!isDevelopment()) {
+    return;
+  }
+
   const buildInfo = getBuildInfo();
   console.group('🏗️ My PT Build Information');
   console.log('App Version:', buildInfo.appVersion);

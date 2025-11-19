@@ -45,7 +45,7 @@
   }
 </script>
 
-<Modal fullScreen={true} title="About My PT" on:close={handleClose}>
+<Modal fullScreen={true} title="About My PT" iosStyle={true} on:close={handleClose}>
   <div class="about-content">
     <!-- App Info -->
     <div class="app-info">

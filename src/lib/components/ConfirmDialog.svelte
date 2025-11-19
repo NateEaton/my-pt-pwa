@@ -19,8 +19,13 @@
   export let confirmText: string = 'Confirm';
   export let cancelText: string = 'Cancel';
   export let confirmVariant: 'primary' | 'danger' = 'primary';
+  // Legacy support: also accept confirmClass
+  export let confirmClass: 'danger' | '' = '';
 
   const dispatch = createEventDispatcher();
+
+  // Support both confirmClass and confirmVariant
+  $: effectiveVariant = confirmClass === 'danger' ? 'danger' : confirmVariant;
 
   function handleConfirm() {
     dispatch('confirm');
@@ -31,20 +36,21 @@
   }
 </script>
 
-<Modal {title} on:close={handleCancel} closeOnBackdrop={false}>
+<Modal {title} iosStyle={true} on:close={handleCancel} closeOnBackdrop={false}>
   <div class="confirm-message" style="white-space: pre-wrap;">
     {message}
   </div>
 
   <div slot="footer" class="confirm-actions">
-    <button class="btn btn-secondary" on:click={handleCancel}>
+    <button class="btn btn-secondary" on:click={handleCancel} type="button">
       {cancelText}
     </button>
     <button
       class="btn"
-      class:btn-primary={confirmVariant === 'primary'}
-      class:btn-danger={confirmVariant === 'danger'}
+      class:btn-primary={effectiveVariant === 'primary'}
+      class:btn-danger={effectiveVariant === 'danger'}
       on:click={handleConfirm}
+      type="button"
     >
       {confirmText}
     </button>

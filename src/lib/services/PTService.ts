@@ -50,10 +50,12 @@ const DEFAULT_SETTINGS: AppSettings = {
   endSessionDelay: 5, // 5 second delay before session player closes
   restBetweenSets: 30, // 30 seconds between sets
   restBetweenExercises: 15, // 15 seconds between exercises
+  enableAutoRest: true, // Auto-rest enabled by default
   theme: 'auto',
   exerciseSortOrder: 'alphabetical',
-  soundEnabled: true,
+  soundEnabled: false, // Sound OFF by default
   soundVolume: 0.7, // 70% volume (master volume)
+  hapticsEnabled: false, // Haptic feedback OFF by default
   audioLeadInEnabled: true, // 3-2-1 countdown at end of periods (enabled by default)
   audioContinuousTicksEnabled: false, // Continuous ticks OFF by default
   audioPerRepBeepsEnabled: false, // Per-rep beeps OFF by default

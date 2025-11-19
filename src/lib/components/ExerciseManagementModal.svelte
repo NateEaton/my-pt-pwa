@@ -11,7 +11,7 @@
 -->
 
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import Modal from './Modal.svelte';
   import ConfirmDialog from './ConfirmDialog.svelte';
   import { ptState, ptService } from '$lib/stores/pt';
@@ -33,19 +33,51 @@
   let emptySessionsAfterDeletion: SessionDefinition[] = [];
   let currentEmptySessionIndex = 0;
 
-  // Search and sort state
+  // LocalStorage keys for persisting sort preferences
+  const SORT_FIELD_KEY = 'exercise-library-sort-field';
+  const SORT_ASC_KEY = 'exercise-library-sort-asc';
+
+  // Load sort preferences from localStorage
+  function loadSortPreferences(): {
+    field: 'name' | 'dateAdded' | 'usage';
+    asc: boolean;
+  } {
+    if (typeof window === 'undefined') {
+      return { field: 'name', asc: true };
+    }
+
+    const savedField = localStorage.getItem(SORT_FIELD_KEY);
+    const savedAsc = localStorage.getItem(SORT_ASC_KEY);
+
+    return {
+      field: (savedField as 'name' | 'dateAdded' | 'usage') || 'name',
+      asc: savedAsc === 'false' ? false : true
+    };
+  }
+
+  // Save sort preferences to localStorage
+  function saveSortPreferences(field: 'name' | 'dateAdded' | 'usage', asc: boolean) {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(SORT_FIELD_KEY, field);
+    localStorage.setItem(SORT_ASC_KEY, String(asc));
+  }
+
+  // Search and sort state - load from localStorage
   let searchQuery = '';
-  let sortField: 'name' | 'dateAdded' | 'usage' = 'name';
-  let sortAsc = true;
+  const sortPrefs = loadSortPreferences();
+  let sortField: 'name' | 'dateAdded' | 'usage' = sortPrefs.field;
+  let sortAsc = sortPrefs.asc;
 
   // Exercise form data
   let exerciseFormData = {
     name: '',
-    type: 'duration' as 'duration' | 'reps',
+    type: 'reps' as 'duration' | 'reps', // Default to reps/sets
     defaultDuration: 60,
     defaultReps: 10,
     defaultSets: 3,
     defaultRepDuration: 2,
+    pauseBetweenReps: 5, // Default 5 seconds for user to transition between reps (e.g., switch legs)
+    restBetweenSets: 30, // Default 30 seconds (matches global default)
     instructions: '',
     includeInDefault: true
   };
@@ -100,6 +132,8 @@
       sortField = field;
       sortAsc = true;
     }
+    // Persist sort preferences
+    saveSortPreferences(sortField, sortAsc);
   }
 
   function handleClose() {
@@ -123,6 +157,8 @@
       defaultReps: exercise.defaultReps || 10,
       defaultSets: exercise.defaultSets || 3,
       defaultRepDuration: exercise.defaultRepDuration || 2,
+      pauseBetweenReps: exercise.pauseBetweenReps ?? 5,
+      restBetweenSets: exercise.restBetweenSets ?? 30,
       instructions: exercise.instructions || '',
       includeInDefault: exercise.includeInDefault
     };
@@ -132,11 +168,13 @@
   function resetExerciseForm() {
     exerciseFormData = {
       name: '',
-      type: 'duration',
+      type: 'reps', // Default to reps/sets
       defaultDuration: 60,
       defaultReps: 10,
       defaultSets: 3,
       defaultRepDuration: 2,
+      pauseBetweenReps: 5, // Default 5 seconds for user to transition between reps (e.g., switch legs)
+      restBetweenSets: 30, // Default 30 seconds
       instructions: '',
       includeInDefault: true
     };
@@ -163,6 +201,8 @@
           defaultReps: exerciseFormData.type === 'reps' ? exerciseFormData.defaultReps : undefined,
           defaultSets: exerciseFormData.type === 'reps' ? exerciseFormData.defaultSets : undefined,
           defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
+          pauseBetweenReps: exerciseFormData.type === 'reps' ? exerciseFormData.pauseBetweenReps : undefined,
+          restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
           instructions: exerciseFormData.instructions.trim() || undefined,
           includeInDefault: exerciseFormData.includeInDefault
         };
@@ -177,6 +217,8 @@
           defaultReps: exerciseFormData.type === 'reps' ? exerciseFormData.defaultReps : undefined,
           defaultSets: exerciseFormData.type === 'reps' ? exerciseFormData.defaultSets : undefined,
           defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
+          pauseBetweenReps: exerciseFormData.type === 'reps' ? exerciseFormData.pauseBetweenReps : undefined,
+          restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
           instructions: exerciseFormData.instructions.trim() || undefined,
           includeInDefault: exerciseFormData.includeInDefault,
           dateAdded: new Date().toISOString()
@@ -310,11 +352,18 @@
     const secs = seconds % 60;
     return secs > 0 ? `${minutes}m ${secs}s` : `${minutes}m`;
   }
+
+  // Auto-open Add dialog if no exercises exist
+  onMount(() => {
+    if ($ptState.exercises.length === 0) {
+      openAddExercise();
+    }
+  });
 </script>
 
-<Modal fullScreen={true} title="Exercise Library" on:close={handleClose}>
+<Modal fullScreen={true} title="Exercise Library" iosStyle={true} on:close={handleClose}>
   <div slot="headerActions">
-    <button class="icon-button" on:click={openAddExercise} aria-label="Add exercise">
+    <button class="icon-button add-button" on:click={openAddExercise} aria-label="Add exercise">
       <span class="material-icons">add</span>
     </button>
   </div>
@@ -424,6 +473,7 @@
 {#if showExerciseForm}
   <Modal
     title={editingExercise ? 'Edit Exercise' : 'Add Exercise'}
+    iosStyle={true}
     on:close={closeExerciseForm}
   >
     <form on:submit|preventDefault={saveExercise} class="exercise-form">
@@ -492,6 +542,30 @@
             step="0.5"
           />
         </div>
+        <div class="form-group">
+          <label for="pause-between-reps">Pause Between Reps (seconds)</label>
+          <input
+            id="pause-between-reps"
+            type="number"
+            bind:value={exerciseFormData.pauseBetweenReps}
+            min="0"
+            max="5"
+            step="0.1"
+          />
+          <small class="help-text">Time for user to transition between reps (e.g., switch legs) - default: 5s</small>
+        </div>
+        <div class="form-group">
+          <label for="rest-between-sets">Rest Between Sets (seconds)</label>
+          <input
+            id="rest-between-sets"
+            type="number"
+            bind:value={exerciseFormData.restBetweenSets}
+            min="0"
+            max="300"
+            step="5"
+          />
+          <small class="help-text">Default: 30 seconds</small>
+        </div>
       {/if}
 
       <div class="form-group">
@@ -506,11 +580,11 @@
     </form>
 
     <div slot="footer" class="modal-actions">
-      <button class="btn btn-secondary" on:click={closeExerciseForm}>
+      <button class="btn btn-secondary" on:click={closeExerciseForm} type="button">
         Cancel
       </button>
-      <button class="btn btn-primary" on:click={saveExercise}>
-        {editingExercise ? 'Update' : 'Add'} Exercise
+      <button class="btn btn-primary" on:click={saveExercise} type="button">
+        {editingExercise ? 'Save' : 'Add'}
       </button>
     </div>
   </Modal>
@@ -773,6 +847,20 @@
     color: var(--error-color);
   }
 
+  /* Larger, bolder add button in header */
+  .icon-button.add-button {
+    color: var(--primary-color);
+  }
+
+  .icon-button.add-button .material-icons {
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  .icon-button.add-button:hover {
+    background-color: var(--primary-alpha-10);
+  }
+
   /* Empty State */
   .empty-state {
     flex: 1;
@@ -853,6 +941,13 @@
 
   .form-group textarea {
     resize: vertical;
+  }
+
+  .help-text {
+    display: block;
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
   }
 
   .modal-actions {
