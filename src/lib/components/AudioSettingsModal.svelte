@@ -668,7 +668,15 @@
     gap: var(--spacing-md);
     justify-content: flex-end;
     padding: var(--spacing-lg);
+    padding-bottom: calc(var(--spacing-lg) + var(--spacing-xl));
     border-top: 1px solid var(--divider);
+  }
+
+  /* Add safe area padding on iOS devices */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .modal-actions {
+      padding-bottom: calc(var(--spacing-lg) + var(--spacing-xl) + env(safe-area-inset-bottom));
+    }
   }
 
   @media (max-width: 480px) {

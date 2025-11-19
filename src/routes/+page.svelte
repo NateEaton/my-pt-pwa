@@ -249,13 +249,20 @@
       return '0m';
     }
 
-    const startTime = new Date(todaySessionInstance.startTime);
-    const endTime = todaySessionInstance.endTime
-      ? new Date(todaySessionInstance.endTime)
-      : new Date();
+    // For in-progress sessions, use cumulative elapsed time instead of wall clock time
+    let totalSeconds: number;
+    if (todaySessionInstance.status === 'in-progress' && todaySessionInstance.cumulativeElapsedSeconds !== undefined) {
+      totalSeconds = todaySessionInstance.cumulativeElapsedSeconds;
+    } else {
+      // For completed sessions, calculate based on start and end time
+      const startTime = new Date(todaySessionInstance.startTime);
+      const endTime = todaySessionInstance.endTime
+        ? new Date(todaySessionInstance.endTime)
+        : new Date();
 
-    const durationMs = endTime.getTime() - startTime.getTime();
-    const totalSeconds = Math.floor(durationMs / 1000);
+      const durationMs = endTime.getTime() - startTime.getTime();
+      totalSeconds = Math.floor(durationMs / 1000);
+    }
 
     if (totalSeconds < 60) return `${totalSeconds}s`;
     const minutes = Math.floor(totalSeconds / 60);
