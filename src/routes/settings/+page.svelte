@@ -168,27 +168,25 @@
           </div>
         </div>
 
-        <!-- Cue Settings Card (only visible in development) -->
-        {#if showDevFeatures}
-          <!-- svelte-ignore a11y-click-events-have-key-events -->
-          <!-- svelte-ignore a11y-no-static-element-interactions -->
-          <div class="settings-card" on:click={() => (showAudioSettings = true)}>
-            <div class="card-icon">
-              <span class="material-icons">notifications_active</span>
-            </div>
-            <div class="card-content">
-              <h3>Cues</h3>
-              <p>Configure audio and haptic feedback</p>
-              <div class="card-meta">
-                <span class="material-icons">settings</span>
-                <span>Sound, vibration, and timing cues</span>
-              </div>
-            </div>
-            <div class="card-arrow">
-              <span class="material-icons">chevron_right</span>
+        <!-- Cue Settings Card -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="settings-card" on:click={() => (showAudioSettings = true)}>
+          <div class="card-icon">
+            <span class="material-icons">notifications_active</span>
+          </div>
+          <div class="card-content">
+            <h3>Cues</h3>
+            <p>Configure audio and haptic feedback</p>
+            <div class="card-meta">
+              <span class="material-icons">settings</span>
+              <span>Sound, vibration, and timing cues</span>
             </div>
           </div>
-        {/if}
+          <div class="card-arrow">
+            <span class="material-icons">chevron_right</span>
+          </div>
+        </div>
       </div>
     </section>
 
