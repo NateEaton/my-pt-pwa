@@ -76,7 +76,7 @@
     defaultReps: 10,
     defaultSets: 3,
     defaultRepDuration: 2,
-    pauseBetweenReps: 0.5, // Default 0.5 second pause between reps
+    pauseBetweenReps: 5, // Default 5 seconds for user to transition between reps (e.g., switch legs)
     restBetweenSets: 30, // Default 30 seconds (matches global default)
     instructions: '',
     includeInDefault: true
@@ -157,7 +157,7 @@
       defaultReps: exercise.defaultReps || 10,
       defaultSets: exercise.defaultSets || 3,
       defaultRepDuration: exercise.defaultRepDuration || 2,
-      pauseBetweenReps: exercise.pauseBetweenReps ?? 0.5,
+      pauseBetweenReps: exercise.pauseBetweenReps ?? 5,
       restBetweenSets: exercise.restBetweenSets ?? 30,
       instructions: exercise.instructions || '',
       includeInDefault: exercise.includeInDefault
@@ -173,7 +173,7 @@
       defaultReps: 10,
       defaultSets: 3,
       defaultRepDuration: 2,
-      pauseBetweenReps: 0.5, // Default 0.5 second pause between reps
+      pauseBetweenReps: 5, // Default 5 seconds for user to transition between reps (e.g., switch legs)
       restBetweenSets: 30, // Default 30 seconds
       instructions: '',
       includeInDefault: true
@@ -552,7 +552,7 @@
             max="5"
             step="0.1"
           />
-          <small class="help-text">Brief pause between rep tones (default: 0.5s)</small>
+          <small class="help-text">Time for user to transition between reps (e.g., switch legs) - default: 5s</small>
         </div>
         <div class="form-group">
           <label for="rest-between-sets">Rest Between Sets (seconds)</label>
