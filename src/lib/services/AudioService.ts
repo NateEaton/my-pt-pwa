@@ -16,7 +16,8 @@ export class AudioService {
 
   // Audio settings (injected from settings store)
   private masterVolume = 0.7;
-  private leadInEnabled = true;
+  private leadInEnabled = true; // Exercise about-to-start countdown
+  private exerciseAboutToEndEnabled = true; // Exercise about-to-end countdown
   private continuousTicksEnabled = false;
   private perRepBeepsEnabled = false;
   private hapticsEnabled = false;
@@ -172,15 +173,17 @@ export class AudioService {
 
   /**
    * Called for countdown steps before exercise starts (3, 2, 1)
+   * Exercise about-to-start: Rising tones to build anticipation
+   * Creates symmetry with the descending about-to-end tones
    * @param step - The countdown number (3, 2, or 1)
    */
   public onCountdown(step: number): void {
     if (!this.leadInEnabled) return;
 
     const frequencyMap: Record<number, number> = {
-      3: 500,  // Low
-      2: 650,  // Medium
-      1: 800   // High - creates rising urgency
+      3: 500,  // Low - gentle start
+      2: 650,  // Medium - building energy
+      1: 800   // High - creates rising urgency, exercise begins next
     };
 
     const freq = frequencyMap[step] ?? 650;
@@ -192,16 +195,17 @@ export class AudioService {
 
   /**
    * Called for countdown at end of duration exercise (3, 2, 1)
-   * More subtle, quieter tones to signal approaching completion
+   * Exercise about-to-end: Descending tones to signal approaching completion
+   * Creates symmetry with the rising about-to-start tones
    * @param step - The countdown number (3, 2, or 1)
    */
   public onCountdownEnd(step: number): void {
-    if (!this.leadInEnabled) return;
+    if (!this.exerciseAboutToEndEnabled) return;
 
     const frequencyMap: Record<number, number> = {
-      3: 400,  // Lower and quieter
-      2: 500,  // Medium
-      1: 600   // Higher but still subtle
+      3: 800,  // High - mirrors the final about-to-start tone
+      2: 650,  // Medium - creates descending pattern
+      1: 500   // Low - signals imminent completion
     };
 
     const volumeMap: Record<number, number> = {
@@ -216,7 +220,7 @@ export class AudioService {
       1: 40   // Stronger
     };
 
-    const freq = frequencyMap[step] ?? 500;
+    const freq = frequencyMap[step] ?? 650;
     const relativeVolume = volumeMap[step] ?? 0.5;
     const duration = 0.15; // Shorter, more subtle
 
@@ -356,10 +360,17 @@ export class AudioService {
   }
 
   /**
-   * Enable/disable 3-2-1 countdown lead-in
+   * Enable/disable exercise about-to-start countdown (3-2-1 with rising tones)
    */
   public setLeadInEnabled(enabled: boolean): void {
     this.leadInEnabled = enabled;
+  }
+
+  /**
+   * Enable/disable exercise about-to-end countdown (3-2-1 with descending tones)
+   */
+  public setExerciseAboutToEndEnabled(enabled: boolean): void {
+    this.exerciseAboutToEndEnabled = enabled;
   }
 
   /**

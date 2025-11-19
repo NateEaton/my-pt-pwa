@@ -66,6 +66,7 @@
   $: if ($ptState.settings) {
     audioService.setMasterVolume($ptState.settings.soundVolume);
     audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
+    audioService.setExerciseAboutToEndEnabled($ptState.settings.audioExerciseAboutToEndEnabled);
     audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
     audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
     audioService.setHapticsEnabled($ptState.settings.hapticsEnabled);
@@ -118,6 +119,7 @@
     if ($ptState.settings) {
       audioService.setMasterVolume($ptState.settings.soundVolume);
       audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
+      audioService.setExerciseAboutToEndEnabled($ptState.settings.audioExerciseAboutToEndEnabled);
       audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
       audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
       audioService.setHapticsEnabled($ptState.settings.hapticsEnabled);

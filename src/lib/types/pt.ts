@@ -148,7 +148,8 @@ export interface AppSettings {
   hapticsEnabled: boolean; // Enable vibration feedback
 
   // Audio cue preferences
-  audioLeadInEnabled: boolean; // 3-2-1 countdown at END of duration/rest periods
+  audioLeadInEnabled: boolean; // Exercise about-to-start: 3-2-1 countdown with rising tones before exercise begins
+  audioExerciseAboutToEndEnabled: boolean; // Exercise about-to-end: 3-2-1 countdown with descending tones during final seconds
   audioContinuousTicksEnabled: boolean; // Tick every second during duration exercises and rest periods
   audioPerRepBeepsEnabled: boolean; // Beep on each rep completion
 
