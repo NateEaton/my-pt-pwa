@@ -71,12 +71,13 @@
   // Exercise form data
   let exerciseFormData = {
     name: '',
-    type: 'duration' as 'duration' | 'reps',
+    type: 'reps' as 'duration' | 'reps', // Default to reps/sets
     defaultDuration: 60,
     defaultReps: 10,
     defaultSets: 3,
     defaultRepDuration: 2,
-    restBetweenSets: undefined as number | undefined,
+    pauseBetweenReps: 0.5, // Default 0.5 second pause between reps
+    restBetweenSets: 30, // Default 30 seconds (matches global default)
     instructions: '',
     includeInDefault: true
   };
@@ -156,7 +157,8 @@
       defaultReps: exercise.defaultReps || 10,
       defaultSets: exercise.defaultSets || 3,
       defaultRepDuration: exercise.defaultRepDuration || 2,
-      restBetweenSets: exercise.restBetweenSets,
+      pauseBetweenReps: exercise.pauseBetweenReps ?? 0.5,
+      restBetweenSets: exercise.restBetweenSets ?? 30,
       instructions: exercise.instructions || '',
       includeInDefault: exercise.includeInDefault
     };
@@ -166,12 +168,13 @@
   function resetExerciseForm() {
     exerciseFormData = {
       name: '',
-      type: 'duration',
+      type: 'reps', // Default to reps/sets
       defaultDuration: 60,
       defaultReps: 10,
       defaultSets: 3,
       defaultRepDuration: 2,
-      restBetweenSets: undefined,
+      pauseBetweenReps: 0.5, // Default 0.5 second pause between reps
+      restBetweenSets: 30, // Default 30 seconds
       instructions: '',
       includeInDefault: true
     };
@@ -198,6 +201,7 @@
           defaultReps: exerciseFormData.type === 'reps' ? exerciseFormData.defaultReps : undefined,
           defaultSets: exerciseFormData.type === 'reps' ? exerciseFormData.defaultSets : undefined,
           defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
+          pauseBetweenReps: exerciseFormData.type === 'reps' ? exerciseFormData.pauseBetweenReps : undefined,
           restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
           instructions: exerciseFormData.instructions.trim() || undefined,
           includeInDefault: exerciseFormData.includeInDefault
@@ -213,6 +217,7 @@
           defaultReps: exerciseFormData.type === 'reps' ? exerciseFormData.defaultReps : undefined,
           defaultSets: exerciseFormData.type === 'reps' ? exerciseFormData.defaultSets : undefined,
           defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
+          pauseBetweenReps: exerciseFormData.type === 'reps' ? exerciseFormData.pauseBetweenReps : undefined,
           restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
           instructions: exerciseFormData.instructions.trim() || undefined,
           includeInDefault: exerciseFormData.includeInDefault,
@@ -538,7 +543,19 @@
           />
         </div>
         <div class="form-group">
-          <label for="rest-between-sets">Rest Between Sets (seconds, optional)</label>
+          <label for="pause-between-reps">Pause Between Reps (seconds)</label>
+          <input
+            id="pause-between-reps"
+            type="number"
+            bind:value={exerciseFormData.pauseBetweenReps}
+            min="0"
+            max="5"
+            step="0.1"
+          />
+          <small class="help-text">Brief pause between rep tones (default: 0.5s)</small>
+        </div>
+        <div class="form-group">
+          <label for="rest-between-sets">Rest Between Sets (seconds)</label>
           <input
             id="rest-between-sets"
             type="number"
@@ -546,9 +563,8 @@
             min="0"
             max="300"
             step="5"
-            placeholder="Default from settings"
           />
-          <small class="help-text">Leave empty to use global setting</small>
+          <small class="help-text">Default: 30 seconds</small>
         </div>
       {/if}
 

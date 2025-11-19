@@ -116,26 +116,8 @@
 
       <div class="setting-item">
         <div class="setting-info">
-          <span class="setting-label">Rest Between Sets</span>
-          <span class="setting-description">Default rest time between sets (reps exercises only)</span>
-        </div>
-        <div class="setting-control">
-          <input
-            type="number"
-            bind:value={restBetweenSets}
-            min="0"
-            max="300"
-            step="5"
-            class="setting-input"
-          />
-          <span class="input-suffix">s</span>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <div class="setting-info">
           <span class="setting-label">Enable Auto-Rest Timer</span>
-          <span class="setting-description">Automatically start rest timer after completing a set</span>
+          <span class="setting-description">Automatically start rest timer after completing a set (rest duration is set per exercise, default: 30s)</span>
         </div>
         <div class="setting-control">
           <label class="toggle-switch">

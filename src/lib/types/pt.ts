@@ -37,6 +37,7 @@ export interface Exercise {
   defaultReps?: number;
   defaultSets?: number;
   defaultRepDuration?: number; // seconds per rep for timing calculations
+  pauseBetweenReps?: number; // seconds of pause between individual reps (default 0.5)
   restBetweenSets?: number; // seconds of rest between sets (optional override)
 
   // Optional metadata

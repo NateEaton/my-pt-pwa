@@ -410,12 +410,13 @@
         repElapsedSeconds = 0;
 
         // Play rep start tone for next rep (if not at end of set)
-        // Add 500ms delay to separate the end and start tones
+        // Use exercise-specific pause or default 0.5s to separate the end and start tones
         const isEndOfSet = (exerciseElapsedSeconds % (reps * repDuration) === 0);
         if (!isEndOfSet && shouldPlayAudio()) {
+          const pauseMs = (currentExercise.pauseBetweenReps ?? 0.5) * 1000;
           setTimeout(() => {
             audioService.onRepStart();
-          }, 500);
+          }, pauseMs);
         }
       }
 
