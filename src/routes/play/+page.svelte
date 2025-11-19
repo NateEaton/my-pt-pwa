@@ -81,15 +81,18 @@
     try {
       if ('wakeLock' in navigator) {
         wakeLock = await (navigator as any).wakeLock.request('screen');
-        console.log('Wake Lock activated');
+        console.log('✓ Wake Lock activated successfully');
 
         // Re-request wake lock if it's released (e.g., user switches tabs)
         wakeLock.addEventListener('release', () => {
-          console.log('Wake Lock released');
+          console.log('⚠ Wake Lock released (tab hidden or screen locked)');
         });
+      } else {
+        console.warn('⚠ Wake Lock API not supported on this device/browser');
       }
     } catch (err) {
-      console.error('Wake Lock request failed:', err);
+      console.error('✗ Wake Lock request failed:', err);
+      console.log('Wake Lock may require user interaction first (especially on iOS)');
     }
   }
 

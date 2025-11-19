@@ -26,6 +26,10 @@
   let audioLeadInEnabled = true;
   let hapticsEnabled = false;
 
+  // Feature detection
+  let vibrationSupported = false;
+  let wakeLockSupported = false;
+
   // Load current settings
   onMount(() => {
     if ($ptState.settings) {
@@ -34,6 +38,17 @@
       audioLeadInEnabled = $ptState.settings.audioLeadInEnabled;
       hapticsEnabled = $ptState.settings.hapticsEnabled;
     }
+
+    // Detect feature support
+    vibrationSupported = 'vibrate' in navigator;
+    wakeLockSupported = 'wakeLock' in navigator;
+
+    // Log diagnostics
+    console.log('Feature Support:', {
+      vibration: vibrationSupported,
+      wakeLock: wakeLockSupported,
+      userAgent: navigator.userAgent
+    });
 
     // Unlock audio context on mount
     audioService.unlock();
@@ -128,6 +143,20 @@
     audioService.onSessionComplete();
   }
 
+  // Test vibration directly
+  function testVibration() {
+    if ('vibrate' in navigator) {
+      const success = navigator.vibrate(200);
+      if (success) {
+        toastStore.show('Vibration triggered', 'success');
+      } else {
+        toastStore.show('Vibration failed - check device settings', 'error');
+      }
+    } else {
+      toastStore.show('Vibration not supported', 'error');
+    }
+  }
+
   // Convert 0-1 to percentage for display
   $: volumePercentage = Math.round(soundVolume * 100);
 </script>
@@ -199,16 +228,43 @@
         <div class="setting-info">
           <span class="setting-label">Haptic Feedback</span>
           <span class="setting-description">
-            Vibrate for each audio cue (requires device support)
+            {#if vibrationSupported}
+              Vibrate for each audio cue
+              {#if navigator.userAgent.includes('Android')}
+                <br/><small style="color: var(--warning-color);">
+                  Note: Requires "Touch feedback" enabled in Android settings and device not on silent mode
+                </small>
+              {/if}
+            {:else}
+              <span style="color: var(--error-color);">Not supported on this device/browser (iOS does not support vibration)</span>
+            {/if}
           </span>
         </div>
         <div class="setting-control">
           <label class="toggle-switch">
-            <input type="checkbox" bind:checked={hapticsEnabled} />
+            <input type="checkbox" bind:checked={hapticsEnabled} disabled={!vibrationSupported} />
             <span class="toggle-slider"></span>
           </label>
         </div>
       </div>
+
+      <!-- Test Vibration Button (only if supported) -->
+      {#if vibrationSupported}
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">Test Vibration</span>
+            <span class="setting-description">
+              Test if vibration is working on your device
+            </span>
+          </div>
+          <div class="setting-control">
+            <button class="btn-test" on:click={testVibration}>
+              <span class="material-icons">vibration</span>
+              Test
+            </button>
+          </div>
+        </div>
+      {/if}
 
       <!-- Info about always-on audio cues -->
       <div class="info-box">
@@ -222,6 +278,34 @@
             <li>Exercise start and completion</li>
             <li>Rest period start and end</li>
             <li>Session completion</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Device Capabilities -->
+      <div class="info-box" style="margin-top: var(--spacing-lg);">
+        <div class="info-title">
+          <span class="material-icons">devices</span>
+          Device Capabilities
+        </div>
+        <div class="info-text">
+          <ul>
+            <li>
+              <strong>Vibration API:</strong>
+              {#if vibrationSupported}
+                <span style="color: var(--success-color);">✓ Supported</span>
+              {:else}
+                <span style="color: var(--error-color);">✗ Not Supported</span>
+              {/if}
+            </li>
+            <li>
+              <strong>Wake Lock API:</strong>
+              {#if wakeLockSupported}
+                <span style="color: var(--success-color);">✓ Supported</span>
+              {:else}
+                <span style="color: var(--error-color);">✗ Not Supported</span>
+              {/if}
+            </li>
           </ul>
         </div>
       </div>
@@ -498,6 +582,36 @@
   input:disabled + .toggle-slider {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  /* Test Button */
+  .btn-test {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-md);
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: var(--touch-target-min);
+  }
+
+  .btn-test:hover {
+    background-color: var(--primary-color-dark);
+    transform: translateY(-1px);
+  }
+
+  .btn-test:active {
+    transform: translateY(0);
+  }
+
+  .btn-test .material-icons {
+    font-size: var(--icon-size-sm);
   }
 
   /* Preview Section */

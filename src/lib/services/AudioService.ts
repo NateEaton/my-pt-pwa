@@ -93,7 +93,12 @@ export class AudioService {
 
     try {
       if ('vibrate' in navigator) {
-        navigator.vibrate(duration);
+        const success = navigator.vibrate(duration);
+        if (!success) {
+          console.warn('Haptic vibration request returned false - device may not support vibration or settings may prevent it');
+        }
+      } else {
+        console.warn('Vibration API not supported on this device/browser');
       }
     } catch (error) {
       console.error('Haptic vibration failed:', error);

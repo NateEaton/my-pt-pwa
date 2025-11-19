@@ -473,10 +473,25 @@
 
         <p><strong>Haptic feedback (vibration) isn't working:</strong></p>
         <ul>
-          <li>Check that Haptic Feedback is enabled in Settings > Cues</li>
-          <li>Some devices don't support the Vibration API</li>
-          <li>Check your device's vibration/haptic settings</li>
-          <li>iOS Safari may have limited haptic support</li>
+          <li><strong>iOS:</strong> Vibration API is not supported by Safari - haptic feedback will not work on iPhone/iPad</li>
+          <li><strong>Android:</strong> Check the following:
+            <ul class="nested-list">
+              <li>Haptic Feedback is enabled in Settings > Cues</li>
+              <li>Device is not on silent mode (must be on vibrate or ring)</li>
+              <li>In Android Settings > Vibration & haptics > Interactive haptics, ensure "Touch feedback" is not set to off</li>
+              <li>Use the "Test Vibration" button in Cue Settings to verify</li>
+            </ul>
+          </li>
+          <li>Check Device Capabilities section in Cue Settings to see if Vibration API is supported</li>
+        </ul>
+
+        <p><strong>Screen goes to sleep during sessions:</strong></p>
+        <ul>
+          <li><strong>Android:</strong> Wake Lock API should work on modern Chrome/Edge browsers</li>
+          <li><strong>iOS (browser):</strong> Wake Lock supported on Safari 16.4+ when browsing</li>
+          <li><strong>iOS (installed PWA):</strong> Wake Lock support added in iOS 18.4 for home screen web apps</li>
+          <li>If using an older iOS version, manually adjust your device's auto-lock timeout in Settings > Display & Brightness</li>
+          <li>Check browser console logs for Wake Lock activation messages</li>
         </ul>
 
         <p><strong>Data disappeared after updating:</strong></p>
