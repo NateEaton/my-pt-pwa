@@ -407,9 +407,12 @@
         repElapsedSeconds = 0;
 
         // Play rep start tone for next rep (if not at end of set)
+        // Add 500ms delay to separate the end and start tones
         const isEndOfSet = (exerciseElapsedSeconds % (reps * repDuration) === 0);
         if (!isEndOfSet && shouldPlayAudio()) {
-          audioService.onRepStart();
+          setTimeout(() => {
+            audioService.onRepStart();
+          }, 500);
         }
       }
 
@@ -944,7 +947,6 @@
     align-items: center;
     justify-content: center;
     gap: var(--spacing-md);
-    margin-top: var(--spacing-xl);
   }
 
   .vcr-btn {
@@ -1065,7 +1067,6 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
   }
 
   .exercise-header.invisible {

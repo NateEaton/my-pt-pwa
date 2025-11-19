@@ -75,29 +75,46 @@
   }
 
   // Preview sound functions
-  function previewExerciseStart() {
+  function previewDurationStart() {
     audioService.setMasterVolume(soundVolume);
-    audioService.onExerciseStart();
+    audioService.setHapticsEnabled(hapticsEnabled);
+    audioService.onDurationStart();
   }
 
-  function previewExerciseEnd() {
+  function previewDurationEnd() {
     audioService.setMasterVolume(soundVolume);
-    audioService.onExerciseEnd();
+    audioService.setHapticsEnabled(hapticsEnabled);
+    audioService.onDurationEnd();
+  }
+
+  function previewRepStart() {
+    audioService.setMasterVolume(soundVolume);
+    audioService.setHapticsEnabled(hapticsEnabled);
+    audioService.onRepStart();
+  }
+
+  function previewRepEnd() {
+    audioService.setMasterVolume(soundVolume);
+    audioService.setHapticsEnabled(hapticsEnabled);
+    audioService.onRepEnd();
   }
 
   function previewRestStart() {
     audioService.setMasterVolume(soundVolume);
+    audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onRestStart();
   }
 
   function previewRestEnd() {
     audioService.setMasterVolume(soundVolume);
+    audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onRestEnd();
   }
 
   function previewCountdown() {
     audioService.setMasterVolume(soundVolume);
     audioService.setLeadInEnabled(true); // Temporarily enable for preview
+    audioService.setHapticsEnabled(hapticsEnabled);
 
     // Play 3-2-1 sequence
     audioService.onCountdown(3);
@@ -107,6 +124,7 @@
 
   function previewSessionComplete() {
     audioService.setMasterVolume(soundVolume);
+    audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onSessionComplete();
   }
 
@@ -214,19 +232,35 @@
         <div class="preview-buttons">
           <button
             class="btn-preview"
-            on:click={previewExerciseStart}
+            on:click={previewDurationStart}
             disabled={!soundEnabled}
           >
             <span class="material-icons">play_arrow</span>
-            Exercise Start
+            Duration Start
           </button>
           <button
             class="btn-preview"
-            on:click={previewExerciseEnd}
+            on:click={previewDurationEnd}
             disabled={!soundEnabled}
           >
             <span class="material-icons">stop</span>
-            Exercise End
+            Duration End
+          </button>
+          <button
+            class="btn-preview"
+            on:click={previewRepStart}
+            disabled={!soundEnabled}
+          >
+            <span class="material-icons">fitness_center</span>
+            Rep Start
+          </button>
+          <button
+            class="btn-preview"
+            on:click={previewRepEnd}
+            disabled={!soundEnabled}
+          >
+            <span class="material-icons">fitness_center</span>
+            Rep End
           </button>
           <button
             class="btn-preview"
