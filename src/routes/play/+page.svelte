@@ -66,8 +66,9 @@
     const containerScrollTop = container.scrollTop;
     const containerHeight = container.clientHeight;
 
-    // Add padding so element isn't right at the edge
-    const padding = 80;
+    // Add generous padding so element has visual breathing room from edges
+    // This ensures cards don't appear jammed against the top of the list
+    const padding = 120;
 
     // Calculate where the element currently is relative to the visible area
     const elementRelativeTop = elementTop - containerScrollTop;
@@ -75,7 +76,7 @@
     // If element is above the visible area, scroll it to near the top (with padding)
     if (elementRelativeTop < padding) {
       container.scrollTo({
-        top: elementTop - padding,
+        top: Math.max(0, elementTop - padding),
         behavior: 'smooth'
       });
     }
