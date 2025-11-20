@@ -51,15 +51,27 @@
 
   // Auto-scroll support for exercise list
   let exerciseElements: HTMLElement[] = [];
+  let exerciseListContainer: HTMLElement | null = null;
 
   // Wake Lock to keep screen awake during session
   let wakeLock: any = null;
 
   // Scroll active exercise into view when index changes
-  $: if (currentExerciseIndex >= 0 && exerciseElements[currentExerciseIndex]) {
-    exerciseElements[currentExerciseIndex].scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest'
+  $: if (currentExerciseIndex >= 0 && exerciseElements[currentExerciseIndex] && exerciseListContainer) {
+    const activeElement = exerciseElements[currentExerciseIndex];
+    const container = exerciseListContainer;
+
+    // Calculate the position to scroll to - center the active element in the container
+    const elementTop = activeElement.offsetTop;
+    const elementHeight = activeElement.offsetHeight;
+    const containerHeight = container.clientHeight;
+
+    // Scroll so the active element is centered (or as close as possible)
+    const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
+
+    container.scrollTo({
+      top: scrollPosition,
+      behavior: 'smooth'
     });
   }
 
@@ -874,7 +886,7 @@
   </div>
 
   <!-- Bottom Section: Exercise List -->
-  <div class="player-bottom">
+  <div class="player-bottom" bind:this={exerciseListContainer}>
     <div class="exercise-list">
       {#each exercises as exercise, index (exercise.id)}
         <div
