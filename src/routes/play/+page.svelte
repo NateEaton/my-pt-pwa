@@ -61,18 +61,32 @@
     const activeElement = exerciseElements[currentExerciseIndex];
     const container = exerciseListContainer;
 
-    // Calculate the position to scroll to - center the active element in the container
     const elementTop = activeElement.offsetTop;
     const elementHeight = activeElement.offsetHeight;
+    const containerScrollTop = container.scrollTop;
     const containerHeight = container.clientHeight;
 
-    // Scroll so the active element is centered (or as close as possible)
-    const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
+    // Add padding so element isn't right at the edge
+    const padding = 80;
 
-    container.scrollTo({
-      top: scrollPosition,
-      behavior: 'smooth'
-    });
+    // Calculate where the element currently is relative to the visible area
+    const elementRelativeTop = elementTop - containerScrollTop;
+
+    // If element is above the visible area, scroll it to near the top (with padding)
+    if (elementRelativeTop < padding) {
+      container.scrollTo({
+        top: elementTop - padding,
+        behavior: 'smooth'
+      });
+    }
+    // If element is below the visible area, scroll it to near the bottom (with padding)
+    else if (elementRelativeTop + elementHeight > containerHeight - padding) {
+      container.scrollTo({
+        top: elementTop - containerHeight + elementHeight + padding,
+        behavior: 'smooth'
+      });
+    }
+    // Otherwise, element is already visible, don't scroll
   }
 
   // Update audio service when settings change
