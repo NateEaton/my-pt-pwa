@@ -34,6 +34,7 @@
   let currentSet = 1;
   let currentRep = 1;
   let repElapsedSeconds = 0; // Track time within current rep for countdown
+  let isPausingBetweenReps = false; // Track pause state between reps
 
   // Intervals
   let totalTimerInterval: number | undefined;
@@ -330,6 +331,7 @@
 
     timerState = 'active';
     exerciseElapsedSeconds = 0;
+    isPausingBetweenReps = false;
     currentSet = 1;
     currentRep = 1;
 
@@ -388,6 +390,7 @@
     const repDuration = currentExercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 2;
 
     repElapsedSeconds = 0;
+    isPausingBetweenReps = false;
 
     // Play rep start tone for first rep
     if (shouldPlayAudio()) {
@@ -395,6 +398,16 @@
     }
 
     exerciseTimerInterval = window.setInterval(() => {
+      // If pausing between reps, don't increment counters
+      if (isPausingBetweenReps) {
+        return;
+      }
+
+      // Play end tone when counter shows "1" (last count of rep)
+      if (repElapsedSeconds === repDuration - 1 && shouldPlayAudio()) {
+        audioService.onRepEnd();
+      }
+
       exerciseElapsedSeconds++;
       repElapsedSeconds++;
 
@@ -403,44 +416,43 @@
 
       // Check if rep is complete
       if (repElapsedSeconds >= repDuration) {
-        // Play rep end tone
-        if (shouldPlayAudio()) {
-          audioService.onRepEnd();
-        }
-
-        // Reset rep timer for next rep
-        repElapsedSeconds = 0;
-
-        // Play rep start tone for next rep (if not at end of set)
-        // Use exercise-specific pause or default 5s to allow user transition between reps
         const isEndOfSet = (exerciseElapsedSeconds % (reps * repDuration) === 0);
-        if (!isEndOfSet && shouldPlayAudio()) {
-          const pauseMs = (currentExercise.pauseBetweenReps ?? 5) * 1000;
-          setTimeout(() => {
-            audioService.onRepStart();
-          }, pauseMs);
-        }
-      }
 
-      // Check if set is complete
-      if (exerciseElapsedSeconds % (reps * repDuration) === 0 && exerciseElapsedSeconds > 0) {
-        clearInterval(exerciseTimerInterval);
+        if (isEndOfSet) {
+          // Set is complete
+          clearInterval(exerciseTimerInterval);
 
-        if (currentSet >= sets) {
-          // Exercise complete - all sets done
-          completeCurrentExercise();
-        } else {
-          // Set complete, more sets to go
-          currentSet++;
-          exerciseElapsedSeconds = 0;
-          repElapsedSeconds = 0;
-
-          // Start rest timer if auto-rest is enabled, otherwise pause
-          if (enableAutoRest) {
-            startRestTimer();
+          if (currentSet >= sets) {
+            // Exercise complete - all sets done
+            completeCurrentExercise();
           } else {
-            timerState = 'paused';
+            // Set complete, more sets to go
+            currentSet++;
+            exerciseElapsedSeconds = 0;
+            repElapsedSeconds = 0;
+            isPausingBetweenReps = false;
+
+            // Start rest timer if auto-rest is enabled, otherwise pause
+            if (enableAutoRest) {
+              startRestTimer();
+            } else {
+              timerState = 'paused';
+            }
           }
+        } else {
+          // Rep complete, but more reps in this set - pause between reps
+          isPausingBetweenReps = true;
+          const pauseDuration = currentExercise.pauseBetweenReps ?? 5;
+
+          setTimeout(() => {
+            isPausingBetweenReps = false;
+            repElapsedSeconds = 0;
+
+            // Play start tone for next rep
+            if (shouldPlayAudio()) {
+              audioService.onRepStart();
+            }
+          }, pauseDuration * 1000);
         }
       }
     }, 1000);
@@ -501,6 +513,7 @@
       currentExercise = exercises[currentExerciseIndex];
       exerciseElapsedSeconds = 0;
       repElapsedSeconds = 0;
+      isPausingBetweenReps = false;
       currentSet = 1;
       currentRep = 1;
 
@@ -584,6 +597,7 @@
     currentExercise = exercises[currentExerciseIndex];
     exerciseElapsedSeconds = 0;
     repElapsedSeconds = 0;
+    isPausingBetweenReps = false;
     currentSet = 1;
     currentRep = 1;
 
@@ -622,6 +636,7 @@
       currentExercise = exercises[currentExerciseIndex];
       exerciseElapsedSeconds = 0;
       repElapsedSeconds = 0;
+      isPausingBetweenReps = false;
       currentSet = 1;
       currentRep = 1;
     } else {
