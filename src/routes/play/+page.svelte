@@ -51,16 +51,36 @@
 
   // Auto-scroll support for exercise list
   let exerciseElements: HTMLElement[] = [];
+  let exerciseListContainer: HTMLElement | null = null;
 
   // Wake Lock to keep screen awake during session
   let wakeLock: any = null;
 
   // Scroll active exercise into view when index changes
-  $: if (currentExerciseIndex >= 0 && exerciseElements[currentExerciseIndex]) {
-    exerciseElements[currentExerciseIndex].scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest'
-    });
+  $: if (currentExerciseIndex >= 0 && exerciseElements[currentExerciseIndex] && exerciseListContainer) {
+    const activeElement = exerciseElements[currentExerciseIndex];
+    const container = exerciseListContainer;
+
+    const elementTop = activeElement.offsetTop;
+    const elementHeight = activeElement.offsetHeight;
+    const containerScrollTop = container.scrollTop;
+    const containerHeight = container.clientHeight;
+
+    // Calculate where the element's top is relative to the visible area
+    const elementRelativeTop = elementTop - containerScrollTop;
+
+    // Padding from the bottom edge when scrolling into view
+    const bottomPadding = 100;
+
+    // Only scroll if the element's top is below the visible area
+    // (If it's already visible above the bottom, leave it alone)
+    if (elementRelativeTop > containerHeight - bottomPadding) {
+      // Scroll so the element's top appears near the bottom of the container
+      container.scrollTo({
+        top: elementTop - containerHeight + bottomPadding,
+        behavior: 'smooth'
+      });
+    }
   }
 
   // Update audio service when settings change
@@ -756,18 +776,20 @@
 <div class="player-container">
   <!-- Top Section: Current Exercise Display -->
   <div class="player-top">
-    <div class="session-timer">
-      <span class="timer-label">Session Time</span>
-      <span class="timer-value">{formatTime(totalElapsedSeconds)}</span>
+    <!-- Session Info Bar -->
+    <div class="session-info-bar">
+      <div class="session-name">{sessionDefinition?.name || 'Session'}</div>
+      <div class="session-timer">
+        <span class="timer-label">Session Time</span>
+        <span class="timer-value">{formatTime(totalElapsedSeconds)}</span>
+      </div>
     </div>
 
     <!-- Exercise header (always visible) -->
     <div class="exercise-header">
       {#if currentExercise}
-        <span class="exercise-number">#{currentExerciseIndex + 1}</span>
         <h2 class="exercise-name">{currentExercise.name}</h2>
       {:else}
-        <span class="exercise-number">&nbsp;</span>
         <h2 class="exercise-name">&nbsp;</h2>
       {/if}
     </div>
@@ -872,7 +894,7 @@
   </div>
 
   <!-- Bottom Section: Exercise List -->
-  <div class="player-bottom">
+  <div class="player-bottom" bind:this={exerciseListContainer}>
     <div class="exercise-list">
       {#each exercises as exercise, index (exercise.id)}
         <div
@@ -882,7 +904,6 @@
           class:completed={isExerciseCompleted(index)}
         >
           <div class="exercise-item-header">
-            <span class="exercise-item-number">#{index + 1}</span>
             <span class="exercise-item-name">{exercise.name}</span>
             {#if isExerciseCompleted(index)}
               <span class="material-icons check-icon">check_circle</span>
@@ -940,11 +961,24 @@
     min-height: 0;
   }
 
+  /* Session Info Bar */
+  .session-info-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    min-height: 2.5rem;
+  }
+
+  .session-name {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    opacity: 0.95;
+  }
+
   .session-timer {
-    position: absolute;
-    top: var(--spacing-lg);
-    right: 0;
-    padding-right: var(--spacing-lg);
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -952,8 +986,10 @@
   }
 
   .timer-label {
-    font-size: var(--font-size-sm);
-    opacity: 0.9;
+    font-size: var(--font-size-xs);
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .timer-value {
@@ -1087,25 +1123,19 @@
     min-height: 3.5rem;
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
+    justify-content: center;
+    text-align: center;
   }
 
   .exercise-header.invisible {
     visibility: hidden;
   }
 
-  .exercise-number {
-    background-color: rgba(255, 255, 255, 0.2);
-    padding: var(--spacing-xs) var(--spacing-md);
-    border-radius: calc(var(--border-radius) / 2);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-  }
-
   .exercise-name {
     margin: 0;
     font-size: var(--font-size-2xl);
     font-weight: 600;
+    line-height: 1.2;
   }
 
   .exercise-timer {
@@ -1259,14 +1289,6 @@
     margin-bottom: var(--spacing-xs);
   }
 
-  .exercise-item-number {
-    background-color: rgba(255, 255, 255, 0.2);
-    padding: 2px var(--spacing-xs);
-    border-radius: calc(var(--border-radius) / 2);
-    font-size: var(--font-size-xs);
-    font-weight: 600;
-  }
-
   .exercise-item-name {
     flex: 1;
     font-size: var(--font-size-base);
@@ -1307,6 +1329,14 @@
   @media (max-width: 480px) {
     .player-top {
       padding: var(--spacing-md);
+    }
+
+    .session-name {
+      font-size: var(--font-size-base);
+    }
+
+    .timer-value {
+      font-size: var(--font-size-lg);
     }
 
     .exercise-name {
