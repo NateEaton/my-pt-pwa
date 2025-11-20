@@ -24,6 +24,7 @@
   let soundEnabled = true;
   let soundVolume = 0.7;
   let audioLeadInEnabled = true;
+  let audioExerciseAboutToEndEnabled = true;
   let hapticsEnabled = false;
 
   // Feature detection
@@ -36,6 +37,7 @@
       soundEnabled = $ptState.settings.soundEnabled;
       soundVolume = $ptState.settings.soundVolume;
       audioLeadInEnabled = $ptState.settings.audioLeadInEnabled;
+      audioExerciseAboutToEndEnabled = $ptState.settings.audioExerciseAboutToEndEnabled;
       hapticsEnabled = $ptState.settings.hapticsEnabled;
     }
 
@@ -66,6 +68,7 @@
       soundEnabled,
       soundVolume,
       audioLeadInEnabled,
+      audioExerciseAboutToEndEnabled,
       hapticsEnabled
     };
 
@@ -79,6 +82,7 @@
       // Update audio service with new settings
       audioService.setMasterVolume(soundVolume);
       audioService.setLeadInEnabled(audioLeadInEnabled);
+      audioService.setExerciseAboutToEndEnabled(audioExerciseAboutToEndEnabled);
       audioService.setHapticsEnabled(hapticsEnabled);
 
       toastStore.show('Cue settings saved', 'success');
@@ -135,6 +139,17 @@
     audioService.onCountdown(3);
     setTimeout(() => audioService.onCountdown(2), 1000);
     setTimeout(() => audioService.onCountdown(1), 2000);
+  }
+
+  function previewCountdownEnd() {
+    audioService.setMasterVolume(soundVolume);
+    audioService.setExerciseAboutToEndEnabled(true); // Temporarily enable for preview
+    audioService.setHapticsEnabled(hapticsEnabled);
+
+    // Play 3-2-1 descending sequence
+    audioService.onCountdownEnd(3);
+    setTimeout(() => audioService.onCountdownEnd(2), 1000);
+    setTimeout(() => audioService.onCountdownEnd(1), 2000);
   }
 
   function previewSessionComplete() {
@@ -206,9 +221,9 @@
       <!-- Audio Cue Options -->
       <div class="setting-item">
         <div class="setting-info">
-          <span class="setting-label">Countdown Before Exercise</span>
+          <span class="setting-label">Exercise About-to-Start Tone</span>
           <span class="setting-description">
-            Play 3-2-1 countdown tones when starting each exercise (helps you get ready before movement begins)
+            Play 3-2-1 countdown with rising tones before each exercise begins (builds anticipation for movement)
           </span>
         </div>
         <div class="setting-control">
@@ -216,6 +231,25 @@
             <input
               type="checkbox"
               bind:checked={audioLeadInEnabled}
+              disabled={!soundEnabled}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Exercise About-to-End Tone</span>
+          <span class="setting-description">
+            Play 3-2-1 countdown with descending tones during final seconds (signals approaching completion)
+          </span>
+        </div>
+        <div class="setting-control">
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              bind:checked={audioExerciseAboutToEndEnabled}
               disabled={!soundEnabled}
             />
             <span class="toggle-slider"></span>
@@ -367,8 +401,16 @@
             on:click={previewCountdown}
             disabled={!soundEnabled}
           >
-            <span class="material-icons">timer</span>
-            3-2-1 Countdown
+            <span class="material-icons">arrow_upward</span>
+            About-to-Start
+          </button>
+          <button
+            class="btn-preview"
+            on:click={previewCountdownEnd}
+            disabled={!soundEnabled}
+          >
+            <span class="material-icons">arrow_downward</span>
+            About-to-End
           </button>
           <button
             class="btn-preview"
