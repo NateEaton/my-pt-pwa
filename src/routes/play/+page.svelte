@@ -66,28 +66,21 @@
     const containerScrollTop = container.scrollTop;
     const containerHeight = container.clientHeight;
 
-    // Add generous padding so element has visual breathing room from edges
-    // This ensures cards don't appear jammed against the top of the list
-    const padding = 120;
-
-    // Calculate where the element currently is relative to the visible area
+    // Calculate where the element's top is relative to the visible area
     const elementRelativeTop = elementTop - containerScrollTop;
 
-    // If element is above the visible area, scroll it to near the top (with padding)
-    if (elementRelativeTop < padding) {
+    // Padding from the bottom edge when scrolling into view
+    const bottomPadding = 100;
+
+    // Only scroll if the element's top is below the visible area
+    // (If it's already visible above the bottom, leave it alone)
+    if (elementRelativeTop > containerHeight - bottomPadding) {
+      // Scroll so the element's top appears near the bottom of the container
       container.scrollTo({
-        top: Math.max(0, elementTop - padding),
+        top: elementTop - containerHeight + bottomPadding,
         behavior: 'smooth'
       });
     }
-    // If element is below the visible area, scroll it to near the bottom (with padding)
-    else if (elementRelativeTop + elementHeight > containerHeight - padding) {
-      container.scrollTo({
-        top: elementTop - containerHeight + elementHeight + padding,
-        behavior: 'smooth'
-      });
-    }
-    // Otherwise, element is already visible, don't scroll
   }
 
   // Update audio service when settings change
