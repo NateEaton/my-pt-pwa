@@ -357,6 +357,30 @@
             This will replace all current data, so make a backup first if needed.
           </li>
         </ul>
+
+        <h4>App Updates</h4>
+        <p>
+          The app updates safely without interrupting your work:
+        </p>
+        <ul>
+          <li>
+            <strong>Automatic Detection:</strong> When a new version is available, you'll
+            see a notification prompting you to update.
+          </li>
+          <li>
+            <strong>Manual Check:</strong> Tap <strong>Check for Updates</strong> in the
+            Support section to manually check for new versions.
+          </li>
+          <li>
+            <strong>User Control:</strong> Updates only install when you choose - your
+            active sessions and data entry won't be interrupted. Finish your current
+            tasks, then tap "Install Update" when ready.
+          </li>
+          <li>
+            <strong>Data Safety:</strong> Your exercises, sessions, and journal entries
+            are safely preserved during updates.
+          </li>
+        </ul>
       </div>
     </details>
 

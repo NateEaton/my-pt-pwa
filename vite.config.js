@@ -49,7 +49,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       sveltekit(),
       VitePWA({
-        registerType: "autoUpdate",
+        registerType: "prompt",
         workbox: {
           globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
           additionalManifestEntries: [{ url: "index.html", revision: null }],

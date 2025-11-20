@@ -21,7 +21,9 @@
   import { logBuildInfo } from "$lib/utils/buildInfo";
   import { page } from "$app/stores";
   import { ptState, ptService } from "$lib/stores/pt";
+  import { pwaUpdateAvailable, pwaUpdateFunction, pwaOfflineReady } from "$lib/stores/pwa";
   import Toast from "$lib/components/Toast.svelte";
+  import { toastStore } from "$lib/stores/toast";
   import "../app.css";
 
   onMount(async () => {
@@ -34,10 +36,42 @@
     initializeTheme();
 
     if (typeof window !== "undefined") {
-      const { registerSW } = await import("virtual:pwa-register");
-      registerSW({
-        onNeedRefresh() {},
-        onOfflineReady() {},
+      const { useRegisterSW } = await import("virtual:pwa-register/svelte");
+
+      const {
+        needRefresh,
+        offlineReady,
+        updateServiceWorker
+      } = useRegisterSW({
+        onNeedRefresh() {
+          console.log('New version available');
+        },
+        onOfflineReady() {
+          console.log('App is ready to work offline');
+        }
+      });
+
+      // Subscribe to needRefresh and show notification
+      needRefresh.subscribe(value => {
+        pwaUpdateAvailable.set(value);
+        if (value) {
+          toastStore.show(
+            'Update available! Go to Settings to update.',
+            'info',
+            0  // Don't auto-dismiss
+          );
+        }
+      });
+
+      // Store update function for use in Settings
+      pwaUpdateFunction.set(updateServiceWorker);
+
+      // Subscribe to offlineReady
+      offlineReady.subscribe(value => {
+        pwaOfflineReady.set(value);
+        if (value) {
+          toastStore.show('App is ready to work offline!', 'success');
+        }
       });
     }
     logBuildInfo();

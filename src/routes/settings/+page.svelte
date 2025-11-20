@@ -12,6 +12,7 @@
 
 <script lang="ts">
   import { ptState, ptService } from '$lib/stores/pt';
+  import { pwaUpdateAvailable, pwaUpdateFunction } from '$lib/stores/pwa';
   import { toastStore } from '$lib/stores/toast';
   import { isDevelopment } from '$lib/utils/buildInfo';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
@@ -61,6 +62,40 @@
     } catch (error) {
       console.error('Error updating theme:', error);
       toastStore.show('Failed to update theme', 'error');
+    }
+  }
+
+  // PWA Update handling
+  async function checkForUpdate() {
+    try {
+      if ('serviceWorker' in navigator) {
+        toastStore.show('Checking for updates...', 'info');
+        const registration = await navigator.serviceWorker.getRegistration();
+        await registration?.update();
+
+        // If no update is found after a short delay, notify user
+        setTimeout(() => {
+          if (!$pwaUpdateAvailable) {
+            toastStore.show('You\'re running the latest version', 'success');
+          }
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Update check failed:', error);
+      toastStore.show('Failed to check for updates', 'error');
+    }
+  }
+
+  async function installUpdate() {
+    const updateFn = $pwaUpdateFunction;
+    if (updateFn) {
+      try {
+        await updateFn();
+        // Page will reload automatically after update
+      } catch (error) {
+        console.error('Update installation failed:', error);
+        toastStore.show('Failed to install update', 'error');
+      }
     }
   }
 </script>
@@ -234,6 +269,28 @@
       <h2 class="section-title">Support</h2>
 
       <div class="settings-cards">
+        <!-- Check for Updates Card -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="settings-card {$pwaUpdateAvailable ? 'update-available' : ''}" on:click={$pwaUpdateAvailable ? installUpdate : checkForUpdate}>
+          <div class="card-icon">
+            <span class="material-icons">{$pwaUpdateAvailable ? 'system_update' : 'refresh'}</span>
+          </div>
+          <div class="card-content">
+            <h3>{$pwaUpdateAvailable ? 'Install Update' : 'Check for Updates'}</h3>
+            <p>
+              {#if $pwaUpdateAvailable}
+                New version available - tap to install
+              {:else}
+                Manually check for app updates
+              {/if}
+            </p>
+          </div>
+          <div class="card-arrow">
+            <span class="material-icons">{$pwaUpdateAvailable ? 'download' : 'chevron_right'}</span>
+          </div>
+        </div>
+
         <!-- User Guide Card -->
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -514,6 +571,23 @@
   .settings-card:hover {
     background-color: var(--surface-variant);
     border-color: var(--primary-color);
+  }
+
+  .settings-card.update-available {
+    border-color: var(--primary-color);
+    background-color: var(--primary-alpha-10);
+  }
+
+  .settings-card.update-available .card-icon {
+    background-color: var(--primary-color);
+  }
+
+  .settings-card.update-available .card-icon .material-icons {
+    color: white;
+  }
+
+  .settings-card.update-available:hover {
+    background-color: var(--primary-alpha-20);
   }
 
   .card-icon {
