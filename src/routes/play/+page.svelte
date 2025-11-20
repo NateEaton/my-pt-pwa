@@ -26,7 +26,7 @@
   let currentExercise: Exercise | null = null;
 
   // Timer state
-  let timerState: 'paused' | 'countdown' | 'active' | 'resting' | 'completed' = 'paused';
+  let timerState: 'paused' | 'countdown' | 'active' | 'resting' | 'completed' | 'preparing' = 'paused';
   let totalElapsedSeconds = 0;
   let exerciseElapsedSeconds = 0;
   let countdownSeconds = 3; // Fixed 3-second countdown
@@ -35,6 +35,8 @@
   let currentRep = 1;
   let repElapsedSeconds = 0; // Track time within current rep for countdown
   let isPausingBetweenReps = false; // Track pause state between reps
+  let preparingSeconds = 0; // Countdown for preparing/transition between exercises
+  let preparingInterval: number | undefined;
 
   // Intervals
   let totalTimerInterval: number | undefined;
@@ -46,6 +48,11 @@
   let restBetweenSets = 30;
   let restBetweenExercises = 30;
   let enableAutoRest = true;
+  let enableAutoAdvance = true;
+  let pauseBetweenExercises = 10;
+
+  // Runtime auto-advance toggle (can be toggled during session)
+  let autoAdvanceActive = true;
 
   let sessionLoadAttempted = false;
 
@@ -189,7 +196,13 @@
       restBetweenSets = $ptState.settings.restBetweenSets;
       restBetweenExercises = $ptState.settings.restBetweenExercises;
       enableAutoRest = $ptState.settings.enableAutoRest;
+      enableAutoAdvance = $ptState.settings.enableAutoAdvance;
+      pauseBetweenExercises = $ptState.settings.pauseBetweenExercises;
     }
+
+    // Determine auto-advance setting: session-specific or app default
+    const sessionAutoAdvance = sessionDefinition.autoAdvance ?? enableAutoAdvance;
+    autoAdvanceActive = sessionAutoAdvance;
 
     // Check for existing in-progress session for today
     const existingSession = await ptService.getTodaySessionInstance();
@@ -220,6 +233,7 @@
 
   onDestroy(() => {
     clearTimers();
+    if (preparingInterval) clearInterval(preparingInterval);
     releaseWakeLock();
   });
 
@@ -320,6 +334,7 @@
   function clearTimers() {
     if (totalTimerInterval) clearInterval(totalTimerInterval);
     if (exerciseTimerInterval) clearInterval(exerciseTimerInterval);
+    if (preparingInterval) clearInterval(preparingInterval);
   }
 
   function startExerciseCountdown() {
@@ -537,12 +552,48 @@
       currentSet = 1;
       currentRep = 1;
 
-      // Auto-pause, waiting for user to press play for next exercise
-      timerState = 'paused';
+      // Check if auto-advance is enabled
+      if (autoAdvanceActive && pauseBetweenExercises > 0) {
+        // Start preparation/transition phase
+        startPreparingForNextExercise();
+      } else if (autoAdvanceActive && pauseBetweenExercises === 0) {
+        // No pause, start immediately
+        startExerciseCountdown();
+      } else {
+        // Auto-advance disabled, pause and wait for user
+        timerState = 'paused';
+      }
     } else {
       // Session complete
       await completeSession();
     }
+  }
+
+  function startPreparingForNextExercise() {
+    timerState = 'preparing';
+    preparingSeconds = pauseBetweenExercises;
+
+    // Play audio cue for next exercise preparation
+    if (shouldPlayAudio()) {
+      audioService.onCountdown(3); // Use countdown sound as preparation cue
+    }
+
+    preparingInterval = window.setInterval(() => {
+      preparingSeconds--;
+
+      // Play countdown audio at 3, 2, 1
+      if (shouldPlayAudio() && preparingSeconds <= 3 && preparingSeconds >= 1) {
+        audioService.onCountdown(preparingSeconds);
+      }
+
+      if (preparingSeconds <= 0) {
+        clearInterval(preparingInterval);
+        preparingInterval = undefined;
+
+        // Automatically start the next exercise countdown
+        startExerciseCountdown();
+      }
+    }, 1000);
   }
 
   async function completeSession() {
@@ -568,9 +619,20 @@
     }, endSessionDelay * 1000);
   }
 
+  function toggleAutoAdvance() {
+    autoAdvanceActive = !autoAdvanceActive;
+  }
+
   // VCR-style controls
   function togglePlayPause() {
-    if (timerState === 'paused') {
+    if (timerState === 'preparing') {
+      // Cancel preparing phase and pause
+      if (preparingInterval) {
+        clearInterval(preparingInterval);
+        preparingInterval = undefined;
+      }
+      timerState = 'paused';
+    } else if (timerState === 'paused') {
       // Check if we're resuming a paused rest (restElapsedSeconds > 0 indicates partial rest)
       const isResumingRest = currentSet > 1 && restElapsedSeconds > 0;
 
@@ -779,6 +841,17 @@
     <!-- Session Info Bar -->
     <div class="session-info-bar">
       <div class="session-name">{sessionDefinition?.name || 'Session'}</div>
+
+      <!-- Auto-Advance Toggle -->
+      <button
+        class="auto-advance-toggle"
+        class:active={autoAdvanceActive}
+        on:click={toggleAutoAdvance}
+        title={autoAdvanceActive ? 'Auto-advance enabled' : 'Auto-advance disabled'}
+      >
+        <span class="material-icons">{autoAdvanceActive ? 'play_circle' : 'pause_circle'}</span>
+      </button>
+
       <div class="session-timer">
         <span class="timer-label">Session Time</span>
         <span class="timer-value">{formatTime(totalElapsedSeconds)}</span>
@@ -796,7 +869,13 @@
 
     <!-- Main display area with fixed height container -->
     <div class="main-display-area">
-    {#if timerState === 'countdown'}
+    {#if timerState === 'preparing'}
+      <div class="preparing-display">
+        <div class="preparing-label">Preparing for Next Exercise</div>
+        <div class="preparing-timer">{formatTime(preparingSeconds)}</div>
+        <div class="preparing-hint">Get ready...</div>
+      </div>
+    {:else if timerState === 'countdown'}
       <div class="countdown-display">
         <div class="countdown-number">{countdownSeconds}</div>
         <div class="countdown-label">Get Ready</div>
@@ -871,7 +950,7 @@
         <span class="material-icons">skip_previous</span>
       </button>
 
-      <button class="vcr-btn vcr-play-pause" on:click={togglePlayPause} title={timerState === 'paused' ? 'Play' : 'Pause'}>
+      <button class="vcr-btn vcr-play-pause" on:click={togglePlayPause} title={timerState === 'paused' ? 'Play' : 'Pause'} disabled={timerState === 'completed'}>
         <span class="material-icons">
           {timerState === 'paused' ? 'play_arrow' : 'pause'}
         </span>
@@ -970,12 +1049,47 @@
     margin-bottom: var(--spacing-md);
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     min-height: 2.5rem;
+    gap: var(--spacing-md);
   }
 
   .session-name {
+    flex: 1;
     font-size: var(--font-size-lg);
     font-weight: 600;
     opacity: 0.95;
+  }
+
+  .auto-advance-toggle {
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+  }
+
+  .auto-advance-toggle.active {
+    background-color: rgba(76, 175, 80, 0.3);
+    border-color: rgba(76, 175, 80, 0.8);
+  }
+
+  .auto-advance-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05);
+  }
+
+  .auto-advance-toggle.active:hover {
+    background-color: rgba(76, 175, 80, 0.4);
+  }
+
+  .auto-advance-toggle .material-icons {
+    font-size: 1.5rem;
   }
 
   .session-timer {
@@ -1090,6 +1204,34 @@
     font-size: var(--font-size-xl);
     margin-top: var(--spacing-md);
     margin-bottom: var(--spacing-xl);
+    opacity: 0.9;
+  }
+
+  .preparing-display {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .preparing-label {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .preparing-timer {
+    font-size: clamp(3rem, 10vw, 5rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: var(--spacing-md);
+    color: var(--primary);
+  }
+
+  .preparing-hint {
+    font-size: var(--font-size-base);
     opacity: 0.9;
   }
 

@@ -70,6 +70,7 @@ export interface SessionDefinition {
   exercises: SessionExercise[];
   isDefault: boolean; // Is this the default session?
   dateCreated: string; // ISO date string
+  autoAdvance?: boolean; // Enable auto-advance to next exercise (optional, defaults to app setting)
 }
 
 /**
@@ -137,6 +138,8 @@ export interface AppSettings {
   restBetweenSets: number; // Rest period between sets
   restBetweenExercises: number; // Rest period between exercises
   enableAutoRest: boolean; // Enable automatic rest timer between sets
+  enableAutoAdvance: boolean; // Enable automatic advance to next exercise
+  pauseBetweenExercises: number; // Pause duration between exercises when auto-advance is enabled (seconds)
 
   // UI preferences
   theme: 'light' | 'dark' | 'auto';

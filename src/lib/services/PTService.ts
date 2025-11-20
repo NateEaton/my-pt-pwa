@@ -51,6 +51,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   restBetweenSets: 30, // 30 seconds between sets
   restBetweenExercises: 15, // 15 seconds between exercises
   enableAutoRest: true, // Auto-rest enabled by default
+  enableAutoAdvance: true, // Auto-advance enabled by default
+  pauseBetweenExercises: 10, // 10 seconds pause between exercises when auto-advance is enabled
   theme: 'auto',
   exerciseSortOrder: 'alphabetical',
   soundEnabled: false, // Sound OFF by default

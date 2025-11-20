@@ -26,6 +26,8 @@
   let restBetweenSets = 30;
   let restBetweenExercises = 15;
   let enableAutoRest = true;
+  let enableAutoAdvance = true;
+  let pauseBetweenExercises = 10;
 
   // Load current settings
   onMount(() => {
@@ -36,6 +38,8 @@
       restBetweenSets = $ptState.settings.restBetweenSets;
       restBetweenExercises = $ptState.settings.restBetweenExercises;
       enableAutoRest = $ptState.settings.enableAutoRest;
+      enableAutoAdvance = $ptState.settings.enableAutoAdvance;
+      pauseBetweenExercises = $ptState.settings.pauseBetweenExercises;
     }
   });
 
@@ -53,7 +57,9 @@
       endSessionDelay,
       restBetweenSets,
       restBetweenExercises,
-      enableAutoRest
+      enableAutoRest,
+      enableAutoAdvance,
+      pauseBetweenExercises
     };
 
     try {
@@ -127,27 +133,38 @@
         </div>
       </div>
 
-      <!-- Future feature: Rest Between Exercises (Phase 2) -->
-      <!--
-      <div class="setting-item disabled">
+      <div class="setting-item">
         <div class="setting-info">
-          <span class="setting-label">Rest Between Exercises</span>
-          <span class="setting-description">Transition time between exercises (coming soon)</span>
+          <span class="setting-label">Enable Auto-Advance</span>
+          <span class="setting-description">Automatically advance to the next exercise when current exercise completes</span>
         </div>
         <div class="setting-control">
-          <input
-            type="number"
-            bind:value={restBetweenExercises}
-            min="0"
-            max="300"
-            step="5"
-            class="setting-input"
-            disabled
-          />
-          <span class="input-suffix">s</span>
+          <label class="toggle-switch">
+            <input type="checkbox" bind:checked={enableAutoAdvance} />
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
-      -->
+
+      {#if enableAutoAdvance}
+        <div class="setting-item sub-setting">
+          <div class="setting-info">
+            <span class="setting-label">Pause Between Exercises</span>
+            <span class="setting-description">Preparation time before automatically starting next exercise</span>
+          </div>
+          <div class="setting-control">
+            <input
+              type="number"
+              bind:value={pauseBetweenExercises}
+              min="0"
+              max="60"
+              step="5"
+              class="setting-input"
+            />
+            <span class="input-suffix">s</span>
+          </div>
+        </div>
+      {/if}
 
       <div class="setting-item">
         <div class="setting-info">
@@ -206,6 +223,12 @@
     background-color: var(--surface-variant);
     border-radius: var(--border-radius);
     gap: var(--spacing-md);
+  }
+
+  .setting-item.sub-setting {
+    margin-left: var(--spacing-xl);
+    background-color: var(--surface);
+    border-left: 3px solid var(--primary-color);
   }
 
   .setting-info {

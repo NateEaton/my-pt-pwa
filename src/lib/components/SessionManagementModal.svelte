@@ -67,7 +67,8 @@
   let sessionFormData = {
     name: '',
     selectedExercises: [] as number[],
-    isDefault: false
+    isDefault: false,
+    autoAdvance: undefined as boolean | undefined
   };
 
   // Computed: filtered and sorted sessions
@@ -140,7 +141,8 @@
     sessionFormData = {
       name: session.name,
       selectedExercises: session.exercises.map(e => e.exerciseId),
-      isDefault: session.isDefault
+      isDefault: session.isDefault,
+      autoAdvance: session.autoAdvance
     };
     showSessionForm = true;
   }
@@ -149,7 +151,8 @@
     sessionFormData = {
       name: '',
       selectedExercises: [],
-      isDefault: false
+      isDefault: false,
+      autoAdvance: undefined
     };
   }
 
@@ -202,7 +205,8 @@
           ...editingSession,
           name: sessionFormData.name.trim(),
           exercises: sessionExercises,
-          isDefault: sessionFormData.isDefault
+          isDefault: sessionFormData.isDefault,
+          autoAdvance: sessionFormData.autoAdvance
         };
 
         await ptService.updateSessionDefinition(updated);
@@ -212,6 +216,7 @@
           name: sessionFormData.name.trim(),
           exercises: sessionExercises,
           isDefault: sessionFormData.isDefault,
+          autoAdvance: sessionFormData.autoAdvance,
           dateCreated: new Date().toISOString()
         };
 
@@ -401,6 +406,25 @@
           placeholder="e.g., Morning Routine, Full Workout"
           required
         />
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            checked={sessionFormData.autoAdvance ?? $ptState.settings?.enableAutoAdvance ?? true}
+            on:change={(e) => sessionFormData.autoAdvance = e.currentTarget.checked}
+          />
+          <span class="checkbox-text">
+            <span class="checkbox-title">Auto-Advance</span>
+            <span class="checkbox-description">
+              Automatically advance to next exercise
+              {#if sessionFormData.autoAdvance === undefined}
+                (using app default: {$ptState.settings?.enableAutoAdvance ? 'enabled' : 'disabled'})
+              {/if}
+            </span>
+          </span>
+        </label>
       </div>
 
       <div class="form-group">
@@ -941,6 +965,39 @@
 
   .exercise-checkbox-meta {
     font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    cursor: pointer;
+    padding: var(--spacing-md);
+    background-color: var(--surface-variant);
+    border-radius: var(--border-radius);
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    margin-top: 0.25rem;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+  }
+
+  .checkbox-text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .checkbox-title {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .checkbox-description {
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
   }
 
