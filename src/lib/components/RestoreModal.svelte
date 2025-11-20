@@ -124,22 +124,56 @@
       // Clear all existing data
       await ptService.clearAllData();
 
-      // Restore exercises
+      // Create ID mapping for exercises (old ID -> new ID)
+      const exerciseIdMap = new Map<number, number>();
+
+      // Restore exercises and build mapping
       for (const exercise of backupData.data.exercises) {
+        const oldId = exercise.id;
         const { id, ...exerciseData } = exercise;
-        await ptService.addExercise(exerciseData);
+        const newId = await ptService.addExercise(exerciseData);
+        exerciseIdMap.set(oldId, newId);
       }
 
-      // Restore session definitions
+      // Create ID mapping for session definitions (old ID -> new ID)
+      const sessionDefIdMap = new Map<number, number>();
+
+      // Restore session definitions with remapped exercise IDs
       for (const session of backupData.data.sessionDefinitions) {
+        const oldId = session.id;
         const { id, ...sessionData } = session;
-        await ptService.addSessionDefinition(sessionData);
+
+        // Remap exercise IDs in the exercises array
+        const remappedExercises = sessionData.exercises.map(se => ({
+          ...se,
+          exerciseId: exerciseIdMap.get(se.exerciseId) ?? se.exerciseId
+        }));
+
+        const newId = await ptService.addSessionDefinition({
+          ...sessionData,
+          exercises: remappedExercises
+        });
+        sessionDefIdMap.set(oldId, newId);
       }
 
-      // Restore session instances
+      // Restore session instances with remapped IDs
       for (const instance of backupData.data.sessionInstances) {
         const { id, ...instanceData } = instance;
-        await ptService.addSessionInstance(instanceData);
+
+        // Remap session definition ID
+        const remappedSessionDefId = sessionDefIdMap.get(instanceData.sessionDefinitionId) ?? instanceData.sessionDefinitionId;
+
+        // Remap exercise IDs in completed exercises
+        const remappedCompletedExercises = instanceData.completedExercises.map(ce => ({
+          ...ce,
+          exerciseId: exerciseIdMap.get(ce.exerciseId) ?? ce.exerciseId
+        }));
+
+        await ptService.addSessionInstance({
+          ...instanceData,
+          sessionDefinitionId: remappedSessionDefId,
+          completedExercises: remappedCompletedExercises
+        });
       }
 
       // Restore settings
