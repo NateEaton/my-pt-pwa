@@ -1,0 +1,208 @@
+{
+  "version": 1,
+  "exportDate": "2025-11-20T00:00:00.000Z",
+  "data": {
+    "exercises": [
+      {
+        "id": 1,
+        "name": "Resistance: Ball/Belt Abduction",
+        "type": "duration",
+        "defaultDuration": 120,
+        "defaultSets": 1,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 2,
+        "name": "Resistance: Pelvic Tilt",
+        "type": "duration",
+        "defaultDuration": 120,
+        "defaultSets": 1,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 3,
+        "name": "Resistance: Supine March",
+        "type": "duration",
+        "defaultDuration": 120,
+        "defaultSets": 1,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 4,
+        "name": "Resistance: Bridges",
+        "type": "duration",
+        "defaultDuration": 120,
+        "defaultSets": 1,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 5,
+        "name": "Resistance: Clams L/R",
+        "type": "duration",
+        "defaultDuration": 120,
+        "defaultSets": 2,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 6,
+        "name": "Resistance: Side Straight Leg Lift",
+        "type": "duration",
+        "defaultDuration": 60,
+        "defaultSets": 1,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 7,
+        "name": "Resistance: Tandem Balance",
+        "type": "duration",
+        "defaultDuration": 30,
+        "defaultSets": 2,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 8,
+        "name": "Resistance: Single Leg Balance",
+        "type": "duration",
+        "defaultDuration": 30,
+        "defaultSets": 2,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 9,
+        "name": "Resistance: Shoulder Rows",
+        "type": "duration",
+        "defaultDuration": 120,
+        "defaultSets": 1,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 10,
+        "name": "Resistance: Shoulder Pulldowns",
+        "type": "duration",
+        "defaultDuration": 120,
+        "defaultSets": 1,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 11,
+        "name": "Neck: Neck Stretches L/R",
+        "type": "duration",
+        "defaultDuration": 30,
+        "defaultSets": 2,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 12,
+        "name": "Neck: Under Neck L/R",
+        "type": "duration",
+        "defaultDuration": 30,
+        "defaultSets": 2,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 13,
+        "name": "Neck: Behind Back Neck Stretches L/R",
+        "type": "duration",
+        "defaultDuration": 30,
+        "defaultSets": 2,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 14,
+        "name": "Shoulder: Shoulder Rows",
+        "type": "duration",
+        "defaultDuration": 120,
+        "defaultSets": 1,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 15,
+        "name": "Shoulder: Shoulder Pulldowns",
+        "type": "duration",
+        "defaultDuration": 120,
+        "defaultSets": 1,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 16,
+        "name": "Wrist/Forearm: Wrist Flex Up/Down",
+        "type": "duration",
+        "defaultDuration": 30,
+        "defaultSets": 2,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      },
+      {
+        "id": 17,
+        "name": "Wrist/Forearm: Weighted Wrist L/R",
+        "type": "duration",
+        "defaultDuration": 30,
+        "defaultSets": 2,
+        "restBetweenSets": 5,
+        "includeInDefault": true,
+        "dateAdded": "2025-11-20T00:00:00.000Z"
+      }
+    ],
+    "sessionDefinitions": [
+      {
+        "id": 1,
+        "name": "PT @Home",
+        "exercises": [
+          { "exerciseId": 1 },
+          { "exerciseId": 2 },
+          { "exerciseId": 3 },
+          { "exerciseId": 4 },
+          { "exerciseId": 5 },
+          { "exerciseId": 6 },
+          { "exerciseId": 7 },
+          { "exerciseId": 8 },
+          { "exerciseId": 9 },
+          { "exerciseId": 10 },
+          { "exerciseId": 11 },
+          { "exerciseId": 12 },
+          { "exerciseId": 13 },
+          { "exerciseId": 14 },
+          { "exerciseId": 15 },
+          { "exerciseId": 16 },
+          { "exerciseId": 17 }
+        ],
+        "isDefault": false,
+        "dateCreated": "2025-11-20T00:00:00.000Z"
+      }
+    ],
+    "sessionInstances": [],
+    "settings": {},
+    "metadata": {}
+  }
+}
