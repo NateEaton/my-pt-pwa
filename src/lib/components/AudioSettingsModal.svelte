@@ -25,6 +25,7 @@
   let soundVolume = 0.7;
   let audioLeadInEnabled = true;
   let audioExerciseAboutToEndEnabled = true;
+  let audioRestCuesEnabled = true;
   let hapticsEnabled = false;
 
   // Feature detection
@@ -38,6 +39,7 @@
       soundVolume = $ptState.settings.soundVolume;
       audioLeadInEnabled = $ptState.settings.audioLeadInEnabled;
       audioExerciseAboutToEndEnabled = $ptState.settings.audioExerciseAboutToEndEnabled;
+      audioRestCuesEnabled = $ptState.settings.audioRestCuesEnabled;
       hapticsEnabled = $ptState.settings.hapticsEnabled;
     }
 
@@ -69,6 +71,7 @@
       soundVolume,
       audioLeadInEnabled,
       audioExerciseAboutToEndEnabled,
+      audioRestCuesEnabled,
       hapticsEnabled
     };
 
@@ -250,6 +253,25 @@
             <input
               type="checkbox"
               bind:checked={audioExerciseAboutToEndEnabled}
+              disabled={!soundEnabled}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Rest Period Cues</span>
+          <span class="setting-description">
+            Play audio cues at the start and end of rest periods between sets
+          </span>
+        </div>
+        <div class="setting-control">
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              bind:checked={audioRestCuesEnabled}
               disabled={!soundEnabled}
             />
             <span class="toggle-slider"></span>

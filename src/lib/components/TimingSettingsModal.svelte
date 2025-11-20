@@ -25,7 +25,6 @@
   let endSessionDelay = 5;
   let restBetweenSets = 30;
   let restBetweenExercises = 15;
-  let enableAutoRest = true;
   let enableAutoAdvance = true;
   let pauseBetweenExercises = 10;
 
@@ -37,7 +36,6 @@
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
       restBetweenExercises = $ptState.settings.restBetweenExercises;
-      enableAutoRest = $ptState.settings.enableAutoRest;
       enableAutoAdvance = $ptState.settings.enableAutoAdvance;
       pauseBetweenExercises = $ptState.settings.pauseBetweenExercises;
     }
@@ -57,7 +55,6 @@
       endSessionDelay,
       restBetweenSets,
       restBetweenExercises,
-      enableAutoRest,
       enableAutoAdvance,
       pauseBetweenExercises
     };
@@ -117,19 +114,6 @@
             class="setting-input"
           />
           <span class="input-suffix">s</span>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-label">Enable Auto-Rest Timer</span>
-          <span class="setting-description">Automatically start rest timer after completing a set (rest duration is set per exercise, default: 30s)</span>
-        </div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input type="checkbox" bind:checked={enableAutoRest} />
-            <span class="toggle-slider"></span>
-          </label>
         </div>
       </div>
 

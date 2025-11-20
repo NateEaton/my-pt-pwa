@@ -137,7 +137,6 @@ export interface AppSettings {
   endSessionDelay: number; // Delay before session player closes after completion
   restBetweenSets: number; // Rest period between sets
   restBetweenExercises: number; // Rest period between exercises
-  enableAutoRest: boolean; // Enable automatic rest timer between sets
   enableAutoAdvance: boolean; // Enable automatic advance to next exercise
   pauseBetweenExercises: number; // Pause duration between exercises when auto-advance is enabled (seconds)
 
@@ -155,6 +154,7 @@ export interface AppSettings {
   audioExerciseAboutToEndEnabled: boolean; // Exercise about-to-end: 3-2-1 countdown with descending tones during final seconds
   audioContinuousTicksEnabled: boolean; // Tick every second during duration exercises and rest periods
   audioPerRepBeepsEnabled: boolean; // Beep on each rep completion
+  audioRestCuesEnabled: boolean; // Play audio cues at start and end of rest periods
 
   // Feature flags (for future use)
   enableNotifications?: boolean;

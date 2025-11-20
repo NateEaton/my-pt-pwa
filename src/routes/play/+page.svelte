@@ -47,7 +47,6 @@
   let endSessionDelay = 5;
   let restBetweenSets = 30;
   let restBetweenExercises = 30;
-  let enableAutoRest = true;
   let enableAutoAdvance = true;
   let pauseBetweenExercises = 10;
 
@@ -195,7 +194,6 @@
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
       restBetweenExercises = $ptState.settings.restBetweenExercises;
-      enableAutoRest = $ptState.settings.enableAutoRest;
       enableAutoAdvance = $ptState.settings.enableAutoAdvance;
       pauseBetweenExercises = $ptState.settings.pauseBetweenExercises;
     }
@@ -467,11 +465,22 @@
             repElapsedSeconds = 0;
             isPausingBetweenReps = false;
 
-            // Start rest timer if auto-rest is enabled, otherwise pause
-            if (enableAutoRest) {
-              startRestTimer();
+            // Get rest duration
+            const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
+
+            // Automatically start rest timer if there's a non-zero rest time
+            if (restDuration > 0) {
+              // Add a small delay before starting rest to prevent overlapping tones
+              setTimeout(() => {
+                startRestTimer();
+              }, 300);
             } else {
-              timerState = 'paused';
+              // No rest configured, either auto-advance to next set or pause
+              if (autoAdvanceActive) {
+                startRepsExercise();
+              } else {
+                timerState = 'paused';
+              }
             }
           }
         } else {
@@ -502,8 +511,8 @@
     restElapsedSeconds = 0;
     timerState = 'resting';
 
-    // Play rest start tone
-    if (shouldPlayAudio()) {
+    // Play rest start tone only if rest cues are enabled
+    if (shouldPlayAudio() && $ptState.settings?.audioRestCuesEnabled) {
       audioService.onRestStart();
     }
 
@@ -514,14 +523,25 @@
       if (restElapsedSeconds >= restDuration) {
         clearInterval(exerciseTimerInterval);
 
-        // Play rest end tone
-        if (shouldPlayAudio()) {
+        // Play rest end tone only if rest cues are enabled
+        if (shouldPlayAudio() && $ptState.settings?.audioRestCuesEnabled) {
           audioService.onRestEnd();
         }
 
-        // Auto-pause when rest is done - user must press Play to continue
-        timerState = 'paused';
         restElapsedSeconds = 0;
+
+        // If auto-advance is enabled, continue to next set automatically
+        // Otherwise pause and wait for user
+        if (autoAdvanceActive) {
+          timerState = 'active';
+          if (currentExercise.type === 'reps') {
+            startRepsExercise();
+          } else {
+            startDurationExercise();
+          }
+        } else {
+          timerState = 'paused';
+        }
       }
     }, 1000);
   }
@@ -573,18 +593,10 @@
     timerState = 'preparing';
     preparingSeconds = pauseBetweenExercises;
 
-    // Play audio cue for next exercise preparation
-    if (shouldPlayAudio()) {
-      audioService.onCountdown(3); // Use countdown sound as preparation cue
-    }
+    // No audio cues during preparing - the exercise start countdown will play them
 
     preparingInterval = window.setInterval(() => {
       preparingSeconds--;
-
-      // Play countdown audio at 3, 2, 1
-      if (shouldPlayAudio() && preparingSeconds <= 3 && preparingSeconds >= 1) {
-        audioService.onCountdown(preparingSeconds);
-      }
 
       if (preparingSeconds <= 0) {
         clearInterval(preparingInterval);
@@ -840,8 +852,6 @@
   <div class="player-top">
     <!-- Session Info Bar -->
     <div class="session-info-bar">
-      <div class="session-name">{sessionDefinition?.name || 'Session'}</div>
-
       <!-- Auto-Advance Toggle -->
       <button
         class="auto-advance-toggle"
@@ -851,6 +861,8 @@
       >
         <span class="material-icons">{autoAdvanceActive ? 'play_circle' : 'pause_circle'}</span>
       </button>
+
+      <div class="session-name">{sessionDefinition?.name || 'Session'}</div>
 
       <div class="session-timer">
         <span class="timer-label">Session Time</span>
@@ -1065,31 +1077,27 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(255, 255, 255, 0.15);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
+    background: none;
+    border: none;
     color: white;
     cursor: pointer;
     transition: all 0.2s ease;
     padding: 0;
+    opacity: 0.7;
+    flex-shrink: 0;
   }
 
   .auto-advance-toggle.active {
-    background-color: rgba(76, 175, 80, 0.3);
-    border-color: rgba(76, 175, 80, 0.8);
+    opacity: 1;
   }
 
   .auto-advance-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.25);
-    transform: scale(1.05);
-  }
-
-  .auto-advance-toggle.active:hover {
-    background-color: rgba(76, 175, 80, 0.4);
+    opacity: 1;
+    transform: scale(1.1);
   }
 
   .auto-advance-toggle .material-icons {
-    font-size: 1.5rem;
+    font-size: 2rem;
   }
 
   .session-timer {

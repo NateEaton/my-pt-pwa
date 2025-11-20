@@ -50,7 +50,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   endSessionDelay: 5, // 5 second delay before session player closes
   restBetweenSets: 30, // 30 seconds between sets
   restBetweenExercises: 15, // 15 seconds between exercises
-  enableAutoRest: true, // Auto-rest enabled by default
   enableAutoAdvance: true, // Auto-advance enabled by default
   pauseBetweenExercises: 10, // 10 seconds pause between exercises when auto-advance is enabled
   theme: 'auto',
@@ -62,6 +61,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   audioExerciseAboutToEndEnabled: true, // Exercise about-to-end countdown (enabled by default)
   audioContinuousTicksEnabled: false, // Continuous ticks OFF by default
   audioPerRepBeepsEnabled: false, // Per-rep beeps OFF by default
+  audioRestCuesEnabled: true, // Rest period cues enabled by default
   enableNotifications: false
 };
 
