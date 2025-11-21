@@ -901,12 +901,25 @@
         <span class="material-icons">{autoAdvanceActive ? 'play_circle' : 'pause_circle'}</span>
       </button>
 
-      <div class="session-name">{sessionDefinition?.name || 'Session'}</div>
-
-      <div class="session-timer">
-        <span class="timer-label">Session Time</span>
-        <span class="timer-value">{formatTime(totalElapsedSeconds)}</span>
+      <div class="session-center">
+        <div class="session-name">{sessionDefinition?.name || 'Session'}</div>
+        <div class="session-timer">{formatTime(totalElapsedSeconds)}</div>
       </div>
+
+      <!-- Audio Mute Toggle -->
+      <button
+        class="audio-mute-toggle"
+        class:muted={!$ptState.settings?.soundEnabled}
+        on:click={() => {
+          if ($ptState.settings) {
+            $ptState.settings.soundEnabled = !$ptState.settings.soundEnabled;
+            ptService.saveSettings($ptState.settings);
+          }
+        }}
+        title={$ptState.settings?.soundEnabled ? 'Mute audio cues' : 'Unmute audio cues'}
+      >
+        <span class="material-icons">{$ptState.settings?.soundEnabled ? 'volume_up' : 'volume_off'}</span>
+      </button>
     </div>
 
     <!-- Exercise header (always visible) -->
@@ -977,10 +990,10 @@
               </div>
             {:else}
               <div class="set-info">Set {currentSet} of {currentExercise.defaultSets || 3}</div>
-              <div class="rep-info">Rep {currentRep} of {currentExercise.defaultReps || 10}</div>
               {#if (currentExercise.defaultRepDuration || 2) > 2}
-                <div class="rep-timer">{currentExerciseTimeDisplay}</div>
+                <div class="rep-timer-large">{currentExerciseTimeDisplay}</div>
               {/if}
+              <div class="rep-info">Rep {currentRep} of {currentExercise.defaultReps || 10}</div>
             {/if}
           </div>
         {/if}
@@ -1106,14 +1119,30 @@
     gap: var(--spacing-md);
   }
 
-  .session-name {
+  .session-center {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .session-name {
     font-size: var(--font-size-lg);
     font-weight: 600;
     opacity: 0.95;
+    text-align: center;
   }
 
-  .auto-advance-toggle {
+  .session-timer {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .auto-advance-toggle,
+  .audio-mute-toggle {
     width: 2.5rem;
     height: 2.5rem;
     display: flex;
@@ -1129,37 +1158,20 @@
     flex-shrink: 0;
   }
 
-  .auto-advance-toggle.active {
+  .auto-advance-toggle.active,
+  .audio-mute-toggle:not(.muted) {
     opacity: 1;
   }
 
-  .auto-advance-toggle:hover {
+  .auto-advance-toggle:hover,
+  .audio-mute-toggle:hover {
     opacity: 1;
     transform: scale(1.1);
   }
 
-  .auto-advance-toggle .material-icons {
+  .auto-advance-toggle .material-icons,
+  .audio-mute-toggle .material-icons {
     font-size: 2rem;
-  }
-
-  .session-timer {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.25rem;
-  }
-
-  .timer-label {
-    font-size: var(--font-size-xs);
-    opacity: 0.8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .timer-value {
-    font-size: var(--font-size-xl);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
   }
 
   /* VCR Control Bar */
@@ -1242,18 +1254,18 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
   }
 
   .countdown-number {
     font-size: 2.5rem;
     font-weight: 700;
     line-height: 1;
+    margin-top: var(--spacing-lg);
   }
 
   .countdown-label {
     font-size: var(--font-size-base);
-    margin-top: var(--spacing-sm);
     opacity: 0.9;
   }
 
@@ -1312,11 +1324,12 @@
   }
 
   .exercise-header {
-    min-height: 3.5rem;
+    min-height: 1.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
+    padding: 0.5rem 0;
   }
 
   .exercise-header.invisible {
@@ -1343,6 +1356,7 @@
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     line-height: 1;
+    margin-top: var(--spacing-lg);
   }
 
   .timer-label-small {
@@ -1355,7 +1369,7 @@
     margin: var(--spacing-lg) 0;
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
   }
 
   .set-info {
@@ -1368,6 +1382,15 @@
     opacity: 0.9;
   }
 
+  /* Rep timer for long-duration reps - positioned between Set and Rep labels */
+  .rep-timer-large {
+    font-size: 3rem;
+    font-weight: 700;
+    margin: var(--spacing-md) 0;
+    font-variant-numeric: tabular-nums;
+    opacity: 1;
+  }
+
   /* Paused Display */
   .paused-display {
     flex: 1;
@@ -1376,7 +1399,11 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
+  }
+
+  .paused-display .state-focus {
+    margin-bottom: var(--spacing-md);
   }
 
   /* Rest display */
@@ -1430,15 +1457,6 @@
 
   .rest-details {
     font-size: var(--font-size-base);
-    opacity: 0.9;
-  }
-
-  /* Rep timer for long-duration reps */
-  .rep-timer {
-    font-size: var(--font-size-xl);
-    font-weight: 700;
-    margin-top: var(--spacing-sm);
-    font-variant-numeric: tabular-nums;
     opacity: 0.9;
   }
 

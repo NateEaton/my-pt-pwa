@@ -132,12 +132,14 @@ export interface SessionInstance {
  */
 export interface AppSettings {
   // Timing defaults (in seconds)
+  defaultDuration: number; // Default duration for duration-based exercises
   defaultRepDuration: number; // Default seconds per rep
+  defaultPauseBetweenReps: number; // Default pause between reps
   startCountdownDuration: number; // Countdown before exercise starts (3-2-1)
   endSessionDelay: number; // Delay before session player closes after completion
   restBetweenSets: number; // Rest period between sets
   enableAutoAdvance: boolean; // Enable automatic advance to next exercise
-  pauseBetweenExercises: number; // Pause duration between exercises when auto-advance is enabled (seconds)
+  pauseBetweenExercises: number; // Rest between exercises when auto-advance is enabled (seconds)
 
   // UI preferences
   theme: 'light' | 'dark' | 'auto';

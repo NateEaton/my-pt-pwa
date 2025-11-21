@@ -68,16 +68,16 @@
   let sortField: 'name' | 'dateAdded' | 'usage' = sortPrefs.field;
   let sortAsc = sortPrefs.asc;
 
-  // Exercise form data
+  // Exercise form data - use settings defaults
   let exerciseFormData = {
     name: '',
     type: 'reps' as 'duration' | 'reps', // Default to reps/sets
-    defaultDuration: 60,
+    defaultDuration: $ptState.settings?.defaultDuration || 60,
     defaultReps: 10,
     defaultSets: 3,
-    defaultRepDuration: 2,
-    pauseBetweenReps: 5, // Default 5 seconds for user to transition between reps (e.g., switch legs)
-    restBetweenSets: 30, // Default 30 seconds (matches global default)
+    defaultRepDuration: $ptState.settings?.defaultRepDuration || 30,
+    pauseBetweenReps: $ptState.settings?.defaultPauseBetweenReps || 5,
+    restBetweenSets: $ptState.settings?.restBetweenSets || 20,
     instructions: '',
     includeInDefault: true
   };
@@ -166,15 +166,17 @@
   }
 
   function resetExerciseForm() {
+    // Use settings defaults for new exercises
+    const settings = $ptState.settings;
     exerciseFormData = {
       name: '',
       type: 'reps', // Default to reps/sets
-      defaultDuration: 60,
+      defaultDuration: settings?.defaultDuration || 60,
       defaultReps: 10,
       defaultSets: 3,
-      defaultRepDuration: 2,
-      pauseBetweenReps: 5, // Default 5 seconds for user to transition between reps (e.g., switch legs)
-      restBetweenSets: 30, // Default 30 seconds
+      defaultRepDuration: settings?.defaultRepDuration || 30,
+      pauseBetweenReps: settings?.defaultPauseBetweenReps || 5,
+      restBetweenSets: settings?.restBetweenSets || 20,
       instructions: '',
       includeInDefault: true
     };
@@ -493,14 +495,14 @@
       <div class="form-group">
         <label for="exercise-type">Exercise Type</label>
         <select id="exercise-type" bind:value={exerciseFormData.type}>
-          <option value="duration">Duration (timed exercise)</option>
           <option value="reps">Reps & Sets</option>
+          <option value="duration">Duration (timed exercise)</option>
         </select>
       </div>
 
       {#if exerciseFormData.type === 'duration'}
         <div class="form-group">
-          <label for="default-duration">Default Duration</label>
+          <label for="default-duration">Duration</label>
           <div class="input-with-suffix">
             <input
               id="default-duration"
