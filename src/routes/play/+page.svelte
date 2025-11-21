@@ -1254,18 +1254,18 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: var(--spacing-sm);
   }
 
   .countdown-number {
-    font-size: clamp(3rem, 10vw, 5rem);
+    font-size: 2.5rem;
     font-weight: 700;
     line-height: 1;
   }
 
   .countdown-label {
-    font-size: var(--font-size-xl);
-    margin-top: var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
+    font-size: var(--font-size-base);
+    margin-top: var(--spacing-sm);
     opacity: 0.9;
   }
 
@@ -1276,20 +1276,20 @@
     align-items: center;
     justify-content: center;
     text-align: center;
+    gap: var(--spacing-sm);
   }
 
   .preparing-label {
-    font-size: var(--font-size-xl);
+    font-size: var(--font-size-base);
     font-weight: 600;
-    margin-bottom: var(--spacing-md);
   }
 
   .preparing-timer {
-    font-size: clamp(3rem, 10vw, 5rem);
+    font-size: 2.5rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    margin-bottom: var(--spacing-md);
     color: var(--primary);
+    line-height: 1;
   }
 
   .preparing-hint {
@@ -1303,16 +1303,16 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: var(--spacing-sm);
   }
 
   .completion-icon {
-    font-size: 4.5rem;
+    font-size: 2.5rem;
     color: var(--success-color);
   }
 
   .completion-label {
-    font-size: var(--font-size-2xl);
-    margin-top: var(--spacing-md);
+    font-size: var(--font-size-xl);
     font-weight: 600;
   }
 
@@ -1344,11 +1344,14 @@
 
   .exercise-timer {
     text-align: center;
-    margin: var(--spacing-xl) 0;
+    margin: var(--spacing-lg) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
   }
 
   .timer-display {
-    font-size: clamp(3rem, 10vw, 5rem);
+    font-size: 2.5rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     line-height: 1;
@@ -1356,23 +1359,24 @@
 
   .timer-label-small {
     font-size: var(--font-size-base);
-    margin-top: var(--spacing-sm);
     opacity: 0.9;
   }
 
   .exercise-reps {
     text-align: center;
-    margin: var(--spacing-xl) 0;
+    margin: var(--spacing-lg) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
   }
 
   .set-info {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-xl);
     font-weight: 600;
-    margin-bottom: var(--spacing-sm);
   }
 
   .rep-info {
-    font-size: var(--font-size-xl);
+    font-size: var(--font-size-lg);
     opacity: 0.9;
   }
 
@@ -1406,7 +1410,6 @@
     justify-content: center;
     text-align: center;
     gap: var(--spacing-sm);
-    margin: var(--spacing-xl) 0;
   }
 
   /* Shared state styling */
@@ -1419,13 +1422,13 @@
   }
 
   .state-focus {
-    font-size: var(--font-size-3xl);
+    font-size: var(--font-size-xl);
     font-weight: 600;
     line-height: 1.2;
   }
 
   .state-timer {
-    font-size: clamp(3rem, 10vw, 5rem);
+    font-size: 2.5rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     color: var(--primary);
@@ -1444,9 +1447,9 @@
 
   /* Rep timer for long-duration reps */
   .rep-timer {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-xl);
     font-weight: 700;
-    margin-top: var(--spacing-md);
+    margin-top: var(--spacing-sm);
     font-variant-numeric: tabular-nums;
     opacity: 0.9;
   }
@@ -1543,32 +1546,19 @@
     .exercise-name {
       font-size: var(--font-size-xl);
     }
-
-    .timer-display {
-      font-size: 3rem;
-    }
-
-    .countdown-number {
-      font-size: 3rem;
-    }
-
-    .completion-icon {
-      font-size: 4rem;
-    }
   }
 
-  /* Extra small screens */
+  /* Extra small screens - scale down primary content slightly */
   @media (max-width: 360px) {
-    .timer-display {
-      font-size: 2.5rem;
-    }
-
-    .countdown-number {
-      font-size: 2.5rem;
+    .timer-display,
+    .countdown-number,
+    .state-timer,
+    .preparing-timer {
+      font-size: 2rem;
     }
 
     .completion-icon {
-      font-size: 3rem;
+      font-size: 2rem;
     }
   }
 </style>
