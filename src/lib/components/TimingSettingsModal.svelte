@@ -93,7 +93,8 @@
             type="number"
             bind:value={defaultRepDuration}
             min="1"
-            max="60"
+            max="120"
+            step="1"
             class="setting-input"
           />
           <span class="input-suffix">s</span>
@@ -110,7 +111,8 @@
             type="number"
             bind:value={startCountdownDuration}
             min="0"
-            max="30"
+            max="10"
+            step="1"
             class="setting-input"
           />
           <span class="input-suffix">s</span>
@@ -141,8 +143,8 @@
               type="number"
               bind:value={pauseBetweenExercises}
               min="0"
-              max="60"
-              step="5"
+              max="120"
+              step="1"
               class="setting-input"
             />
             <span class="input-suffix">s</span>
@@ -160,7 +162,8 @@
             type="number"
             bind:value={endSessionDelay}
             min="0"
-            max="60"
+            max="10"
+            step="1"
             class="setting-input"
           />
           <span class="input-suffix">s</span>

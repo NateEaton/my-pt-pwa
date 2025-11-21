@@ -179,7 +179,7 @@
   $: volumePercentage = Math.round(soundVolume * 100);
 </script>
 
-<Modal fullScreen={true} title="Cue Settings" iosStyle={true} on:close={handleClose}>
+<Modal fullScreen={true} title="Audio & Haptic Settings" iosStyle={true} on:close={handleClose}>
   <div class="audio-settings-content">
     <p class="modal-description">
       Configure audio and haptic feedback for your exercise sessions.
@@ -224,9 +224,9 @@
       <!-- Audio Cue Options -->
       <div class="setting-item">
         <div class="setting-info">
-          <span class="setting-label">Exercise About-to-Start Tone</span>
+          <span class="setting-label">Exercise About-to-Start Cue</span>
           <span class="setting-description">
-            Play 3-2-1 countdown with rising tones before each exercise begins (builds anticipation for movement)
+            3-2-1 countdown with rising tones before exercise
           </span>
         </div>
         <div class="setting-control">
@@ -243,9 +243,9 @@
 
       <div class="setting-item">
         <div class="setting-info">
-          <span class="setting-label">Exercise About-to-End Tone</span>
+          <span class="setting-label">Exercise About-to-End Cue</span>
           <span class="setting-description">
-            Play 3-2-1 countdown with descending tones during final seconds (signals approaching completion)
+            3-2-1 countdown with descending tones during final seconds
           </span>
         </div>
         <div class="setting-control">
@@ -264,7 +264,7 @@
         <div class="setting-info">
           <span class="setting-label">Rest Period Cues</span>
           <span class="setting-description">
-            Play audio cues at the start and end of rest periods between sets
+            Audio cues at start and end of rest periods
           </span>
         </div>
         <div class="setting-control">

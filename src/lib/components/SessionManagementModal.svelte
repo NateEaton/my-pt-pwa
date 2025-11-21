@@ -284,7 +284,7 @@
   });
 </script>
 
-<Modal fullScreen={true} title="Sessions" iosStyle={true} on:close={handleClose}>
+<Modal fullScreen={true} title="Session Library" iosStyle={true} on:close={handleClose}>
   <div slot="headerActions">
     <button class="icon-button add-button" on:click={openAddSession} aria-label="Create session">
       <span class="material-icons">add</span>

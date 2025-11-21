@@ -543,7 +543,8 @@
               type="number"
               bind:value={exerciseFormData.defaultRepDuration}
               min="1"
-              step="0.5"
+              max="120"
+              step="1"
             />
             <span class="input-suffix">s</span>
           </div>
@@ -556,8 +557,8 @@
               type="number"
               bind:value={exerciseFormData.pauseBetweenReps}
               min="0"
-              max="5"
-              step="0.1"
+              max="60"
+              step="1"
             />
             <span class="input-suffix">s</span>
           </div>
@@ -571,7 +572,7 @@
               bind:value={exerciseFormData.restBetweenSets}
               min="0"
               max="300"
-              step="5"
+              step="1"
             />
             <span class="input-suffix">s</span>
           </div>
