@@ -26,7 +26,7 @@
   let currentExercise: Exercise | null = null;
 
   // Timer state
-  let timerState: 'paused' | 'countdown' | 'active' | 'resting' | 'completed' = 'paused';
+  let timerState: 'paused' | 'countdown' | 'active' | 'resting' | 'completed' | 'preparing' = 'paused';
   let totalElapsedSeconds = 0;
   let exerciseElapsedSeconds = 0;
   let countdownSeconds = 3; // Fixed 3-second countdown
@@ -35,6 +35,10 @@
   let currentRep = 1;
   let repElapsedSeconds = 0; // Track time within current rep for countdown
   let isPausingBetweenReps = false; // Track pause state between reps
+  let pauseRemainingSeconds = 0; // Countdown for pause between reps
+  let preparingSeconds = 0; // Countdown for preparing/transition between exercises
+  let preparingInterval: number | undefined;
+  let pauseInterval: number | undefined;
 
   // Intervals
   let totalTimerInterval: number | undefined;
@@ -44,8 +48,11 @@
   let startCountdownDuration = 3;
   let endSessionDelay = 5;
   let restBetweenSets = 30;
-  let restBetweenExercises = 30;
-  let enableAutoRest = true;
+  let enableAutoAdvance = true;
+  let pauseBetweenExercises = 10;
+
+  // Runtime auto-advance toggle (can be toggled during session)
+  let autoAdvanceActive = true;
 
   let sessionLoadAttempted = false;
 
@@ -88,8 +95,6 @@
     audioService.setMasterVolume($ptState.settings.soundVolume);
     audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
     audioService.setExerciseAboutToEndEnabled($ptState.settings.audioExerciseAboutToEndEnabled);
-    audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
-    audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
     audioService.setHapticsEnabled($ptState.settings.hapticsEnabled);
   }
 
@@ -141,8 +146,6 @@
       audioService.setMasterVolume($ptState.settings.soundVolume);
       audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
       audioService.setExerciseAboutToEndEnabled($ptState.settings.audioExerciseAboutToEndEnabled);
-      audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
-      audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
       audioService.setHapticsEnabled($ptState.settings.hapticsEnabled);
     }
   });
@@ -187,9 +190,13 @@
       startCountdownDuration = $ptState.settings.startCountdownDuration;
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
-      restBetweenExercises = $ptState.settings.restBetweenExercises;
-      enableAutoRest = $ptState.settings.enableAutoRest;
+      enableAutoAdvance = $ptState.settings.enableAutoAdvance;
+      pauseBetweenExercises = $ptState.settings.pauseBetweenExercises;
     }
+
+    // Determine auto-advance setting: session-specific or app default
+    const sessionAutoAdvance = sessionDefinition.autoAdvance ?? enableAutoAdvance;
+    autoAdvanceActive = sessionAutoAdvance;
 
     // Check for existing in-progress session for today
     const existingSession = await ptService.getTodaySessionInstance();
@@ -220,6 +227,8 @@
 
   onDestroy(() => {
     clearTimers();
+    if (preparingInterval) clearInterval(preparingInterval);
+    if (pauseInterval) clearInterval(pauseInterval);
     releaseWakeLock();
   });
 
@@ -320,6 +329,8 @@
   function clearTimers() {
     if (totalTimerInterval) clearInterval(totalTimerInterval);
     if (exerciseTimerInterval) clearInterval(exerciseTimerInterval);
+    if (preparingInterval) clearInterval(preparingInterval);
+    if (pauseInterval) clearInterval(pauseInterval);
   }
 
   function startExerciseCountdown() {
@@ -366,7 +377,6 @@
     if (!currentExercise) return;
 
     const totalDuration = currentExercise.defaultDuration || 60;
-    const continuousTicksEnabled = $ptState.settings?.audioContinuousTicksEnabled ?? false;
     const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
 
     // Play duration exercise start tone
@@ -379,21 +389,16 @@
       const remaining = totalDuration - exerciseElapsedSeconds;
 
       // Audio cues during exercise
-      if (shouldPlayAudio()) {
-        if (continuousTicksEnabled) {
-          // Play tick every second
-          audioService.onTick();
-        } else if (leadInEnabled && remaining >= 1 && remaining <= 3) {
-          // Play subtle 3-2-1 countdown at end of duration
-          audioService.onCountdownEnd(remaining);
-        }
+      if (shouldPlayAudio() && leadInEnabled && remaining >= 1 && remaining <= 3) {
+        // Play subtle 3-2-1 countdown at end of duration
+        audioService.onCountdownEnd(remaining);
       }
 
       if (exerciseElapsedSeconds >= totalDuration) {
         clearInterval(exerciseTimerInterval);
 
         // Play end tone if countdown wasn't used
-        if (shouldPlayAudio() && !continuousTicksEnabled && !leadInEnabled) {
+        if (shouldPlayAudio() && !leadInEnabled) {
           audioService.onDurationEnd();
         }
 
@@ -452,27 +457,49 @@
             repElapsedSeconds = 0;
             isPausingBetweenReps = false;
 
-            // Start rest timer if auto-rest is enabled, otherwise pause
-            if (enableAutoRest) {
-              startRestTimer();
+            // Get rest duration
+            const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
+
+            // Automatically start rest timer if there's a non-zero rest time
+            if (restDuration > 0) {
+              // Add a small delay before starting rest to prevent overlapping tones
+              setTimeout(() => {
+                startRestTimer();
+              }, 300);
             } else {
-              timerState = 'paused';
+              // No rest configured, either auto-advance to next set or pause
+              if (autoAdvanceActive) {
+                startRepsExercise();
+              } else {
+                timerState = 'paused';
+              }
             }
           }
         } else {
           // Rep complete, but more reps in this set - pause between reps
           isPausingBetweenReps = true;
           const pauseDuration = currentExercise.pauseBetweenReps ?? 5;
+          pauseRemainingSeconds = pauseDuration;
 
-          setTimeout(() => {
-            isPausingBetweenReps = false;
-            repElapsedSeconds = 0;
+          // Clear any existing pause interval
+          if (pauseInterval) clearInterval(pauseInterval);
 
-            // Play start tone for next rep
-            if (shouldPlayAudio()) {
-              audioService.onRepStart();
+          // Countdown interval for pause between reps
+          pauseInterval = window.setInterval(() => {
+            pauseRemainingSeconds--;
+
+            if (pauseRemainingSeconds <= 0) {
+              clearInterval(pauseInterval);
+              pauseInterval = undefined;
+              isPausingBetweenReps = false;
+              repElapsedSeconds = 0;
+
+              // Play start tone for next rep
+              if (shouldPlayAudio()) {
+                audioService.onRepStart();
+              }
             }
-          }, pauseDuration * 1000);
+          }, 1000);
         }
       }
     }, 1000);
@@ -487,8 +514,8 @@
     restElapsedSeconds = 0;
     timerState = 'resting';
 
-    // Play rest start tone
-    if (shouldPlayAudio()) {
+    // Play rest start tone only if rest cues are enabled
+    if (shouldPlayAudio() && $ptState.settings?.audioRestCuesEnabled) {
       audioService.onRestStart();
     }
 
@@ -499,14 +526,29 @@
       if (restElapsedSeconds >= restDuration) {
         clearInterval(exerciseTimerInterval);
 
-        // Play rest end tone
-        if (shouldPlayAudio()) {
+        // Play rest end tone only if rest cues are enabled
+        if (shouldPlayAudio() && $ptState.settings?.audioRestCuesEnabled) {
           audioService.onRestEnd();
         }
 
-        // Auto-pause when rest is done - user must press Play to continue
-        timerState = 'paused';
         restElapsedSeconds = 0;
+
+        // If auto-advance is enabled, continue to next set automatically
+        // Otherwise pause and wait for user
+        if (autoAdvanceActive) {
+          timerState = 'active';
+
+          // Add delay to prevent overlapping tones between rest end and exercise start
+          setTimeout(() => {
+            if (currentExercise.type === 'reps') {
+              startRepsExercise();
+            } else {
+              startDurationExercise();
+            }
+          }, 300);
+        } else {
+          timerState = 'paused';
+        }
       }
     }, 1000);
   }
@@ -537,12 +579,40 @@
       currentSet = 1;
       currentRep = 1;
 
-      // Auto-pause, waiting for user to press play for next exercise
-      timerState = 'paused';
+      // Check if auto-advance is enabled
+      if (autoAdvanceActive && pauseBetweenExercises > 0) {
+        // Start preparation/transition phase
+        startPreparingForNextExercise();
+      } else if (autoAdvanceActive && pauseBetweenExercises === 0) {
+        // No pause, start immediately
+        startExerciseCountdown();
+      } else {
+        // Auto-advance disabled, pause and wait for user
+        timerState = 'paused';
+      }
     } else {
       // Session complete
       await completeSession();
     }
+  }
+
+  function startPreparingForNextExercise() {
+    timerState = 'preparing';
+    preparingSeconds = pauseBetweenExercises;
+
+    // No audio cues during preparing - the exercise start countdown will play them
+
+    preparingInterval = window.setInterval(() => {
+      preparingSeconds--;
+
+      if (preparingSeconds <= 0) {
+        clearInterval(preparingInterval);
+        preparingInterval = undefined;
+
+        // Automatically start the next exercise countdown
+        startExerciseCountdown();
+      }
+    }, 1000);
   }
 
   async function completeSession() {
@@ -568,9 +638,44 @@
     }, endSessionDelay * 1000);
   }
 
+  function toggleAutoAdvance() {
+    autoAdvanceActive = !autoAdvanceActive;
+  }
+
   // VCR-style controls
   function togglePlayPause() {
-    if (timerState === 'paused') {
+    if (timerState === 'preparing') {
+      // Cancel preparing phase and pause
+      if (preparingInterval) {
+        clearInterval(preparingInterval);
+        preparingInterval = undefined;
+      }
+      timerState = 'paused';
+    } else if (timerState === 'paused') {
+      // Check if we're resuming a paused pause-between-reps
+      if (isPausingBetweenReps && pauseRemainingSeconds > 0) {
+        // Resume pause countdown where we left off
+        timerState = 'active';
+        if (pauseInterval) clearInterval(pauseInterval);
+
+        pauseInterval = window.setInterval(() => {
+          pauseRemainingSeconds--;
+
+          if (pauseRemainingSeconds <= 0) {
+            clearInterval(pauseInterval);
+            pauseInterval = undefined;
+            isPausingBetweenReps = false;
+            repElapsedSeconds = 0;
+
+            // Play start tone for next rep
+            if (shouldPlayAudio()) {
+              audioService.onRepStart();
+            }
+          }
+        }, 1000);
+        return;
+      }
+
       // Check if we're resuming a paused rest (restElapsedSeconds > 0 indicates partial rest)
       const isResumingRest = currentSet > 1 && restElapsedSeconds > 0;
 
@@ -595,8 +700,16 @@
         }
       }
     } else if (timerState === 'active') {
-      // Pause current exercise
-      clearInterval(exerciseTimerInterval);
+      // Pause current exercise or pause-between-reps
+      if (isPausingBetweenReps) {
+        // Pause the pause-between-reps countdown
+        if (pauseInterval) {
+          clearInterval(pauseInterval);
+          pauseInterval = undefined;
+        }
+      } else {
+        clearInterval(exerciseTimerInterval);
+      }
       timerState = 'paused';
     } else if (timerState === 'countdown') {
       // Pause during countdown
@@ -778,7 +891,18 @@
   <div class="player-top">
     <!-- Session Info Bar -->
     <div class="session-info-bar">
+      <!-- Auto-Advance Toggle -->
+      <button
+        class="auto-advance-toggle"
+        class:active={autoAdvanceActive}
+        on:click={toggleAutoAdvance}
+        title={autoAdvanceActive ? 'Auto-advance enabled' : 'Auto-advance disabled'}
+      >
+        <span class="material-icons">{autoAdvanceActive ? 'play_circle' : 'pause_circle'}</span>
+      </button>
+
       <div class="session-name">{sessionDefinition?.name || 'Session'}</div>
+
       <div class="session-timer">
         <span class="timer-label">Session Time</span>
         <span class="timer-value">{formatTime(totalElapsedSeconds)}</span>
@@ -796,7 +920,13 @@
 
     <!-- Main display area with fixed height container -->
     <div class="main-display-area">
-    {#if timerState === 'countdown'}
+    {#if timerState === 'preparing'}
+      <div class="preparing-display">
+        <div class="preparing-label">Preparing for Next Exercise</div>
+        <div class="preparing-timer">{formatTime(preparingSeconds)}</div>
+        <div class="preparing-hint">Get ready...</div>
+      </div>
+    {:else if timerState === 'countdown'}
       <div class="countdown-display">
         <div class="countdown-number">{countdownSeconds}</div>
         <div class="countdown-label">Get Ready</div>
@@ -808,29 +938,23 @@
       </div>
     {:else if timerState === 'paused' && currentExercise}
       <div class="paused-display">
-        <div class="paused-icon-wrapper">
-          <span class="material-icons paused-icon">pause_circle</span>
-        </div>
-        <div class="paused-label">Ready to Start</div>
+        <div class="state-label">READY TO START</div>
         {#if currentExercise.type === 'duration'}
-          <div class="paused-details">
-            Duration: {currentExercise.defaultDuration}s
-          </div>
+          <div class="state-focus">Duration: {currentExercise.defaultDuration}s</div>
         {:else}
-          <div class="paused-details">
+          <div class="state-focus">
             Set {currentSet} of {currentExercise.defaultSets || 3}
-            ({currentExercise.defaultReps || 10} reps)
+          </div>
+          <div class="state-details">
+            {currentExercise.defaultReps || 10} reps per set
           </div>
         {/if}
       </div>
     {:else if timerState === 'resting' && currentExercise}
       <div class="rest-display">
-        <div class="rest-icon-wrapper">
-          <span class="material-icons rest-icon">timer</span>
-        </div>
-        <div class="rest-label">Rest Between Sets</div>
-        <div class="rest-timer">{restTimeDisplay}</div>
-        <div class="rest-details">
+        <div class="state-label">REST</div>
+        <div class="state-timer">{restTimeDisplay}</div>
+        <div class="state-details">
           Completed Set {currentSet - 1} of {currentExercise.defaultSets || 3}
         </div>
       </div>
@@ -844,10 +968,19 @@
         {:else}
           <!-- Reps exercise -->
           <div class="exercise-reps">
-            <div class="set-info">Set {currentSet} of {currentExercise.defaultSets || 3}</div>
-            <div class="rep-info">Rep {currentRep} of {currentExercise.defaultReps || 10}</div>
-            {#if (currentExercise.defaultRepDuration || 2) > 2}
-              <div class="rep-timer">{currentExerciseTimeDisplay}</div>
+            {#if isPausingBetweenReps}
+              <!-- Pause between reps indicator -->
+              <div class="pause-between-reps-display">
+                <div class="state-label">TRANSITION</div>
+                <div class="state-timer">{pauseRemainingSeconds}</div>
+                <div class="state-details">Prepare for next rep</div>
+              </div>
+            {:else}
+              <div class="set-info">Set {currentSet} of {currentExercise.defaultSets || 3}</div>
+              <div class="rep-info">Rep {currentRep} of {currentExercise.defaultReps || 10}</div>
+              {#if (currentExercise.defaultRepDuration || 2) > 2}
+                <div class="rep-timer">{currentExerciseTimeDisplay}</div>
+              {/if}
             {/if}
           </div>
         {/if}
@@ -871,7 +1004,7 @@
         <span class="material-icons">skip_previous</span>
       </button>
 
-      <button class="vcr-btn vcr-play-pause" on:click={togglePlayPause} title={timerState === 'paused' ? 'Play' : 'Pause'}>
+      <button class="vcr-btn vcr-play-pause" on:click={togglePlayPause} title={timerState === 'paused' ? 'Play' : 'Pause'} disabled={timerState === 'completed'}>
         <span class="material-icons">
           {timerState === 'paused' ? 'play_arrow' : 'pause'}
         </span>
@@ -970,12 +1103,43 @@
     margin-bottom: var(--spacing-md);
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     min-height: 2.5rem;
+    gap: var(--spacing-md);
   }
 
   .session-name {
+    flex: 1;
     font-size: var(--font-size-lg);
     font-weight: 600;
     opacity: 0.95;
+  }
+
+  .auto-advance-toggle {
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  .auto-advance-toggle.active {
+    opacity: 1;
+  }
+
+  .auto-advance-toggle:hover {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  .auto-advance-toggle .material-icons {
+    font-size: 2rem;
   }
 
   .session-timer {
@@ -1078,18 +1242,46 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: var(--spacing-sm);
   }
 
   .countdown-number {
-    font-size: clamp(3rem, 10vw, 5rem);
+    font-size: 2.5rem;
     font-weight: 700;
     line-height: 1;
   }
 
   .countdown-label {
-    font-size: var(--font-size-xl);
-    margin-top: var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
+    font-size: var(--font-size-base);
+    margin-top: var(--spacing-sm);
+    opacity: 0.9;
+  }
+
+  .preparing-display {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: var(--spacing-sm);
+  }
+
+  .preparing-label {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+  }
+
+  .preparing-timer {
+    font-size: 2.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--primary);
+    line-height: 1;
+  }
+
+  .preparing-hint {
+    font-size: var(--font-size-base);
     opacity: 0.9;
   }
 
@@ -1099,16 +1291,16 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: var(--spacing-sm);
   }
 
   .completion-icon {
-    font-size: 6rem;
+    font-size: 2.5rem;
     color: var(--success-color);
   }
 
   .completion-label {
-    font-size: var(--font-size-2xl);
-    margin-top: var(--spacing-md);
+    font-size: var(--font-size-xl);
     font-weight: 600;
   }
 
@@ -1140,11 +1332,14 @@
 
   .exercise-timer {
     text-align: center;
-    margin: var(--spacing-xl) 0;
+    margin: var(--spacing-lg) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
   }
 
   .timer-display {
-    font-size: clamp(3rem, 10vw, 5rem);
+    font-size: 2.5rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     line-height: 1;
@@ -1152,23 +1347,24 @@
 
   .timer-label-small {
     font-size: var(--font-size-base);
-    margin-top: var(--spacing-sm);
     opacity: 0.9;
   }
 
   .exercise-reps {
     text-align: center;
-    margin: var(--spacing-xl) 0;
+    margin: var(--spacing-lg) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
   }
 
   .set-info {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-xl);
     font-weight: 600;
-    margin-bottom: var(--spacing-sm);
   }
 
   .rep-info {
-    font-size: var(--font-size-xl);
+    font-size: var(--font-size-lg);
     opacity: 0.9;
   }
 
@@ -1180,26 +1376,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-  }
-
-  .paused-icon-wrapper {
-    margin-bottom: var(--spacing-md);
-  }
-
-  .paused-icon {
-    font-size: 4rem;
-    opacity: 0.8;
-  }
-
-  .paused-label {
-    font-size: var(--font-size-xl);
-    font-weight: 600;
-    margin-bottom: var(--spacing-sm);
-  }
-
-  .paused-details {
-    font-size: var(--font-size-base);
-    opacity: 0.9;
+    gap: var(--spacing-sm);
   }
 
   /* Rest display */
@@ -1210,30 +1387,45 @@
     align-items: center;
     justify-content: center;
     text-align: center;
+    gap: var(--spacing-sm);
   }
 
-  .rest-icon-wrapper {
-    margin-bottom: var(--spacing-md);
+  /* Pause between reps display */
+  .pause-between-reps-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: var(--spacing-sm);
   }
 
-  .rest-icon {
-    font-size: 4rem;
+  /* Shared state styling */
+  .state-label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
     opacity: 0.8;
-    color: var(--primary);
   }
 
-  .rest-label {
+  .state-focus {
     font-size: var(--font-size-xl);
     font-weight: 600;
-    margin-bottom: var(--spacing-md);
+    line-height: 1.2;
   }
 
-  .rest-timer {
-    font-size: 4rem;
+  .state-timer {
+    font-size: 2.5rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    margin-bottom: var(--spacing-md);
     color: var(--primary);
+    line-height: 1;
+  }
+
+  .state-details {
+    font-size: var(--font-size-base);
+    opacity: 0.9;
   }
 
   .rest-details {
@@ -1243,9 +1435,9 @@
 
   /* Rep timer for long-duration reps */
   .rep-timer {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-xl);
     font-weight: 700;
-    margin-top: var(--spacing-md);
+    margin-top: var(--spacing-sm);
     font-variant-numeric: tabular-nums;
     opacity: 0.9;
   }
@@ -1342,32 +1534,19 @@
     .exercise-name {
       font-size: var(--font-size-xl);
     }
-
-    .timer-display {
-      font-size: 3rem;
-    }
-
-    .countdown-number {
-      font-size: 3rem;
-    }
-
-    .completion-icon {
-      font-size: 4rem;
-    }
   }
 
-  /* Extra small screens */
+  /* Extra small screens - scale down primary content slightly */
   @media (max-width: 360px) {
-    .timer-display {
-      font-size: 2.5rem;
-    }
-
-    .countdown-number {
-      font-size: 2.5rem;
+    .timer-display,
+    .countdown-number,
+    .state-timer,
+    .preparing-timer {
+      font-size: 2rem;
     }
 
     .completion-icon {
-      font-size: 3rem;
+      font-size: 2rem;
     }
   }
 </style>

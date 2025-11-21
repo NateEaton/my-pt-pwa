@@ -45,12 +45,12 @@ const STORES = {
 
 // Default application settings
 const DEFAULT_SETTINGS: AppSettings = {
-  defaultRepDuration: 2, // 2 seconds per rep
+  defaultRepDuration: 30, // 30 seconds per rep
   startCountdownDuration: 3, // 3 second countdown before start (3-2-1)
   endSessionDelay: 5, // 5 second delay before session player closes
-  restBetweenSets: 30, // 30 seconds between sets
-  restBetweenExercises: 15, // 15 seconds between exercises
-  enableAutoRest: true, // Auto-rest enabled by default
+  restBetweenSets: 20, // 20 seconds between sets
+  enableAutoAdvance: true, // Auto-advance enabled by default
+  pauseBetweenExercises: 20, // 20 seconds pause between exercises when auto-advance is enabled
   theme: 'auto',
   exerciseSortOrder: 'alphabetical',
   soundEnabled: false, // Sound OFF by default
@@ -58,8 +58,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   hapticsEnabled: false, // Haptic feedback OFF by default
   audioLeadInEnabled: true, // Exercise about-to-start countdown (enabled by default)
   audioExerciseAboutToEndEnabled: true, // Exercise about-to-end countdown (enabled by default)
-  audioContinuousTicksEnabled: false, // Continuous ticks OFF by default
-  audioPerRepBeepsEnabled: false, // Per-rep beeps OFF by default
+  audioRestCuesEnabled: true, // Rest period cues enabled by default
   enableNotifications: false
 };
 

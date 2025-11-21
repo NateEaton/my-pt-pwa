@@ -24,8 +24,8 @@
   let startCountdownDuration = 3;
   let endSessionDelay = 5;
   let restBetweenSets = 30;
-  let restBetweenExercises = 15;
-  let enableAutoRest = true;
+  let enableAutoAdvance = true;
+  let pauseBetweenExercises = 10;
 
   // Load current settings
   onMount(() => {
@@ -34,8 +34,8 @@
       startCountdownDuration = $ptState.settings.startCountdownDuration;
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
-      restBetweenExercises = $ptState.settings.restBetweenExercises;
-      enableAutoRest = $ptState.settings.enableAutoRest;
+      enableAutoAdvance = $ptState.settings.enableAutoAdvance;
+      pauseBetweenExercises = $ptState.settings.pauseBetweenExercises;
     }
   });
 
@@ -52,8 +52,8 @@
       startCountdownDuration,
       endSessionDelay,
       restBetweenSets,
-      restBetweenExercises,
-      enableAutoRest
+      enableAutoAdvance,
+      pauseBetweenExercises
     };
 
     try {
@@ -90,7 +90,8 @@
             type="number"
             bind:value={defaultRepDuration}
             min="1"
-            max="60"
+            max="120"
+            step="1"
             class="setting-input"
           />
           <span class="input-suffix">s</span>
@@ -107,7 +108,8 @@
             type="number"
             bind:value={startCountdownDuration}
             min="0"
-            max="30"
+            max="10"
+            step="1"
             class="setting-input"
           />
           <span class="input-suffix">s</span>
@@ -116,38 +118,36 @@
 
       <div class="setting-item">
         <div class="setting-info">
-          <span class="setting-label">Enable Auto-Rest Timer</span>
-          <span class="setting-description">Automatically start rest timer after completing a set (rest duration is set per exercise, default: 30s)</span>
+          <span class="setting-label">Enable Auto-Advance</span>
+          <span class="setting-description">Automatically advance to the next exercise when current exercise completes</span>
         </div>
         <div class="setting-control">
           <label class="toggle-switch">
-            <input type="checkbox" bind:checked={enableAutoRest} />
+            <input type="checkbox" bind:checked={enableAutoAdvance} />
             <span class="toggle-slider"></span>
           </label>
         </div>
       </div>
 
-      <!-- Future feature: Rest Between Exercises (Phase 2) -->
-      <!--
-      <div class="setting-item disabled">
-        <div class="setting-info">
-          <span class="setting-label">Rest Between Exercises</span>
-          <span class="setting-description">Transition time between exercises (coming soon)</span>
+      {#if enableAutoAdvance}
+        <div class="setting-item sub-setting">
+          <div class="setting-info">
+            <span class="setting-label">Pause Between Exercises</span>
+            <span class="setting-description">Preparation time before automatically starting next exercise</span>
+          </div>
+          <div class="setting-control">
+            <input
+              type="number"
+              bind:value={pauseBetweenExercises}
+              min="0"
+              max="120"
+              step="1"
+              class="setting-input"
+            />
+            <span class="input-suffix">s</span>
+          </div>
         </div>
-        <div class="setting-control">
-          <input
-            type="number"
-            bind:value={restBetweenExercises}
-            min="0"
-            max="300"
-            step="5"
-            class="setting-input"
-            disabled
-          />
-          <span class="input-suffix">s</span>
-        </div>
-      </div>
-      -->
+      {/if}
 
       <div class="setting-item">
         <div class="setting-info">
@@ -159,7 +159,8 @@
             type="number"
             bind:value={endSessionDelay}
             min="0"
-            max="60"
+            max="10"
+            step="1"
             class="setting-input"
           />
           <span class="input-suffix">s</span>
@@ -206,6 +207,12 @@
     background-color: var(--surface-variant);
     border-radius: var(--border-radius);
     gap: var(--spacing-md);
+  }
+
+  .setting-item.sub-setting {
+    margin-left: var(--spacing-xl);
+    background-color: var(--surface);
+    border-left: 3px solid var(--primary-color);
   }
 
   .setting-info {
