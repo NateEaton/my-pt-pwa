@@ -534,11 +534,15 @@
         // Otherwise pause and wait for user
         if (autoAdvanceActive) {
           timerState = 'active';
-          if (currentExercise.type === 'reps') {
-            startRepsExercise();
-          } else {
-            startDurationExercise();
-          }
+
+          // Add delay to prevent overlapping tones between rest end and exercise start
+          setTimeout(() => {
+            if (currentExercise.type === 'reps') {
+              startRepsExercise();
+            } else {
+              startDurationExercise();
+            }
+          }, 300);
         } else {
           timerState = 'paused';
         }
