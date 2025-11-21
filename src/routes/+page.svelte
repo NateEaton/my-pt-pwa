@@ -198,14 +198,13 @@
 
     // Get settings for countdown and rest durations
     const settings = $ptState.settings;
-    const startCountdown = settings?.startCountdownDuration || 5;
-    const endCountdown = settings?.endCountdownDuration || 5;
-    const restBetweenExercises = settings?.restBetweenExercises || 15;
+    const startCountdown = settings?.startCountdownDuration || 3;
+    const pauseBetweenExercises = settings?.pauseBetweenExercises || 20;
     const endSessionDelay = settings?.endSessionDelay || 5;
 
     let totalSeconds = 0;
 
-    // Calculate exercise durations and add countdowns/rest
+    // Calculate exercise durations and add countdowns/pauses
     sessionExercises.forEach((exercise, index) => {
       // Start countdown before each exercise
       totalSeconds += startCountdown;
@@ -217,15 +216,22 @@
         const reps = exercise.defaultReps || 0;
         const sets = exercise.defaultSets || 0;
         const repDuration = exercise.defaultRepDuration || 2;
+        const pauseBetweenReps = exercise.pauseBetweenReps || 5;
+        const restBetweenSets = exercise.restBetweenSets || 30;
+
+        // Total rep time = (reps × repDuration) per set
         totalSeconds += reps * sets * repDuration;
+
+        // Pause between reps = (reps - 1) pauses per set × sets
+        totalSeconds += (reps - 1) * sets * pauseBetweenReps;
+
+        // Rest between sets = (sets - 1) rest periods
+        totalSeconds += (sets - 1) * restBetweenSets;
       }
 
-      // End countdown after each exercise
-      totalSeconds += endCountdown;
-
-      // Rest between exercises (not after the last exercise)
+      // Pause before next exercise (not after the last exercise)
       if (index < sessionExercises.length - 1) {
-        totalSeconds += restBetweenExercises;
+        totalSeconds += pauseBetweenExercises;
       }
     });
 

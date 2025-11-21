@@ -136,7 +136,6 @@ export interface AppSettings {
   startCountdownDuration: number; // Countdown before exercise starts (3-2-1)
   endSessionDelay: number; // Delay before session player closes after completion
   restBetweenSets: number; // Rest period between sets
-  restBetweenExercises: number; // Rest period between exercises
   enableAutoAdvance: boolean; // Enable automatic advance to next exercise
   pauseBetweenExercises: number; // Pause duration between exercises when auto-advance is enabled (seconds)
 

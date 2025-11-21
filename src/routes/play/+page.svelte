@@ -48,7 +48,6 @@
   let startCountdownDuration = 3;
   let endSessionDelay = 5;
   let restBetweenSets = 30;
-  let restBetweenExercises = 30;
   let enableAutoAdvance = true;
   let pauseBetweenExercises = 10;
 
@@ -195,7 +194,6 @@
       startCountdownDuration = $ptState.settings.startCountdownDuration;
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
-      restBetweenExercises = $ptState.settings.restBetweenExercises;
       enableAutoAdvance = $ptState.settings.enableAutoAdvance;
       pauseBetweenExercises = $ptState.settings.pauseBetweenExercises;
     }
