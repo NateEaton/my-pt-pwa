@@ -35,8 +35,10 @@
   let currentRep = 1;
   let repElapsedSeconds = 0; // Track time within current rep for countdown
   let isPausingBetweenReps = false; // Track pause state between reps
+  let pauseRemainingSeconds = 0; // Countdown for pause between reps
   let preparingSeconds = 0; // Countdown for preparing/transition between exercises
   let preparingInterval: number | undefined;
+  let pauseInterval: number | undefined;
 
   // Intervals
   let totalTimerInterval: number | undefined;
@@ -232,6 +234,7 @@
   onDestroy(() => {
     clearTimers();
     if (preparingInterval) clearInterval(preparingInterval);
+    if (pauseInterval) clearInterval(pauseInterval);
     releaseWakeLock();
   });
 
@@ -333,6 +336,7 @@
     if (totalTimerInterval) clearInterval(totalTimerInterval);
     if (exerciseTimerInterval) clearInterval(exerciseTimerInterval);
     if (preparingInterval) clearInterval(preparingInterval);
+    if (pauseInterval) clearInterval(pauseInterval);
   }
 
   function startExerciseCountdown() {
@@ -487,16 +491,27 @@
           // Rep complete, but more reps in this set - pause between reps
           isPausingBetweenReps = true;
           const pauseDuration = currentExercise.pauseBetweenReps ?? 5;
+          pauseRemainingSeconds = pauseDuration;
 
-          setTimeout(() => {
-            isPausingBetweenReps = false;
-            repElapsedSeconds = 0;
+          // Clear any existing pause interval
+          if (pauseInterval) clearInterval(pauseInterval);
 
-            // Play start tone for next rep
-            if (shouldPlayAudio()) {
-              audioService.onRepStart();
+          // Countdown interval for pause between reps
+          pauseInterval = window.setInterval(() => {
+            pauseRemainingSeconds--;
+
+            if (pauseRemainingSeconds <= 0) {
+              clearInterval(pauseInterval);
+              pauseInterval = undefined;
+              isPausingBetweenReps = false;
+              repElapsedSeconds = 0;
+
+              // Play start tone for next rep
+              if (shouldPlayAudio()) {
+                audioService.onRepStart();
+              }
             }
-          }, pauseDuration * 1000);
+          }, 1000);
         }
       }
     }, 1000);
@@ -649,6 +664,30 @@
       }
       timerState = 'paused';
     } else if (timerState === 'paused') {
+      // Check if we're resuming a paused pause-between-reps
+      if (isPausingBetweenReps && pauseRemainingSeconds > 0) {
+        // Resume pause countdown where we left off
+        timerState = 'active';
+        if (pauseInterval) clearInterval(pauseInterval);
+
+        pauseInterval = window.setInterval(() => {
+          pauseRemainingSeconds--;
+
+          if (pauseRemainingSeconds <= 0) {
+            clearInterval(pauseInterval);
+            pauseInterval = undefined;
+            isPausingBetweenReps = false;
+            repElapsedSeconds = 0;
+
+            // Play start tone for next rep
+            if (shouldPlayAudio()) {
+              audioService.onRepStart();
+            }
+          }
+        }, 1000);
+        return;
+      }
+
       // Check if we're resuming a paused rest (restElapsedSeconds > 0 indicates partial rest)
       const isResumingRest = currentSet > 1 && restElapsedSeconds > 0;
 
@@ -673,8 +712,16 @@
         }
       }
     } else if (timerState === 'active') {
-      // Pause current exercise
-      clearInterval(exerciseTimerInterval);
+      // Pause current exercise or pause-between-reps
+      if (isPausingBetweenReps) {
+        // Pause the pause-between-reps countdown
+        if (pauseInterval) {
+          clearInterval(pauseInterval);
+          pauseInterval = undefined;
+        }
+      } else {
+        clearInterval(exerciseTimerInterval);
+      }
       timerState = 'paused';
     } else if (timerState === 'countdown') {
       // Pause during countdown
@@ -933,10 +980,19 @@
         {:else}
           <!-- Reps exercise -->
           <div class="exercise-reps">
-            <div class="set-info">Set {currentSet} of {currentExercise.defaultSets || 3}</div>
-            <div class="rep-info">Rep {currentRep} of {currentExercise.defaultReps || 10}</div>
-            {#if (currentExercise.defaultRepDuration || 2) > 2}
-              <div class="rep-timer">{currentExerciseTimeDisplay}</div>
+            {#if isPausingBetweenReps}
+              <!-- Pause between reps indicator -->
+              <div class="pause-between-reps-display">
+                <div class="state-label">TRANSITION</div>
+                <div class="state-timer">{pauseRemainingSeconds}</div>
+                <div class="state-details">Prepare for next rep</div>
+              </div>
+            {:else}
+              <div class="set-info">Set {currentSet} of {currentExercise.defaultSets || 3}</div>
+              <div class="rep-info">Rep {currentRep} of {currentExercise.defaultReps || 10}</div>
+              {#if (currentExercise.defaultRepDuration || 2) > 2}
+                <div class="rep-timer">{currentExerciseTimeDisplay}</div>
+              {/if}
             {/if}
           </div>
         {/if}
@@ -1340,6 +1396,17 @@
     justify-content: center;
     text-align: center;
     gap: var(--spacing-sm);
+  }
+
+  /* Pause between reps display */
+  .pause-between-reps-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: var(--spacing-sm);
+    margin: var(--spacing-xl) 0;
   }
 
   /* Shared state styling */

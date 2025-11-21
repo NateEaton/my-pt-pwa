@@ -500,14 +500,17 @@
 
       {#if exerciseFormData.type === 'duration'}
         <div class="form-group">
-          <label for="default-duration">Default Duration (seconds)</label>
-          <input
-            id="default-duration"
-            type="number"
-            bind:value={exerciseFormData.defaultDuration}
-            min="1"
-            step="1"
-          />
+          <label for="default-duration">Default Duration</label>
+          <div class="input-with-suffix">
+            <input
+              id="default-duration"
+              type="number"
+              bind:value={exerciseFormData.defaultDuration}
+              min="1"
+              step="1"
+            />
+            <span class="input-suffix">s</span>
+          </div>
         </div>
       {:else}
         <div class="form-row">
@@ -533,38 +536,45 @@
           </div>
         </div>
         <div class="form-group">
-          <label for="rep-duration">Duration per Rep (seconds)</label>
-          <input
-            id="rep-duration"
-            type="number"
-            bind:value={exerciseFormData.defaultRepDuration}
-            min="1"
-            step="0.5"
-          />
+          <label for="rep-duration">Duration per Rep</label>
+          <div class="input-with-suffix">
+            <input
+              id="rep-duration"
+              type="number"
+              bind:value={exerciseFormData.defaultRepDuration}
+              min="1"
+              step="0.5"
+            />
+            <span class="input-suffix">s</span>
+          </div>
         </div>
         <div class="form-group">
-          <label for="pause-between-reps">Pause Between Reps (seconds)</label>
-          <input
-            id="pause-between-reps"
-            type="number"
-            bind:value={exerciseFormData.pauseBetweenReps}
-            min="0"
-            max="5"
-            step="0.1"
-          />
-          <small class="help-text">Time for user to transition between reps (e.g., switch legs) - default: 5s</small>
+          <label for="pause-between-reps">Pause Between Reps</label>
+          <div class="input-with-suffix">
+            <input
+              id="pause-between-reps"
+              type="number"
+              bind:value={exerciseFormData.pauseBetweenReps}
+              min="0"
+              max="5"
+              step="0.1"
+            />
+            <span class="input-suffix">s</span>
+          </div>
         </div>
         <div class="form-group">
-          <label for="rest-between-sets">Rest Between Sets (seconds)</label>
-          <input
-            id="rest-between-sets"
-            type="number"
-            bind:value={exerciseFormData.restBetweenSets}
-            min="0"
-            max="300"
-            step="5"
-          />
-          <small class="help-text">Default: 30 seconds</small>
+          <label for="rest-between-sets">Rest Between Sets</label>
+          <div class="input-with-suffix">
+            <input
+              id="rest-between-sets"
+              type="number"
+              bind:value={exerciseFormData.restBetweenSets}
+              min="0"
+              max="300"
+              step="5"
+            />
+            <span class="input-suffix">s</span>
+          </div>
         </div>
       {/if}
 
@@ -943,11 +953,16 @@
     resize: vertical;
   }
 
-  .help-text {
-    display: block;
-    margin-top: var(--spacing-xs);
+  .input-with-suffix {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .input-suffix {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
+    min-width: 1rem;
   }
 
   .modal-actions {
