@@ -95,8 +95,6 @@
     audioService.setMasterVolume($ptState.settings.soundVolume);
     audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
     audioService.setExerciseAboutToEndEnabled($ptState.settings.audioExerciseAboutToEndEnabled);
-    audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
-    audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
     audioService.setHapticsEnabled($ptState.settings.hapticsEnabled);
   }
 
@@ -148,8 +146,6 @@
       audioService.setMasterVolume($ptState.settings.soundVolume);
       audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
       audioService.setExerciseAboutToEndEnabled($ptState.settings.audioExerciseAboutToEndEnabled);
-      audioService.setContinuousTicksEnabled($ptState.settings.audioContinuousTicksEnabled);
-      audioService.setPerRepBeepsEnabled($ptState.settings.audioPerRepBeepsEnabled);
       audioService.setHapticsEnabled($ptState.settings.hapticsEnabled);
     }
   });
@@ -381,7 +377,6 @@
     if (!currentExercise) return;
 
     const totalDuration = currentExercise.defaultDuration || 60;
-    const continuousTicksEnabled = $ptState.settings?.audioContinuousTicksEnabled ?? false;
     const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
 
     // Play duration exercise start tone
@@ -394,21 +389,16 @@
       const remaining = totalDuration - exerciseElapsedSeconds;
 
       // Audio cues during exercise
-      if (shouldPlayAudio()) {
-        if (continuousTicksEnabled) {
-          // Play tick every second
-          audioService.onTick();
-        } else if (leadInEnabled && remaining >= 1 && remaining <= 3) {
-          // Play subtle 3-2-1 countdown at end of duration
-          audioService.onCountdownEnd(remaining);
-        }
+      if (shouldPlayAudio() && leadInEnabled && remaining >= 1 && remaining <= 3) {
+        // Play subtle 3-2-1 countdown at end of duration
+        audioService.onCountdownEnd(remaining);
       }
 
       if (exerciseElapsedSeconds >= totalDuration) {
         clearInterval(exerciseTimerInterval);
 
         // Play end tone if countdown wasn't used
-        if (shouldPlayAudio() && !continuousTicksEnabled && !leadInEnabled) {
+        if (shouldPlayAudio() && !leadInEnabled) {
           audioService.onDurationEnd();
         }
 

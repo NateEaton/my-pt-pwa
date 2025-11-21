@@ -58,8 +58,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   hapticsEnabled: false, // Haptic feedback OFF by default
   audioLeadInEnabled: true, // Exercise about-to-start countdown (enabled by default)
   audioExerciseAboutToEndEnabled: true, // Exercise about-to-end countdown (enabled by default)
-  audioContinuousTicksEnabled: false, // Continuous ticks OFF by default
-  audioPerRepBeepsEnabled: false, // Per-rep beeps OFF by default
   audioRestCuesEnabled: true, // Rest period cues enabled by default
   enableNotifications: false
 };

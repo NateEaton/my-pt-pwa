@@ -151,8 +151,6 @@ export interface AppSettings {
   // Audio cue preferences
   audioLeadInEnabled: boolean; // Exercise about-to-start: 3-2-1 countdown with rising tones before exercise begins
   audioExerciseAboutToEndEnabled: boolean; // Exercise about-to-end: 3-2-1 countdown with descending tones during final seconds
-  audioContinuousTicksEnabled: boolean; // Tick every second during duration exercises and rest periods
-  audioPerRepBeepsEnabled: boolean; // Beep on each rep completion
   audioRestCuesEnabled: boolean; // Play audio cues at start and end of rest periods
 
   // Feature flags (for future use)
