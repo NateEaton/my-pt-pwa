@@ -899,29 +899,23 @@
       </div>
     {:else if timerState === 'paused' && currentExercise}
       <div class="paused-display">
-        <div class="paused-icon-wrapper">
-          <span class="material-icons paused-icon">pause_circle</span>
-        </div>
-        <div class="paused-label">Ready to Start</div>
+        <div class="state-label">READY TO START</div>
         {#if currentExercise.type === 'duration'}
-          <div class="paused-details">
-            Duration: {currentExercise.defaultDuration}s
-          </div>
+          <div class="state-focus">Duration: {currentExercise.defaultDuration}s</div>
         {:else}
-          <div class="paused-details">
+          <div class="state-focus">
             Set {currentSet} of {currentExercise.defaultSets || 3}
-            ({currentExercise.defaultReps || 10} reps)
+          </div>
+          <div class="state-details">
+            {currentExercise.defaultReps || 10} reps per set
           </div>
         {/if}
       </div>
     {:else if timerState === 'resting' && currentExercise}
       <div class="rest-display">
-        <div class="rest-icon-wrapper">
-          <span class="material-icons rest-icon">timer</span>
-        </div>
-        <div class="rest-label">Rest Between Sets</div>
-        <div class="rest-timer">{restTimeDisplay}</div>
-        <div class="rest-details">
+        <div class="state-label">REST</div>
+        <div class="state-timer">{restTimeDisplay}</div>
+        <div class="state-details">
           Completed Set {currentSet - 1} of {currentExercise.defaultSets || 3}
         </div>
       </div>
@@ -1252,7 +1246,7 @@
   }
 
   .completion-icon {
-    font-size: 6rem;
+    font-size: 4.5rem;
     color: var(--success-color);
   }
 
@@ -1330,26 +1324,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-  }
-
-  .paused-icon-wrapper {
-    margin-bottom: var(--spacing-md);
-  }
-
-  .paused-icon {
-    font-size: 4rem;
-    opacity: 0.8;
-  }
-
-  .paused-label {
-    font-size: var(--font-size-xl);
-    font-weight: 600;
-    margin-bottom: var(--spacing-sm);
-  }
-
-  .paused-details {
-    font-size: var(--font-size-base);
-    opacity: 0.9;
+    gap: var(--spacing-sm);
   }
 
   /* Rest display */
@@ -1360,30 +1335,35 @@
     align-items: center;
     justify-content: center;
     text-align: center;
+    gap: var(--spacing-sm);
   }
 
-  .rest-icon-wrapper {
-    margin-bottom: var(--spacing-md);
-  }
-
-  .rest-icon {
-    font-size: 4rem;
-    opacity: 0.8;
-    color: var(--primary);
-  }
-
-  .rest-label {
-    font-size: var(--font-size-xl);
+  /* Shared state styling */
+  .state-label {
+    font-size: var(--font-size-sm);
     font-weight: 600;
-    margin-bottom: var(--spacing-md);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.8;
   }
 
-  .rest-timer {
-    font-size: 4rem;
+  .state-focus {
+    font-size: var(--font-size-3xl);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .state-timer {
+    font-size: clamp(3rem, 10vw, 5rem);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    margin-bottom: var(--spacing-md);
     color: var(--primary);
+    line-height: 1;
+  }
+
+  .state-details {
+    font-size: var(--font-size-base);
+    opacity: 0.9;
   }
 
   .rest-details {
