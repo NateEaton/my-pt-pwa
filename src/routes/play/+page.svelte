@@ -475,8 +475,11 @@
       exerciseElapsedSeconds++;
       repElapsedSeconds++;
 
-      // Determine current rep within the set (cap at max reps to prevent wrapping to 1 on last rep)
-      currentRep = Math.min(reps, Math.floor((exerciseElapsedSeconds % (reps * repDuration)) / repDuration) + 1);
+      // Determine current rep within the set (handle boundary case when last rep completes)
+      const timeInSet = exerciseElapsedSeconds % (reps * repDuration);
+      const repIndex = Math.floor(timeInSet / repDuration);
+      // If timeInSet is 0 and we've completed some time, we're at the end of a set
+      currentRep = (timeInSet === 0 && exerciseElapsedSeconds > 0) ? reps : Math.min(reps, repIndex + 1);
 
       // Check if rep is complete
       if (repElapsedSeconds >= repDuration) {
@@ -570,8 +573,11 @@
       exerciseElapsedSeconds++;
       repElapsedSeconds++;
 
-      // Determine current rep within the set (cap at max reps to prevent wrapping to 1 on last rep)
-      currentRep = Math.min(reps, Math.floor((exerciseElapsedSeconds % (reps * repDuration)) / repDuration) + 1);
+      // Determine current rep within the set (handle boundary case when last rep completes)
+      const timeInSet = exerciseElapsedSeconds % (reps * repDuration);
+      const repIndex = Math.floor(timeInSet / repDuration);
+      // If timeInSet is 0 and we've completed some time, we're at the end of a set
+      currentRep = (timeInSet === 0 && exerciseElapsedSeconds > 0) ? reps : Math.min(reps, repIndex + 1);
 
       // Check if rep is complete
       if (repElapsedSeconds >= repDuration) {
@@ -762,6 +768,9 @@
 
   async function completeSession() {
     if (!sessionInstance) return;
+
+    // Save cumulative elapsed time before marking complete
+    sessionInstance.cumulativeElapsedSeconds = totalElapsedSeconds;
 
     // Wait 2 seconds to create clear delineation between final exercise tone and session completion
     await new Promise(resolve => setTimeout(resolve, 2000));
