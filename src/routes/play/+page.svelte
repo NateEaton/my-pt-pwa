@@ -16,6 +16,7 @@
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import { audioService } from '$lib/services/AudioService';
+  import DisplayRow from '$lib/components/DisplayRow.svelte';
   import type { Exercise, SessionDefinition, SessionInstance, CompletedExercise } from '$lib/types/pt';
 
   // Player state
@@ -933,72 +934,92 @@
 
     <!-- Main display area with fixed height container -->
     <div class="main-display-area">
+    {#key `${timerState}-${currentExerciseIndex}-${currentSet}-${currentRep}-${isPausingBetweenReps}`}
     {#if timerState === 'preparing'}
-      <div class="preparing-display">
-        <div class="preparing-label">Preparing for Next Exercise</div>
-        <div class="preparing-timer">{formatTime(preparingSeconds)}</div>
-        <div class="preparing-hint">Get ready...</div>
-      </div>
+      <!-- Preparing: Show countdown and resting label -->
+      <DisplayRow size="big">
+        {preparingSeconds}
+      </DisplayRow>
+      <DisplayRow size="small">
+        Resting
+      </DisplayRow>
     {:else if timerState === 'countdown'}
-      <div class="countdown-display">
-        <div class="countdown-number">{countdownSeconds}</div>
-        <div class="countdown-label">Get Ready</div>
-      </div>
+      <!-- Countdown: Big number on top for visual attention -->
+      <DisplayRow size="big">
+        {countdownSeconds}
+      </DisplayRow>
+      <DisplayRow size="small">
+        Get Ready
+      </DisplayRow>
     {:else if timerState === 'completed'}
-      <div class="completion-display">
-        <span class="material-icons completion-icon">check_circle</span>
-        <div class="completion-label">Session Complete!</div>
-      </div>
+      <!-- Completed: Big checkmark emphasis -->
+      <DisplayRow size="big">
+        ✓ Done!
+      </DisplayRow>
+      <DisplayRow size="small">
+        Session Complete
+      </DisplayRow>
     {:else if timerState === 'paused' && currentExercise}
-      <div class="paused-display">
-        <div class="state-label">READY TO START</div>
+      <!-- Paused: Show context and exercise details -->
+      <DisplayRow size="small">
+        Next activity
+      </DisplayRow>
+      <DisplayRow size="small" wrap={true}>
         {#if currentExercise.type === 'duration'}
-          <div class="state-focus">Duration: {currentExercise.defaultDuration}s</div>
+          Duration: {currentExercise.defaultDuration}s
         {:else}
-          <div class="state-focus">
-            Set {currentSet} of {currentExercise.defaultSets || 3}
-          </div>
-          <div class="state-details">
-            {currentExercise.defaultReps || 10} reps per set
-          </div>
+          Set {currentSet} of {currentExercise.defaultSets || 3} · {currentExercise.defaultReps || 10} reps
         {/if}
-      </div>
+      </DisplayRow>
     {:else if timerState === 'resting' && currentExercise}
-      <div class="rest-display">
-        <div class="state-label">REST</div>
-        <div class="state-timer">{restTimeDisplay}</div>
-        <div class="state-details">
-          Completed Set {currentSet - 1} of {currentExercise.defaultSets || 3}
-        </div>
-      </div>
+      <!-- Rest: Big timer on top -->
+      <DisplayRow size="big">
+        {restTimeDisplay}
+      </DisplayRow>
+      <DisplayRow size="small">
+        Rest · Set {currentSet - 1} of {currentExercise.defaultSets || 3}
+      </DisplayRow>
     {:else if currentExercise && timerState === 'active'}
-      <div class="current-exercise-card">
-        {#if currentExercise.type === 'duration'}
-          <div class="exercise-timer">
-            <div class="timer-display">{currentExerciseTimeDisplay}</div>
-            <div class="timer-label-small">Remaining</div>
-          </div>
+      {#if currentExercise.type === 'duration'}
+        <!-- Active Duration: Big timer on top -->
+        <DisplayRow size="big">
+          {currentExerciseTimeDisplay}
+        </DisplayRow>
+        <DisplayRow size="small">
+          Remaining
+        </DisplayRow>
+      {:else}
+        <!-- Active Reps Exercise -->
+        {#if isPausingBetweenReps}
+          <!-- Pause between reps: Big countdown on top -->
+          <DisplayRow size="big">
+            {pauseRemainingSeconds}
+          </DisplayRow>
+          <DisplayRow size="small">
+            Set {currentSet}: Transition
+          </DisplayRow>
         {:else}
-          <!-- Reps exercise -->
-          <div class="exercise-reps">
-            {#if isPausingBetweenReps}
-              <!-- Pause between reps indicator -->
-              <div class="pause-between-reps-display">
-                <div class="state-label">TRANSITION</div>
-                <div class="state-timer">{pauseRemainingSeconds}</div>
-                <div class="state-details">Prepare for next rep</div>
-              </div>
-            {:else}
-              <div class="set-info">Set {currentSet} of {currentExercise.defaultSets || 3}</div>
-              {#if (currentExercise.defaultRepDuration || 2) > 2}
-                <div class="rep-timer-large">{currentExerciseTimeDisplay}</div>
-              {/if}
-              <div class="rep-info">Rep {currentRep} of {currentExercise.defaultReps || 10}</div>
-            {/if}
-          </div>
+          <!-- Active rep: Big timer on top, compact set/rep info below -->
+          {#if (currentExercise.defaultRepDuration || 2) > 2}
+            <DisplayRow size="big">
+              {currentExerciseTimeDisplay}
+            </DisplayRow>
+            <DisplayRow size="small">
+              Set {currentSet} · Rep {currentRep} of {currentExercise.defaultReps || 10}
+            </DisplayRow>
+          {:else}
+            <!-- Quick reps without timer: Show rep counter prominently -->
+            <DisplayRow size="big">
+              {currentRep}
+            </DisplayRow>
+            <DisplayRow size="small">
+              Set {currentSet} of {currentExercise.defaultSets || 3} · Rep {currentRep} of {currentExercise.defaultReps || 10}
+            </DisplayRow>
+          {/if}
         {/if}
-      </div>
+      {/if}
     {/if}
+    {/key}
     </div>
 
     <!-- VCR-style control bar -->
@@ -1092,10 +1113,10 @@
     flex: 0 0 33.333%;
     background: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
     color: white;
-    padding: var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-md);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    gap: var(--spacing-xs);
     position: relative;
   }
 
@@ -1103,9 +1124,11 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 150px;
+    height: 200px;
     overflow: hidden;
-    min-height: 200px;
-    max-height: 300px;
   }
 
   /* Session Info Bar */
@@ -1113,11 +1136,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    min-height: 2.5rem;
-    gap: var(--spacing-md);
+    min-height: 2rem;
+    gap: var(--spacing-sm);
   }
 
   .session-center {
@@ -1249,92 +1272,13 @@
     background-color: rgba(255, 255, 255, 0.4);
   }
 
-  .countdown-display {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    gap: var(--spacing-md);
-    padding-top: var(--spacing-xl);
-  }
-
-  .countdown-number {
-    font-size: 2.5rem;
-    font-weight: 700;
-    line-height: 1;
-    margin-top: var(--spacing-lg);
-  }
-
-  .countdown-label {
-    font-size: var(--font-size-base);
-    opacity: 0.9;
-  }
-
-  .preparing-display {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    text-align: center;
-    gap: var(--spacing-sm);
-    padding-top: var(--spacing-xl);
-  }
-
-  .preparing-label {
-    font-size: var(--font-size-base);
-    font-weight: 600;
-  }
-
-  .preparing-timer {
-    font-size: 2.5rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: var(--primary);
-    line-height: 1;
-  }
-
-  .preparing-hint {
-    font-size: var(--font-size-base);
-    opacity: 0.9;
-  }
-
-  .completion-display {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    gap: var(--spacing-sm);
-    padding-top: var(--spacing-xl);
-  }
-
-  .completion-icon {
-    font-size: 2.5rem;
-    color: var(--success-color);
-  }
-
-  .completion-label {
-    font-size: var(--font-size-xl);
-    font-weight: 600;
-  }
-
-  .current-exercise-card {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    padding-top: var(--spacing-lg);
-  }
-
   .exercise-header {
-    min-height: 1.75rem;
+    min-height: 1.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 0.5rem 0;
+    padding: 0.25rem 0;
   }
 
   .exercise-header.invisible {
@@ -1343,129 +1287,9 @@
 
   .exercise-name {
     margin: 0;
-    font-size: var(--font-size-2xl);
-    font-weight: 600;
-    line-height: 1.2;
-  }
-
-  .exercise-timer {
-    text-align: center;
-    margin: var(--spacing-lg) 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  .timer-display {
-    font-size: 2.5rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    margin-top: var(--spacing-lg);
-  }
-
-  .timer-label-small {
-    font-size: var(--font-size-base);
-    opacity: 0.9;
-  }
-
-  .exercise-reps {
-    text-align: center;
-    margin: var(--spacing-lg) 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-
-  .set-info {
-    font-size: var(--font-size-xl);
-    font-weight: 600;
-  }
-
-  .rep-info {
-    font-size: var(--font-size-lg);
-    opacity: 0.9;
-  }
-
-  /* Rep timer for long-duration reps - positioned between Set and Rep labels */
-  .rep-timer-large {
-    font-size: 3rem;
-    font-weight: 700;
-    margin: var(--spacing-md) 0;
-    font-variant-numeric: tabular-nums;
-    opacity: 1;
-  }
-
-  /* Paused Display */
-  .paused-display {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    text-align: center;
-    gap: var(--spacing-md);
-    padding-top: var(--spacing-xl);
-  }
-
-  .paused-display .state-focus {
-    margin-bottom: var(--spacing-md);
-  }
-
-  /* Rest display */
-  .rest-display {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    text-align: center;
-    gap: var(--spacing-sm);
-    padding-top: var(--spacing-xl);
-  }
-
-  /* Pause between reps display */
-  .pause-between-reps-display {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    text-align: center;
-    gap: var(--spacing-sm);
-    padding-top: var(--spacing-xl);
-  }
-
-  /* Shared state styling */
-  .state-label {
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    opacity: 0.8;
-  }
-
-  .state-focus {
     font-size: var(--font-size-xl);
     font-weight: 600;
     line-height: 1.2;
-  }
-
-  .state-timer {
-    font-size: 2.5rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: var(--primary);
-    line-height: 1;
-  }
-
-  .state-details {
-    font-size: var(--font-size-base);
-    opacity: 0.9;
-  }
-
-  .rest-details {
-    font-size: var(--font-size-base);
-    opacity: 0.9;
   }
 
   /* Bottom Section - 2/3 of screen */
