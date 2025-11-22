@@ -1104,7 +1104,8 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    min-height: 0;
+    min-height: 200px;
+    max-height: 300px;
   }
 
   /* Session Info Bar */
@@ -1253,8 +1254,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: var(--spacing-md);
+    padding-top: var(--spacing-xl);
   }
 
   .countdown-number {
@@ -1274,9 +1276,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
     gap: var(--spacing-sm);
+    padding-top: var(--spacing-xl);
   }
 
   .preparing-label {
@@ -1302,8 +1305,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: var(--spacing-sm);
+    padding-top: var(--spacing-xl);
   }
 
   .completion-icon {
@@ -1320,7 +1324,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
+    padding-top: var(--spacing-lg);
   }
 
   .exercise-header {
@@ -1397,9 +1402,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
     gap: var(--spacing-md);
+    padding-top: var(--spacing-xl);
   }
 
   .paused-display .state-focus {
@@ -1412,9 +1418,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
     gap: var(--spacing-sm);
+    padding-top: var(--spacing-xl);
   }
 
   /* Pause between reps display */
@@ -1422,9 +1429,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
     gap: var(--spacing-sm);
+    padding-top: var(--spacing-xl);
   }
 
   /* Shared state styling */
