@@ -772,12 +772,13 @@
     // Save cumulative elapsed time before marking complete
     sessionInstance.cumulativeElapsedSeconds = totalElapsedSeconds;
 
-    // Wait 2 seconds to create clear delineation between final exercise tone and session completion
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
+    // Change state to completed immediately to show completion screen
     timerState = 'completed';
     sessionInstance.status = 'completed';
     sessionInstance.endTime = new Date().toISOString();
+
+    // Wait 2 seconds to create clear delineation between final exercise tone and session completion
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Play completion chime
     if (shouldPlayAudio()) {
