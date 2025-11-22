@@ -88,8 +88,8 @@
     <div class="settings-list">
       <div class="setting-item">
         <div class="setting-info">
-          <span class="setting-label">Default Duration (Duration Exercises)</span>
-          <span class="setting-description">Default duration for timed exercises</span>
+          <span class="setting-label">Exercise Duration</span>
+          <span class="setting-description">Default period for timed exercises</span>
         </div>
         <div class="setting-control">
           <input
@@ -107,7 +107,7 @@
       <div class="setting-item">
         <div class="setting-info">
           <span class="setting-label">Rep Duration</span>
-          <span class="setting-description">Default seconds per rep (for timing calculations)</span>
+          <span class="setting-description">Default period per repetition</span>
         </div>
         <div class="setting-control">
           <input
