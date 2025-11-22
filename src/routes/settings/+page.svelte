@@ -66,24 +66,38 @@
   }
 
   // PWA Update handling
+  let checkingForUpdate = false;
+  let updateCheckTimeout: number | undefined;
+
+  // Watch for update state changes when manually checking
+  $: if (checkingForUpdate && $pwaUpdateAvailable) {
+    // Update detected!
+    checkingForUpdate = false;
+    if (updateCheckTimeout) clearTimeout(updateCheckTimeout);
+    toastStore.show('Update available! Tap "Install Update" below.', 'info', 0);
+  }
+
   async function checkForUpdate() {
     try {
       if ('serviceWorker' in navigator) {
         toastStore.show('Checking for updates...', 'info');
+        checkingForUpdate = true;
+
         const registration = await navigator.serviceWorker.getRegistration();
         await registration?.update();
 
-        // Wait for PWA plugin to detect update, then show appropriate message
-        setTimeout(() => {
-          if ($pwaUpdateAvailable) {
-            toastStore.show('Update available! Tap "Install Update" below.', 'info', 0);
-          } else {
+        // If no update detected after 3 seconds, show "latest version" message
+        updateCheckTimeout = window.setTimeout(() => {
+          if (checkingForUpdate && !$pwaUpdateAvailable) {
+            checkingForUpdate = false;
             toastStore.show('You\'re running the latest version', 'success');
           }
-        }, 2000);
+        }, 3000);
       }
     } catch (error) {
       console.error('Update check failed:', error);
+      checkingForUpdate = false;
+      if (updateCheckTimeout) clearTimeout(updateCheckTimeout);
       toastStore.show('Failed to check for updates', 'error');
     }
   }
