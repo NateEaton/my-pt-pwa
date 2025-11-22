@@ -140,6 +140,7 @@ export interface AppSettings {
   restBetweenSets: number; // Rest period between sets
   enableAutoAdvance: boolean; // Enable automatic advance to next exercise
   pauseBetweenExercises: number; // Rest between exercises when auto-advance is enabled (seconds)
+  resumeFromPausePoint: boolean; // When resuming from pause, continue from pause point (true) or restart exercise (false)
 
   // UI preferences
   theme: 'light' | 'dark' | 'auto';

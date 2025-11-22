@@ -51,6 +51,7 @@
   let restBetweenSets = 30;
   let enableAutoAdvance = true;
   let pauseBetweenExercises = 10;
+  let resumeFromPausePoint = true;
 
   // Runtime auto-advance toggle (can be toggled during session)
   let autoAdvanceActive = true;
@@ -193,6 +194,7 @@
       restBetweenSets = $ptState.settings.restBetweenSets;
       enableAutoAdvance = $ptState.settings.enableAutoAdvance;
       pauseBetweenExercises = $ptState.settings.pauseBetweenExercises;
+      resumeFromPausePoint = $ptState.settings.resumeFromPausePoint;
     }
 
     // Determine auto-advance setting: session-specific or app default
@@ -380,10 +382,44 @@
     const totalDuration = currentExercise.defaultDuration || 60;
     const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
 
+    // Reset elapsed time when starting fresh
+    exerciseElapsedSeconds = 0;
+
     // Play duration exercise start tone
     if (shouldPlayAudio()) {
       audioService.onDurationStart();
     }
+
+    exerciseTimerInterval = window.setInterval(() => {
+      exerciseElapsedSeconds++;
+      const remaining = totalDuration - exerciseElapsedSeconds;
+
+      // Audio cues during exercise
+      if (shouldPlayAudio() && leadInEnabled && remaining >= 1 && remaining <= 3) {
+        // Play subtle 3-2-1 countdown at end of duration
+        audioService.onCountdownEnd(remaining);
+      }
+
+      if (exerciseElapsedSeconds >= totalDuration) {
+        clearInterval(exerciseTimerInterval);
+
+        // Play end tone if countdown wasn't used
+        if (shouldPlayAudio() && !leadInEnabled) {
+          audioService.onDurationEnd();
+        }
+
+        completeCurrentExercise();
+      }
+    }, 1000);
+  }
+
+  function resumeDurationExercise() {
+    if (!currentExercise) return;
+
+    const totalDuration = currentExercise.defaultDuration || 60;
+    const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
+
+    // Don't reset exerciseElapsedSeconds - continue from where we paused
 
     exerciseTimerInterval = window.setInterval(() => {
       exerciseElapsedSeconds++;
@@ -415,6 +451,8 @@
     const sets = currentExercise.defaultSets || 3;
     const repDuration = currentExercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 2;
 
+    // Reset counters when starting fresh
+    exerciseElapsedSeconds = 0;
     repElapsedSeconds = 0;
     isPausingBetweenReps = false;
 
@@ -437,8 +475,103 @@
       exerciseElapsedSeconds++;
       repElapsedSeconds++;
 
-      // Determine current rep within the set
-      currentRep = Math.floor((exerciseElapsedSeconds % (reps * repDuration)) / repDuration) + 1;
+      // Determine current rep within the set (cap at max reps to prevent wrapping to 1 on last rep)
+      currentRep = Math.min(reps, Math.floor((exerciseElapsedSeconds % (reps * repDuration)) / repDuration) + 1);
+
+      // Check if rep is complete
+      if (repElapsedSeconds >= repDuration) {
+        const isEndOfSet = (exerciseElapsedSeconds % (reps * repDuration) === 0);
+
+        if (isEndOfSet) {
+          // Set is complete
+          clearInterval(exerciseTimerInterval);
+
+          if (currentSet >= sets) {
+            // Exercise complete - all sets done
+            completeCurrentExercise();
+          } else {
+            // Set complete, more sets to go
+            currentSet++;
+            exerciseElapsedSeconds = 0;
+            repElapsedSeconds = 0;
+            isPausingBetweenReps = false;
+
+            // Get rest duration
+            const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
+
+            // Automatically start rest timer if there's a non-zero rest time
+            if (restDuration > 0) {
+              // Add a small delay before starting rest to prevent overlapping tones
+              setTimeout(() => {
+                startRestTimer();
+              }, 300);
+            } else {
+              // No rest configured, either auto-advance to next set or pause
+              if (autoAdvanceActive) {
+                startRepsExercise();
+              } else {
+                timerState = 'paused';
+              }
+            }
+          }
+        } else {
+          // Rep complete, but more reps in this set - pause between reps
+          isPausingBetweenReps = true;
+          const pauseDuration = currentExercise.pauseBetweenReps ?? 5;
+          pauseRemainingSeconds = pauseDuration;
+
+          // Clear any existing pause interval
+          if (pauseInterval) clearInterval(pauseInterval);
+
+          // Countdown interval for pause between reps
+          pauseInterval = window.setInterval(() => {
+            pauseRemainingSeconds--;
+
+            if (pauseRemainingSeconds <= 0) {
+              clearInterval(pauseInterval);
+              pauseInterval = undefined;
+              isPausingBetweenReps = false;
+              repElapsedSeconds = 0;
+
+              // Play start tone for next rep
+              if (shouldPlayAudio()) {
+                audioService.onRepStart();
+              }
+            }
+          }, 1000);
+        }
+      }
+    }, 1000);
+  }
+
+  function resumeRepsExercise() {
+    if (!currentExercise) return;
+
+    const reps = currentExercise.defaultReps || 10;
+    const sets = currentExercise.defaultSets || 3;
+    const repDuration = currentExercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 2;
+
+    // Don't reset counters - continue from where we paused
+    // exerciseElapsedSeconds, currentSet, currentRep, repElapsedSeconds are preserved
+
+    isPausingBetweenReps = false;
+
+    exerciseTimerInterval = window.setInterval(() => {
+      // If pausing between reps, don't increment counters
+      if (isPausingBetweenReps) {
+        return;
+      }
+
+      // Play end tone when counter shows "1" (last count of rep)
+      if (repElapsedSeconds === repDuration - 1 && shouldPlayAudio()) {
+        audioService.onRepEnd();
+      }
+
+      exerciseElapsedSeconds++;
+      repElapsedSeconds++;
+
+      // Determine current rep within the set (cap at max reps to prevent wrapping to 1 on last rep)
+      currentRep = Math.min(reps, Math.floor((exerciseElapsedSeconds % (reps * repDuration)) / repDuration) + 1);
 
       // Check if rep is complete
       if (repElapsedSeconds >= repDuration) {
@@ -601,7 +734,10 @@
     timerState = 'preparing';
     preparingSeconds = pauseBetweenExercises;
 
-    // No audio cues during preparing - the exercise start countdown will play them
+    // Play rest start tone only if rest cues are enabled (rest between exercises)
+    if (shouldPlayAudio() && $ptState.settings?.audioRestCuesEnabled) {
+      audioService.onRestStart();
+    }
 
     preparingInterval = window.setInterval(() => {
       preparingSeconds--;
@@ -610,8 +746,16 @@
         clearInterval(preparingInterval);
         preparingInterval = undefined;
 
+        // Play rest end tone only if rest cues are enabled
+        if (shouldPlayAudio() && $ptState.settings?.audioRestCuesEnabled) {
+          audioService.onRestEnd();
+        }
+
         // Automatically start the next exercise countdown
-        startExerciseCountdown();
+        // Add delay to prevent overlapping tones
+        setTimeout(() => {
+          startExerciseCountdown();
+        }, 300);
       }
     }, 1000);
   }
@@ -684,17 +828,26 @@
         // Resume rest timer where we left off
         startRestTimer();
       } else {
-        // Check if we're mid-exercise (resuming a set within the same exercise)
-        const isMidExercise = currentSet > 1;
+        // Check if we're mid-exercise (paused during active exercise)
+        const isMidExercise = exerciseElapsedSeconds > 0;
 
-        if (isMidExercise) {
-          // Skip countdown when resuming between sets
+        if (isMidExercise && resumeFromPausePoint) {
+          // Resume from pause point - continue where we left off
           timerState = 'active';
           if (currentExercise?.type === 'reps') {
-            startRepsExercise();
+            // Resume reps exercise from current rep
+            resumeRepsExercise();
           } else {
-            startDurationExercise();
+            // Resume duration exercise from current elapsed time
+            resumeDurationExercise();
           }
+        } else if (isMidExercise && !resumeFromPausePoint) {
+          // Restart exercise from beginning
+          exerciseElapsedSeconds = 0;
+          repElapsedSeconds = 0;
+          currentSet = 1;
+          currentRep = 1;
+          startExerciseCountdown();
         } else {
           // Normal start - do countdown
           startExerciseCountdown();
@@ -824,6 +977,50 @@
 
     clearTimers();
     goto('/');
+  }
+
+  async function jumpToExercise(index: number) {
+    // Only allow jumping when paused
+    if (timerState !== 'paused') return;
+
+    // Don't jump to the same exercise
+    if (index === currentExerciseIndex) return;
+
+    // Mark any exercises between current and target as skipped if jumping forward
+    if (index > currentExerciseIndex && sessionInstance) {
+      for (let i = currentExerciseIndex; i < index; i++) {
+        const completed = sessionInstance.completedExercises.find(
+          ce => ce.exerciseId === exercises[i].id
+        );
+        if (completed && !completed.completed) {
+          completed.skipped = true;
+          completed.completedAt = new Date().toISOString();
+        }
+      }
+      await ptService.updateSessionInstance(sessionInstance);
+    }
+
+    // Jump to the selected exercise
+    currentExerciseIndex = index;
+    currentExercise = exercises[currentExerciseIndex];
+    exerciseElapsedSeconds = 0;
+    repElapsedSeconds = 0;
+    isPausingBetweenReps = false;
+    currentSet = 1;
+    currentRep = 1;
+    restElapsedSeconds = 0;
+
+    // Clear any incomplete markers if jumping backward
+    if (index < exercises.length && sessionInstance) {
+      const completed = sessionInstance.completedExercises.find(
+        ce => ce.exerciseId === currentExercise?.id
+      );
+      if (completed) {
+        completed.completed = false;
+        completed.skipped = false;
+      }
+      await ptService.updateSessionInstance(sessionInstance);
+    }
   }
 
   function formatTime(seconds: number): string {
@@ -1069,6 +1266,16 @@
           class="exercise-item"
           class:active={index === currentExerciseIndex}
           class:completed={isExerciseCompleted(index)}
+          class:clickable={timerState === 'paused' && index !== currentExerciseIndex}
+          on:click={() => jumpToExercise(index)}
+          on:keydown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && timerState === 'paused' && index !== currentExerciseIndex) {
+              e.preventDefault();
+              jumpToExercise(index);
+            }
+          }}
+          role="button"
+          tabindex={timerState === 'paused' && index !== currentExerciseIndex ? 0 : -1}
         >
           <div class="exercise-item-header">
             <span class="exercise-item-name">{exercise.name}</span>
@@ -1312,6 +1519,16 @@
     border-radius: var(--border-radius);
     padding: var(--spacing-md);
     transition: all 0.3s ease;
+  }
+
+  .exercise-item.clickable {
+    cursor: pointer;
+  }
+
+  .exercise-item.clickable:hover {
+    background-color: #2a4a7f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   }
 
   .exercise-item.active {
