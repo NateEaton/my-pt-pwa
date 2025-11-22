@@ -73,9 +73,11 @@
         const registration = await navigator.serviceWorker.getRegistration();
         await registration?.update();
 
-        // If no update is found after a short delay, notify user
+        // Wait for PWA plugin to detect update, then show appropriate message
         setTimeout(() => {
-          if (!$pwaUpdateAvailable) {
+          if ($pwaUpdateAvailable) {
+            toastStore.show('Update available! Tap "Install Update" below.', 'info', 0);
+          } else {
             toastStore.show('You\'re running the latest version', 'success');
           }
         }, 2000);
@@ -90,8 +92,10 @@
     const updateFn = $pwaUpdateFunction;
     if (updateFn) {
       try {
+        toastStore.show('Installing update...', 'info');
         await updateFn();
-        // Page will reload automatically after update
+        // Force hard reload to bypass cache and show new build number
+        window.location.reload();
       } catch (error) {
         console.error('Update installation failed:', error);
         toastStore.show('Failed to install update', 'error');

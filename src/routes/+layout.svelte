@@ -51,16 +51,9 @@
         }
       });
 
-      // Subscribe to needRefresh and show notification
+      // Subscribe to needRefresh (don't show automatic toast - let Settings page handle it)
       needRefresh.subscribe(value => {
         pwaUpdateAvailable.set(value);
-        if (value) {
-          toastStore.show(
-            'Update available! Go to Settings to update.',
-            'info',
-            0  // Don't auto-dismiss
-          );
-        }
       });
 
       // Store update function for use in Settings
