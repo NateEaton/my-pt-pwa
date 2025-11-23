@@ -17,7 +17,7 @@
   src: url('/fonts/material-icons-v143-latin-regular.woff2') format('woff2'),
        url('/fonts/material-icons-v143-latin-regular.woff') format('woff'),
        url('/fonts/material-icons-v143-latin-regular.ttf') format('truetype');
-  font-display: swap;
+  font-display: block; /* Ensure icons are visible on load from cache, preventing icon names from showing */
 }
 
 /* CSS Reset and Base Styles */
