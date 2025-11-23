@@ -51,15 +51,19 @@
         }
       });
 
-      // Subscribe to needRefresh and show notification
+      // Subscribe to needRefresh and show notification if not on Settings page
       needRefresh.subscribe(value => {
         pwaUpdateAvailable.set(value);
         if (value) {
-          toastStore.show(
-            'Update available! Go to Settings to update.',
-            'info',
-            0  // Don't auto-dismiss
-          );
+          // Only show "Go to Settings" toast if user is not already on Settings page
+          const currentPath = window.location.pathname;
+          if (!currentPath.includes('/settings')) {
+            toastStore.show(
+              'Update available! Go to Settings to update.',
+              'info',
+              0  // Don't auto-dismiss
+            );
+          }
         }
       });
 

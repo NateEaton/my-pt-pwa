@@ -20,17 +20,21 @@
   const dispatch = createEventDispatcher();
 
   // Form state
-  let defaultRepDuration = 2;
+  let defaultDuration = 60;
+  let defaultRepDuration = 30;
+  let defaultPauseBetweenReps = 5;
   let startCountdownDuration = 3;
   let endSessionDelay = 5;
-  let restBetweenSets = 30;
+  let restBetweenSets = 20;
   let enableAutoAdvance = true;
-  let pauseBetweenExercises = 10;
+  let pauseBetweenExercises = 20;
 
   // Load current settings
   onMount(() => {
     if ($ptState.settings) {
+      defaultDuration = $ptState.settings.defaultDuration;
       defaultRepDuration = $ptState.settings.defaultRepDuration;
+      defaultPauseBetweenReps = $ptState.settings.defaultPauseBetweenReps;
       startCountdownDuration = $ptState.settings.startCountdownDuration;
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
@@ -48,7 +52,9 @@
 
     const newSettings: AppSettings = {
       ...$ptState.settings,
+      defaultDuration,
       defaultRepDuration,
+      defaultPauseBetweenReps,
       startCountdownDuration,
       endSessionDelay,
       restBetweenSets,
@@ -82,8 +88,26 @@
     <div class="settings-list">
       <div class="setting-item">
         <div class="setting-info">
-          <span class="setting-label">Default Rep Duration</span>
-          <span class="setting-description">Seconds per rep (for timing estimates)</span>
+          <span class="setting-label">Exercise Duration</span>
+          <span class="setting-description">Default period for timed exercises</span>
+        </div>
+        <div class="setting-control">
+          <input
+            type="number"
+            bind:value={defaultDuration}
+            min="1"
+            max="600"
+            step="1"
+            class="setting-input"
+          />
+          <span class="input-suffix">s</span>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Rep Duration</span>
+          <span class="setting-description">Default period per repetition</span>
         </div>
         <div class="setting-control">
           <input
@@ -91,6 +115,42 @@
             bind:value={defaultRepDuration}
             min="1"
             max="120"
+            step="1"
+            class="setting-input"
+          />
+          <span class="input-suffix">s</span>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Pause Between Reps</span>
+          <span class="setting-description">Default pause between individual reps (e.g., to switch legs)</span>
+        </div>
+        <div class="setting-control">
+          <input
+            type="number"
+            bind:value={defaultPauseBetweenReps}
+            min="0"
+            max="60"
+            step="1"
+            class="setting-input"
+          />
+          <span class="input-suffix">s</span>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Rest Between Sets</span>
+          <span class="setting-description">Default rest period between sets</span>
+        </div>
+        <div class="setting-control">
+          <input
+            type="number"
+            bind:value={restBetweenSets}
+            min="0"
+            max="300"
             step="1"
             class="setting-input"
           />
@@ -132,8 +192,8 @@
       {#if enableAutoAdvance}
         <div class="setting-item sub-setting">
           <div class="setting-info">
-            <span class="setting-label">Pause Between Exercises</span>
-            <span class="setting-description">Preparation time before automatically starting next exercise</span>
+            <span class="setting-label">Rest Between Exercises</span>
+            <span class="setting-description">Rest time before automatically starting next exercise</span>
           </div>
           <div class="setting-control">
             <input

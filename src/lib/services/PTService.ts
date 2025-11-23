@@ -45,12 +45,15 @@ const STORES = {
 
 // Default application settings
 const DEFAULT_SETTINGS: AppSettings = {
+  defaultDuration: 60, // 60 seconds default duration for duration-based exercises
   defaultRepDuration: 30, // 30 seconds per rep
+  defaultPauseBetweenReps: 5, // 5 seconds pause between reps
   startCountdownDuration: 3, // 3 second countdown before start (3-2-1)
   endSessionDelay: 5, // 5 second delay before session player closes
   restBetweenSets: 20, // 20 seconds between sets
   enableAutoAdvance: true, // Auto-advance enabled by default
-  pauseBetweenExercises: 20, // 20 seconds pause between exercises when auto-advance is enabled
+  pauseBetweenExercises: 20, // 20 seconds rest between exercises when auto-advance is enabled
+  resumeFromPausePoint: true, // Continue from pause point by default (vs restarting exercise)
   theme: 'auto',
   exerciseSortOrder: 'alphabetical',
   soundEnabled: false, // Sound OFF by default

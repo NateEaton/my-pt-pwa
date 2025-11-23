@@ -66,22 +66,38 @@
   }
 
   // PWA Update handling
+  let checkingForUpdate = false;
+  let updateCheckTimeout: number | undefined;
+
+  // Watch for update state changes when manually checking
+  $: if (checkingForUpdate && $pwaUpdateAvailable) {
+    // Update detected!
+    checkingForUpdate = false;
+    if (updateCheckTimeout) clearTimeout(updateCheckTimeout);
+    toastStore.show('Update available! Tap "Install Update" below.', 'info', 0);
+  }
+
   async function checkForUpdate() {
     try {
       if ('serviceWorker' in navigator) {
         toastStore.show('Checking for updates...', 'info');
+        checkingForUpdate = true;
+
         const registration = await navigator.serviceWorker.getRegistration();
         await registration?.update();
 
-        // If no update is found after a short delay, notify user
-        setTimeout(() => {
-          if (!$pwaUpdateAvailable) {
+        // If no update detected after 3 seconds, show "latest version" message
+        updateCheckTimeout = window.setTimeout(() => {
+          if (checkingForUpdate && !$pwaUpdateAvailable) {
+            checkingForUpdate = false;
             toastStore.show('You\'re running the latest version', 'success');
           }
-        }, 2000);
+        }, 3000);
       }
     } catch (error) {
       console.error('Update check failed:', error);
+      checkingForUpdate = false;
+      if (updateCheckTimeout) clearTimeout(updateCheckTimeout);
       toastStore.show('Failed to check for updates', 'error');
     }
   }
@@ -90,8 +106,10 @@
     const updateFn = $pwaUpdateFunction;
     if (updateFn) {
       try {
+        toastStore.show('Installing update...', 'info');
         await updateFn();
-        // Page will reload automatically after update
+        // Force hard reload to bypass cache and show new build number
+        window.location.reload();
       } catch (error) {
         console.error('Update installation failed:', error);
         toastStore.show('Failed to install update', 'error');
