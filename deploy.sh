@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # My PT PWA - Multi-Environment Build & Deploy Script
+# See DEPLOYMENT.md for complete deployment documentation
 set -e # Exit on any error
 
 # --- Load environment variables needed within this script if .env exists ---
@@ -55,6 +56,7 @@ try {
 echo "📋 Build ID: $BUILD_ID"
 
 # Set deployment directory AND base path based on environment
+# BASE_PATH must match nginx config location paths (see DEPLOYMENT.md)
 DEPLOY_DIR=""
 export BASE_PATH="" # Export the variable so npm scripts can see it
 
@@ -77,12 +79,12 @@ if [ "$ENVIRONMENT" = "prod" ]; then
     # --- Build Process ---
     echo "📦 Installing dependencies..."
     npm install
-    
+
     DEPLOY_DIR="$PROD_DEPLOY_DIR"
-    export BASE_PATH="" # Production serves at root path
+    export BASE_PATH="" # Production serves at root path (matches nginx-prod-recommended.conf)
 elif [ "$ENVIRONMENT" = "dev" ]; then
     DEPLOY_DIR="$DEV_DEPLOY_DIR"
-    export BASE_PATH="/my-pt-pwa-dev" # Set for development
+    export BASE_PATH="/my-pt-pwa-dev" # Development sub-path (matches nginx-dev-recommended.conf)
 elif [ "$ENVIRONMENT" = "test" ]; then
     # Test mode - no deployment directory needed
     export BASE_PATH="" # Test serves at root path
@@ -142,6 +144,23 @@ if [ $? -eq 0 ]; then
             echo "📋 Deployed Build ID: $BUILD_ID"
             echo "📊 Build size:"
             du -sh "$DEPLOY_DIR"
+            echo ""
+            echo "📝 Next steps:"
+            if [ "$ENVIRONMENT" = "prod" ]; then
+                echo "  1. Verify nginx config: nginx-prod-recommended.conf"
+                echo "  2. Test the deployment: https://my-pt.eatonfamily.net"
+                echo "  3. Check service worker updates work (Settings → Check for Updates)"
+                echo "  4. Verify offline functionality (disconnect, reload)"
+                echo "  5. Check build number in About matches: $BUILD_ID"
+            else
+                echo "  1. Verify nginx config: nginx-dev-recommended.conf"
+                echo "  2. Test the deployment: https://my-pt-dev.eatonfamily.net/my-pt-pwa-dev/"
+                echo "  3. Check service worker updates work (Settings → Check for Updates)"
+                echo "  4. Verify offline functionality (disconnect, reload)"
+                echo "  5. Check build number in About matches: $BUILD_ID"
+            fi
+            echo ""
+            echo "ℹ️  See DEPLOYMENT.md for troubleshooting and nginx config details"
         else
             echo "⚠️ Deployment directory not configured or does not exist."
             echo "Please set PROD_DEPLOY_DIR or DEV_DEPLOY_DIR in your .env file."
