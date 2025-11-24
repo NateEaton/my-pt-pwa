@@ -73,7 +73,7 @@
         </span>
       {:else}
         <span class="detail-item">
-          <span class="material-icons detail-icon">fitness_center</span>
+          <span class="material-icons detail-icon">repeat</span>
           {exercise.defaultSets} {exercise.defaultSets === 1 ? 'set' : 'sets'} × {exercise.defaultReps} reps
           {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
             <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>

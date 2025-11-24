@@ -1297,7 +1297,7 @@
         on:click={toggleAutoAdvance}
         title={autoAdvanceActive ? 'Auto-advance enabled' : 'Auto-advance disabled'}
       >
-        <span class="material-icons">{autoAdvanceActive ? 'play_circle' : 'pause_circle'}</span>
+        <span class="material-icons">{autoAdvanceActive ? 'autorenew' : 'stop_circle'}</span>
       </button>
 
       <div class="session-center">
@@ -1577,7 +1577,7 @@
                 <span class="material-icons detail-icon">timer</span>
                 <span>{exercise.defaultDuration}s</span>
               {:else}
-                <span class="material-icons detail-icon">fitness_center</span>
+                <span class="material-icons detail-icon">repeat</span>
                 <span>{exercise.defaultSets} {exercise.defaultSets === 1 ? 'set' : 'sets'} × {exercise.defaultReps} reps</span>
                 {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
                   <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>
