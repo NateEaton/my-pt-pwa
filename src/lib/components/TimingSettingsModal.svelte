@@ -13,6 +13,7 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from 'svelte';
   import Modal from './Modal.svelte';
+  import DurationInput from './DurationInput.svelte';
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import type { AppSettings } from '$lib/types/pt';
@@ -92,15 +93,12 @@
           <span class="setting-description">Default period for timed exercises</span>
         </div>
         <div class="setting-control">
-          <input
-            type="number"
+          <DurationInput
             bind:value={defaultDuration}
-            min="1"
-            max="600"
-            step="1"
-            class="setting-input"
+            min={1}
+            max={600}
+            placeholder="MM:SS or seconds"
           />
-          <span class="input-suffix">s</span>
         </div>
       </div>
 
@@ -110,15 +108,12 @@
           <span class="setting-description">Default period per repetition</span>
         </div>
         <div class="setting-control">
-          <input
-            type="number"
+          <DurationInput
             bind:value={defaultRepDuration}
-            min="1"
-            max="120"
-            step="1"
-            class="setting-input"
+            min={1}
+            max={120}
+            placeholder="MM:SS or seconds"
           />
-          <span class="input-suffix">s</span>
         </div>
       </div>
 
@@ -128,15 +123,12 @@
           <span class="setting-description">Default pause between individual reps (e.g., to switch legs)</span>
         </div>
         <div class="setting-control">
-          <input
-            type="number"
+          <DurationInput
             bind:value={defaultPauseBetweenReps}
-            min="0"
-            max="60"
-            step="1"
-            class="setting-input"
+            min={0}
+            max={60}
+            placeholder="MM:SS or seconds"
           />
-          <span class="input-suffix">s</span>
         </div>
       </div>
 
@@ -146,15 +138,12 @@
           <span class="setting-description">Default rest period between sets</span>
         </div>
         <div class="setting-control">
-          <input
-            type="number"
+          <DurationInput
             bind:value={restBetweenSets}
-            min="0"
-            max="300"
-            step="1"
-            class="setting-input"
+            min={0}
+            max={300}
+            placeholder="MM:SS or seconds"
           />
-          <span class="input-suffix">s</span>
         </div>
       </div>
 
@@ -164,15 +153,12 @@
           <span class="setting-description">Countdown before exercise starts (3-2-1)</span>
         </div>
         <div class="setting-control">
-          <input
-            type="number"
+          <DurationInput
             bind:value={startCountdownDuration}
-            min="0"
-            max="10"
-            step="1"
-            class="setting-input"
+            min={0}
+            max={10}
+            placeholder="MM:SS or seconds"
           />
-          <span class="input-suffix">s</span>
         </div>
       </div>
 
@@ -196,15 +182,12 @@
             <span class="setting-description">Rest time before automatically starting next exercise</span>
           </div>
           <div class="setting-control">
-            <input
-              type="number"
+            <DurationInput
               bind:value={pauseBetweenExercises}
-              min="0"
-              max="120"
-              step="1"
-              class="setting-input"
+              min={0}
+              max={120}
+              placeholder="MM:SS or seconds"
             />
-            <span class="input-suffix">s</span>
           </div>
         </div>
       {/if}
@@ -215,15 +198,12 @@
           <span class="setting-description">Delay before closing session player after completion</span>
         </div>
         <div class="setting-control">
-          <input
-            type="number"
+          <DurationInput
             bind:value={endSessionDelay}
-            min="0"
-            max="10"
-            step="1"
-            class="setting-input"
+            min={0}
+            max={10}
+            placeholder="MM:SS or seconds"
           />
-          <span class="input-suffix">s</span>
         </div>
       </div>
     </div>
@@ -314,12 +294,6 @@
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px var(--primary-alpha-10);
-  }
-
-  .input-suffix {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    min-width: 1rem;
   }
 
   /* Toggle Switch */

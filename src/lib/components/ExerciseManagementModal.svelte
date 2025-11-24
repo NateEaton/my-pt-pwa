@@ -14,6 +14,7 @@
   import { createEventDispatcher, onMount } from 'svelte';
   import Modal from './Modal.svelte';
   import ConfirmDialog from './ConfirmDialog.svelte';
+  import DurationInput from './DurationInput.svelte';
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import type { Exercise, SessionDefinition } from '$lib/types/pt';
@@ -503,16 +504,12 @@
       {#if exerciseFormData.type === 'duration'}
         <div class="form-group">
           <label for="default-duration">Duration</label>
-          <div class="input-with-suffix">
-            <input
-              id="default-duration"
-              type="number"
-              bind:value={exerciseFormData.defaultDuration}
-              min="1"
-              step="1"
-            />
-            <span class="input-suffix">s</span>
-          </div>
+          <DurationInput
+            id="default-duration"
+            bind:value={exerciseFormData.defaultDuration}
+            min={1}
+            placeholder="MM:SS or seconds"
+          />
         </div>
       {:else}
         <div class="form-row">
@@ -539,45 +536,33 @@
         </div>
         <div class="form-group">
           <label for="rep-duration">Duration per Rep</label>
-          <div class="input-with-suffix">
-            <input
-              id="rep-duration"
-              type="number"
-              bind:value={exerciseFormData.defaultRepDuration}
-              min="1"
-              max="120"
-              step="1"
-            />
-            <span class="input-suffix">s</span>
-          </div>
+          <DurationInput
+            id="rep-duration"
+            bind:value={exerciseFormData.defaultRepDuration}
+            min={1}
+            max={120}
+            placeholder="MM:SS or seconds"
+          />
         </div>
         <div class="form-group">
           <label for="pause-between-reps">Pause Between Reps</label>
-          <div class="input-with-suffix">
-            <input
-              id="pause-between-reps"
-              type="number"
-              bind:value={exerciseFormData.pauseBetweenReps}
-              min="0"
-              max="60"
-              step="1"
-            />
-            <span class="input-suffix">s</span>
-          </div>
+          <DurationInput
+            id="pause-between-reps"
+            bind:value={exerciseFormData.pauseBetweenReps}
+            min={0}
+            max={60}
+            placeholder="MM:SS or seconds"
+          />
         </div>
         <div class="form-group">
           <label for="rest-between-sets">Rest Between Sets</label>
-          <div class="input-with-suffix">
-            <input
-              id="rest-between-sets"
-              type="number"
-              bind:value={exerciseFormData.restBetweenSets}
-              min="0"
-              max="300"
-              step="1"
-            />
-            <span class="input-suffix">s</span>
-          </div>
+          <DurationInput
+            id="rest-between-sets"
+            bind:value={exerciseFormData.restBetweenSets}
+            min={0}
+            max={300}
+            placeholder="MM:SS or seconds"
+          />
         </div>
       {/if}
 
@@ -954,18 +939,6 @@
 
   .form-group textarea {
     resize: vertical;
-  }
-
-  .input-with-suffix {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-  }
-
-  .input-suffix {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    min-width: 1rem;
   }
 
   .modal-actions {
