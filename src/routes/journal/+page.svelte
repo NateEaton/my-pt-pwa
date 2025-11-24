@@ -522,8 +522,12 @@
                     <span class="exercise-type-badge reps">Reps</span>
                     {#if completedEx.targetSets && completedEx.targetReps}
                       <span class="exercise-target">
-                        Target: {completedEx.targetSets} sets × {completedEx.targetReps} reps
+                        Target: {completedEx.targetSets} {completedEx.targetSets === 1 ? 'set' : 'sets'} × {completedEx.targetReps} reps
                       </span>
+                      {@const exercise = $ptState.exercises.find(e => e.id === completedEx.exerciseId)}
+                      {#if exercise && exercise.sideMode && exercise.sideMode !== 'bilateral'}
+                        <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>
+                      {/if}
                     {/if}
                   {/if}
                 </div>
@@ -1090,6 +1094,16 @@
   .exercise-type-badge.reps {
     background-color: #e3f2fd;
     color: #1976d2;
+  }
+
+  .mode-badge {
+    margin-left: var(--spacing-xs);
+    padding: 2px var(--spacing-xs);
+    border-radius: calc(var(--border-radius) / 2);
+    background-color: rgba(156, 39, 176, 0.1);
+    color: #9c27b0;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
   }
 
   .exercise-target {

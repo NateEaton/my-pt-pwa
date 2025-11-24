@@ -54,6 +54,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   enableAutoAdvance: true, // Auto-advance enabled by default
   pauseBetweenExercises: 20, // 20 seconds rest between exercises when auto-advance is enabled
   resumeFromPausePoint: true, // Continue from pause point by default (vs restarting exercise)
+  startingSide: 'left', // Start with left side for unilateral/alternating exercises
   theme: 'auto',
   exerciseSortOrder: 'alphabetical',
   soundEnabled: false, // Sound OFF by default

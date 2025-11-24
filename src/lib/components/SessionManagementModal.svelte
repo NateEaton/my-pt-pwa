@@ -443,8 +443,11 @@
                     <div class="exercise-order-meta">
                       {exercise.type === 'duration'
                         ? formatDuration(exercise.defaultDuration || 0)
-                        : `${exercise.defaultReps} × ${exercise.defaultSets}`
+                        : `${exercise.defaultSets} ${exercise.defaultSets === 1 ? 'set' : 'sets'} × ${exercise.defaultReps} reps`
                       }
+                      {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
+                        <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>
+                      {/if}
                     </div>
                   </div>
                   <div class="exercise-order-controls">
@@ -505,8 +508,11 @@
                     <span class="exercise-checkbox-meta">
                       {exercise.type === 'duration'
                         ? formatDuration(exercise.defaultDuration || 0)
-                        : `${exercise.defaultReps} × ${exercise.defaultSets}`
+                        : `${exercise.defaultSets} ${exercise.defaultSets === 1 ? 'set' : 'sets'} × ${exercise.defaultReps} reps`
                       }
+                      {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
+                        <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>
+                      {/if}
                     </span>
                   </span>
                 </label>
@@ -966,6 +972,16 @@
   .exercise-checkbox-meta {
     font-size: var(--font-size-xs);
     color: var(--text-secondary);
+  }
+
+  .mode-badge {
+    margin-left: var(--spacing-xs);
+    padding: 2px var(--spacing-xs);
+    border-radius: calc(var(--border-radius) / 2);
+    background-color: rgba(156, 39, 176, 0.1);
+    color: #9c27b0;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
   }
 
   .checkbox-label {

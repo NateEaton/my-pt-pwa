@@ -49,10 +49,38 @@ export default defineConfig(({ mode }) => {
     plugins: [
       sveltekit(),
       VitePWA({
-        registerType: "prompt",
+        registerType: "autoUpdate",
         workbox: {
+          cleanupOutdatedCaches: true,
+          skipWaiting: true,
+          clientsClaim: true,
           globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
           additionalManifestEntries: [{ url: "index.html", revision: null }],
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/.*\/?$/,
+              handler: "NetworkFirst",
+              options: {
+                cacheName: "navigation",
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 // 1 day
+                },
+                networkTimeoutSeconds: 3
+              }
+            },
+            {
+              urlPattern: /\.(?:js|css)$/,
+              handler: "StaleWhileRevalidate",
+              options: {
+                cacheName: "assets",
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                }
+              }
+            }
+          ]
         },
         includeAssets: ["favicon.ico", "index.html"],
         manifest: {

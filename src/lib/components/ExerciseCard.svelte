@@ -16,6 +16,10 @@
   export let exercise: Exercise;
   export let showActions: boolean = false;
   export let compact: boolean = false;
+  export let showInstructions: boolean = false;
+  export let onToggleInstructions: (() => void) | null = null;
+  export let onMakeActive: (() => void) | null = null;
+  export let isActive: boolean = false;
 
   function formatDuration(seconds: number): string {
     if (seconds < 60) return `${seconds}s`;
@@ -39,6 +43,18 @@
 </script>
 
 <div class="exercise-card" class:compact>
+  <!-- Info icon (left side) -->
+  {#if onToggleInstructions && exercise.instructions}
+    <button
+      class="icon-button info-icon"
+      on:click|stopPropagation={onToggleInstructions}
+      aria-label="Toggle instructions"
+      title="Toggle instructions"
+    >
+      <span class="material-icons">info</span>
+    </button>
+  {/if}
+
   <div class="exercise-info">
     <div class="exercise-header">
       <h3 class="exercise-name">{exercise.name}</h3>
@@ -58,7 +74,10 @@
       {:else}
         <span class="detail-item">
           <span class="material-icons detail-icon">fitness_center</span>
-          {exercise.defaultReps} reps × {exercise.defaultSets} sets
+          {exercise.defaultSets} {exercise.defaultSets === 1 ? 'set' : 'sets'} × {exercise.defaultReps} reps
+          {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
+            <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>
+          {/if}
         </span>
         {#if !compact}
           <span class="detail-item">
@@ -69,10 +88,25 @@
       {/if}
     </div>
 
-    {#if exercise.instructions && !compact}
-      <p class="exercise-instructions">{exercise.instructions}</p>
+    <!-- Expandable instructions panel -->
+    {#if showInstructions && exercise.instructions}
+      <div class="instructions-panel">
+        {exercise.instructions}
+      </div>
     {/if}
   </div>
+
+  <!-- Make active icon (right side, Play view only) -->
+  {#if onMakeActive && !isActive}
+    <button
+      class="icon-button make-active-icon"
+      on:click|stopPropagation={onMakeActive}
+      aria-label="Jump to this exercise"
+      title="Jump to this exercise"
+    >
+      <span class="material-icons">play_circle</span>
+    </button>
+  {/if}
 
   {#if showActions}
     <div class="exercise-actions">
@@ -97,8 +131,44 @@
     padding: var(--spacing-md);
   }
 
+  .icon-button {
+    background: none;
+    border: none;
+    padding: var(--spacing-xs);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .icon-button:hover {
+    background-color: var(--primary-alpha-10);
+    color: var(--primary-color);
+  }
+
+  .icon-button:active {
+    transform: scale(0.95);
+  }
+
+  .icon-button .material-icons {
+    font-size: var(--icon-size-md);
+  }
+
+  .info-icon {
+    align-self: flex-start;
+  }
+
+  .make-active-icon {
+    align-self: flex-start;
+  }
+
   .exercise-info {
     flex: 1;
+    min-width: 0;
   }
 
   .exercise-header {
@@ -129,6 +199,16 @@
     color: var(--primary-color);
   }
 
+  .mode-badge {
+    margin-left: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+    padding: 2px var(--spacing-xs);
+    border-radius: calc(var(--border-radius) / 2);
+    background-color: rgba(156, 39, 176, 0.1);
+    color: #9c27b0;
+    font-weight: 500;
+  }
+
   .exercise-details {
     display: flex;
     flex-wrap: wrap;
@@ -152,6 +232,29 @@
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
     line-height: 1.5;
+  }
+
+  .instructions-panel {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background-color: var(--surface);
+    border-left: 3px solid var(--primary-color);
+    border-radius: calc(var(--border-radius) / 2);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+    animation: slideDown 0.2s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .exercise-actions {

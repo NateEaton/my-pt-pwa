@@ -79,6 +79,7 @@
     defaultRepDuration: $ptState.settings?.defaultRepDuration || 30,
     pauseBetweenReps: $ptState.settings?.defaultPauseBetweenReps || 5,
     restBetweenSets: $ptState.settings?.restBetweenSets || 20,
+    sideMode: 'bilateral' as 'bilateral' | 'unilateral' | 'alternating',
     instructions: '',
     includeInDefault: true
   };
@@ -160,6 +161,7 @@
       defaultRepDuration: exercise.defaultRepDuration || 2,
       pauseBetweenReps: exercise.pauseBetweenReps ?? 5,
       restBetweenSets: exercise.restBetweenSets ?? 30,
+      sideMode: exercise.sideMode || 'bilateral',
       instructions: exercise.instructions || '',
       includeInDefault: exercise.includeInDefault
     };
@@ -178,6 +180,7 @@
       defaultRepDuration: settings?.defaultRepDuration || 30,
       pauseBetweenReps: settings?.defaultPauseBetweenReps || 5,
       restBetweenSets: settings?.restBetweenSets || 20,
+      sideMode: 'bilateral',
       instructions: '',
       includeInDefault: true
     };
@@ -206,6 +209,7 @@
           defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
           pauseBetweenReps: exerciseFormData.type === 'reps' ? exerciseFormData.pauseBetweenReps : undefined,
           restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
+          sideMode: exerciseFormData.type === 'reps' ? exerciseFormData.sideMode : undefined,
           instructions: exerciseFormData.instructions.trim() || undefined,
           includeInDefault: exerciseFormData.includeInDefault
         };
@@ -222,6 +226,7 @@
           defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
           pauseBetweenReps: exerciseFormData.type === 'reps' ? exerciseFormData.pauseBetweenReps : undefined,
           restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
+          sideMode: exerciseFormData.type === 'reps' ? exerciseFormData.sideMode : undefined,
           instructions: exerciseFormData.instructions.trim() || undefined,
           includeInDefault: exerciseFormData.includeInDefault,
           dateAdded: new Date().toISOString()
@@ -446,7 +451,10 @@
                 {:else}
                   <span class="detail-item">
                     <span class="material-icons detail-icon">repeat</span>
-                    {exercise.defaultReps} × {exercise.defaultSets}
+                    {exercise.defaultSets} {exercise.defaultSets === 1 ? 'set' : 'sets'} × {exercise.defaultReps} reps
+                    {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
+                      <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>
+                    {/if}
                   </span>
                 {/if}
               </div>
@@ -533,6 +541,19 @@
               step="1"
             />
           </div>
+        </div>
+        <div class="form-group">
+          <label for="side-mode">Mode</label>
+          <select id="side-mode" bind:value={exerciseFormData.sideMode}>
+            <option value="bilateral">Bilateral</option>
+            <option value="unilateral">Unilateral</option>
+            <option value="alternating">Alternating</option>
+          </select>
+          <p class="help-text">
+            <strong>Bilateral:</strong> Standard exercise<br>
+            <strong>Unilateral:</strong> Perform all reps on one side, then all reps on the other<br>
+            <strong>Alternating:</strong> Switch left-right with each rep
+          </p>
         </div>
         <div class="form-group">
           <label for="rep-duration">Duration per Rep</label>
@@ -786,6 +807,16 @@
     color: var(--primary-color);
   }
 
+  .mode-badge {
+    margin-left: var(--spacing-xs);
+    padding: 2px var(--spacing-xs);
+    border-radius: calc(var(--border-radius) / 2);
+    background-color: rgba(156, 39, 176, 0.1);
+    color: #9c27b0;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+  }
+
   .exercise-details {
     display: flex;
     gap: var(--spacing-md);
@@ -939,6 +970,13 @@
 
   .form-group textarea {
     resize: vertical;
+  }
+
+  .help-text {
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
   }
 
   .modal-actions {

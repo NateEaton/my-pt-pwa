@@ -17,6 +17,7 @@
   import { toastStore } from '$lib/stores/toast';
   import { audioService } from '$lib/services/AudioService';
   import DisplayRow from '$lib/components/DisplayRow.svelte';
+  import SideIndicator from '$lib/components/SideIndicator.svelte';
   import type { Exercise, SessionDefinition, SessionInstance, CompletedExercise } from '$lib/types/pt';
 
   // Player state
@@ -34,8 +35,11 @@
   let restElapsedSeconds = 0; // Time elapsed during rest period
   let currentSet = 1;
   let currentRep = 1;
+  let currentSide: 'left' | 'right' | null = null; // Track current side for unilateral/alternating exercises
+  let sidePhase: 'first' | 'second' = 'first'; // Track which side phase we're in (for unilateral mode)
   let repElapsedSeconds = 0; // Track time within current rep for countdown
   let isPausingBetweenReps = false; // Track pause state between reps
+  let isAwaitingSetContinuation = false; // Track if paused after set/phase completion awaiting manual advance
   let pauseRemainingSeconds = 0; // Countdown for pause between reps
   let preparingSeconds = 0; // Countdown for preparing/transition between exercises
   let preparingInterval: number | undefined;
@@ -52,6 +56,7 @@
   let enableAutoAdvance = true;
   let pauseBetweenExercises = 10;
   let resumeFromPausePoint = true;
+  let startingSide: 'left' | 'right' = 'left';
 
   // Runtime auto-advance toggle (can be toggled during session)
   let autoAdvanceActive = true;
@@ -61,6 +66,13 @@
   // Auto-scroll support for exercise list
   let exerciseElements: HTMLElement[] = [];
   let exerciseListContainer: HTMLElement | null = null;
+
+  // Instruction expansion state (accordion pattern)
+  let expandedExerciseId: number | null = null;
+
+  function toggleInstructions(exerciseId: number) {
+    expandedExerciseId = expandedExerciseId === exerciseId ? null : exerciseId;
+  }
 
   // Wake Lock to keep screen awake during session
   let wakeLock: any = null;
@@ -195,6 +207,7 @@
       enableAutoAdvance = $ptState.settings.enableAutoAdvance;
       pauseBetweenExercises = $ptState.settings.pauseBetweenExercises;
       resumeFromPausePoint = $ptState.settings.resumeFromPausePoint;
+      startingSide = $ptState.settings.startingSide || 'left';
     }
 
     // Determine auto-advance setting: session-specific or app default
@@ -336,6 +349,29 @@
     if (pauseInterval) clearInterval(pauseInterval);
   }
 
+  // ==================== Side Mode Helper Functions ====================
+
+  /**
+   * Initialize the currentSide based on exercise sideMode and startingSide setting
+   */
+  function initializeSide(exercise: Exercise) {
+    const sideMode = exercise.sideMode || 'bilateral';
+    if (sideMode === 'bilateral') {
+      currentSide = null;
+    } else {
+      currentSide = startingSide;
+    }
+  }
+
+  /**
+   * Get the opposite side
+   */
+  function getOppositeSide(side: 'left' | 'right'): 'left' | 'right' {
+    return side === 'left' ? 'right' : 'left';
+  }
+
+  // ==================== Exercise Control Functions ====================
+
   function startExerciseCountdown() {
     timerState = 'countdown';
     countdownSeconds = 3; // Fixed 3-second countdown
@@ -368,6 +404,8 @@
     isPausingBetweenReps = false;
     currentSet = 1;
     currentRep = 1;
+    sidePhase = 'first'; // Reset side phase
+    initializeSide(currentExercise); // Initialize side for unilateral/alternating
 
     if (currentExercise.type === 'duration') {
       startDurationExercise();
@@ -450,6 +488,7 @@
     const reps = currentExercise.defaultReps || 10;
     const sets = currentExercise.defaultSets || 3;
     const repDuration = currentExercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 2;
+    const sideMode = currentExercise.sideMode || 'bilateral';
 
     // Reset counters when starting fresh
     exerciseElapsedSeconds = 0;
@@ -475,53 +514,119 @@
       exerciseElapsedSeconds++;
       repElapsedSeconds++;
 
-      // Determine current rep within the set (handle boundary case when last rep completes)
-      const timeInSet = exerciseElapsedSeconds % (reps * repDuration);
-      const repIndex = Math.floor(timeInSet / repDuration);
-      // If timeInSet is 0 and we've completed some time, we're at the end of a set
-      currentRep = (timeInSet === 0 && exerciseElapsedSeconds > 0) ? reps : Math.min(reps, repIndex + 1);
+      // Calculate current rep display based on mode
+      if (sideMode === 'alternating') {
+        // For alternating: each rep number appears twice (L then R)
+        // Internal rep count: 1, 2, 3, 4, 5, 6, 7, 8 (for 4 reps)
+        // Display rep count: 1, 1, 2, 2, 3, 3, 4, 4
+        const timeInSet = exerciseElapsedSeconds % (reps * 2 * repDuration);
+        const internalRepIndex = Math.floor(timeInSet / repDuration);
+        currentRep = Math.floor(internalRepIndex / 2) + 1;
+        if (currentRep > reps) currentRep = reps;
+      } else {
+        // For bilateral and unilateral: normal rep counting
+        const timeInSet = exerciseElapsedSeconds % (reps * repDuration);
+        const repIndex = Math.floor(timeInSet / repDuration);
+        currentRep = (timeInSet === 0 && exerciseElapsedSeconds > 0) ? reps : Math.min(reps, repIndex + 1);
+      }
 
       // Check if rep is complete
       if (repElapsedSeconds >= repDuration) {
-        const isEndOfSet = (exerciseElapsedSeconds % (reps * repDuration) === 0);
+        // Determine if we've completed a "phase" based on mode
+        let isEndOfPhase = false;
 
-        if (isEndOfSet) {
-          // Set is complete
+        if (sideMode === 'alternating') {
+          // For alternating: end of phase is after both sides complete all reps (reps * 2 iterations)
+          isEndOfPhase = (exerciseElapsedSeconds % (reps * 2 * repDuration) === 0);
+        } else if (sideMode === 'unilateral') {
+          // For unilateral: end of phase is after one side completes (reps iterations)
+          isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
+        } else {
+          // For bilateral: end of phase is end of set
+          isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
+        }
+
+        if (isEndOfPhase) {
+          // Phase is complete
           clearInterval(exerciseTimerInterval);
 
-          if (currentSet >= sets) {
-            // Exercise complete - all sets done
-            completeCurrentExercise();
-          } else {
-            // Set complete, more sets to go
-            currentSet++;
+          // For unilateral mode, check if we need to do the second side
+          if (sideMode === 'unilateral' && sidePhase === 'first') {
+            // Switch to second side, keep same set number
+            sidePhase = 'second';
+            if (currentSide) {
+              currentSide = getOppositeSide(currentSide);
+            }
             exerciseElapsedSeconds = 0;
             repElapsedSeconds = 0;
             isPausingBetweenReps = false;
+            currentRep = 1;
 
             // Get rest duration
             const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
 
             // Automatically start rest timer if there's a non-zero rest time
             if (restDuration > 0) {
-              // Add a small delay before starting rest to prevent overlapping tones
               setTimeout(() => {
                 startRestTimer();
               }, 300);
             } else {
-              // No rest configured, either auto-advance to next set or pause
+              // No rest configured, either auto-advance to second side or pause
               if (autoAdvanceActive) {
                 startRepsExercise();
               } else {
+                isAwaitingSetContinuation = true;
                 timerState = 'paused';
+              }
+            }
+          } else {
+            // Either bilateral/alternating completed, or unilateral second side completed
+            // Check if all sets are done
+            if (currentSet >= sets) {
+              // Exercise complete - all sets done
+              completeCurrentExercise();
+            } else {
+              // Set complete, more sets to go
+              currentSet++;
+              sidePhase = 'first'; // Reset to first side for next set
+              if (sideMode === 'unilateral' && currentSide) {
+                // Reset to starting side for next set
+                currentSide = startingSide;
+              }
+              exerciseElapsedSeconds = 0;
+              repElapsedSeconds = 0;
+              isPausingBetweenReps = false;
+              currentRep = 1;
+
+              // Get rest duration
+              const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
+
+              // Automatically start rest timer if there's a non-zero rest time
+              if (restDuration > 0) {
+                setTimeout(() => {
+                  startRestTimer();
+                }, 300);
+              } else {
+                // No rest configured, either auto-advance to next set or pause
+                if (autoAdvanceActive) {
+                  startRepsExercise();
+                } else {
+                  isAwaitingSetContinuation = true;
+                  timerState = 'paused';
+                }
               }
             }
           }
         } else {
-          // Rep complete, but more reps in this set - pause between reps
+          // Rep complete, but more reps in this phase - pause between reps
           isPausingBetweenReps = true;
           const pauseDuration = currentExercise.pauseBetweenReps ?? 5;
           pauseRemainingSeconds = pauseDuration;
+
+          // Switch side for alternating mode
+          if (sideMode === 'alternating' && currentSide) {
+            currentSide = getOppositeSide(currentSide);
+          }
 
           // Clear any existing pause interval
           if (pauseInterval) clearInterval(pauseInterval);
@@ -553,6 +658,7 @@
     const reps = currentExercise.defaultReps || 10;
     const sets = currentExercise.defaultSets || 3;
     const repDuration = currentExercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 2;
+    const sideMode = currentExercise.sideMode || 'bilateral';
 
     // Don't reset counters - continue from where we paused
     // exerciseElapsedSeconds, currentSet, currentRep, repElapsedSeconds are preserved
@@ -573,53 +679,116 @@
       exerciseElapsedSeconds++;
       repElapsedSeconds++;
 
-      // Determine current rep within the set (handle boundary case when last rep completes)
-      const timeInSet = exerciseElapsedSeconds % (reps * repDuration);
-      const repIndex = Math.floor(timeInSet / repDuration);
-      // If timeInSet is 0 and we've completed some time, we're at the end of a set
-      currentRep = (timeInSet === 0 && exerciseElapsedSeconds > 0) ? reps : Math.min(reps, repIndex + 1);
+      // Calculate current rep display based on mode
+      if (sideMode === 'alternating') {
+        // For alternating: each rep number appears twice (L then R)
+        const timeInSet = exerciseElapsedSeconds % (reps * 2 * repDuration);
+        const internalRepIndex = Math.floor(timeInSet / repDuration);
+        currentRep = Math.floor(internalRepIndex / 2) + 1;
+        if (currentRep > reps) currentRep = reps;
+      } else {
+        // For bilateral and unilateral: normal rep counting
+        const timeInSet = exerciseElapsedSeconds % (reps * repDuration);
+        const repIndex = Math.floor(timeInSet / repDuration);
+        currentRep = (timeInSet === 0 && exerciseElapsedSeconds > 0) ? reps : Math.min(reps, repIndex + 1);
+      }
 
       // Check if rep is complete
       if (repElapsedSeconds >= repDuration) {
-        const isEndOfSet = (exerciseElapsedSeconds % (reps * repDuration) === 0);
+        // Determine if we've completed a "phase" based on mode
+        let isEndOfPhase = false;
 
-        if (isEndOfSet) {
-          // Set is complete
+        if (sideMode === 'alternating') {
+          // For alternating: end of phase is after both sides complete all reps
+          isEndOfPhase = (exerciseElapsedSeconds % (reps * 2 * repDuration) === 0);
+        } else if (sideMode === 'unilateral') {
+          // For unilateral: end of phase is after one side completes
+          isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
+        } else {
+          // For bilateral: end of phase is end of set
+          isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
+        }
+
+        if (isEndOfPhase) {
+          // Phase is complete
           clearInterval(exerciseTimerInterval);
 
-          if (currentSet >= sets) {
-            // Exercise complete - all sets done
-            completeCurrentExercise();
-          } else {
-            // Set complete, more sets to go
-            currentSet++;
+          // For unilateral mode, check if we need to do the second side
+          if (sideMode === 'unilateral' && sidePhase === 'first') {
+            // Switch to second side, keep same set number
+            sidePhase = 'second';
+            if (currentSide) {
+              currentSide = getOppositeSide(currentSide);
+            }
             exerciseElapsedSeconds = 0;
             repElapsedSeconds = 0;
             isPausingBetweenReps = false;
+            currentRep = 1;
 
             // Get rest duration
             const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
 
             // Automatically start rest timer if there's a non-zero rest time
             if (restDuration > 0) {
-              // Add a small delay before starting rest to prevent overlapping tones
               setTimeout(() => {
                 startRestTimer();
               }, 300);
             } else {
-              // No rest configured, either auto-advance to next set or pause
+              // No rest configured, either auto-advance to second side or pause
               if (autoAdvanceActive) {
                 startRepsExercise();
               } else {
+                isAwaitingSetContinuation = true;
                 timerState = 'paused';
+              }
+            }
+          } else {
+            // Either bilateral/alternating completed, or unilateral second side completed
+            if (currentSet >= sets) {
+              // Exercise complete - all sets done
+              completeCurrentExercise();
+            } else {
+              // Set complete, more sets to go
+              currentSet++;
+              sidePhase = 'first'; // Reset to first side for next set
+              if (sideMode === 'unilateral' && currentSide) {
+                // Reset to starting side for next set
+                currentSide = startingSide;
+              }
+              exerciseElapsedSeconds = 0;
+              repElapsedSeconds = 0;
+              isPausingBetweenReps = false;
+              currentRep = 1;
+
+              // Get rest duration
+              const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
+
+              // Automatically start rest timer if there's a non-zero rest time
+              if (restDuration > 0) {
+                setTimeout(() => {
+                  startRestTimer();
+                }, 300);
+              } else {
+                // No rest configured, either auto-advance to next set or pause
+                if (autoAdvanceActive) {
+                  startRepsExercise();
+                } else {
+                  isAwaitingSetContinuation = true;
+                  timerState = 'paused';
+                }
               }
             }
           }
         } else {
-          // Rep complete, but more reps in this set - pause between reps
+          // Rep complete, but more reps in this phase - pause between reps
           isPausingBetweenReps = true;
           const pauseDuration = currentExercise.pauseBetweenReps ?? 5;
           pauseRemainingSeconds = pauseDuration;
+
+          // Switch side for alternating mode
+          if (sideMode === 'alternating' && currentSide) {
+            currentSide = getOppositeSide(currentSide);
+          }
 
           // Clear any existing pause interval
           if (pauseInterval) clearInterval(pauseInterval);
@@ -687,6 +856,7 @@
             }
           }, 300);
         } else {
+          isAwaitingSetContinuation = true;
           timerState = 'paused';
         }
       }
@@ -718,6 +888,7 @@
       isPausingBetweenReps = false;
       currentSet = 1;
       currentRep = 1;
+      sidePhase = 'first';
 
       // Check if auto-advance is enabled
       if (autoAdvanceActive && pauseBetweenExercises > 0) {
@@ -837,6 +1008,16 @@
       if (isResumingRest) {
         // Resume rest timer where we left off
         startRestTimer();
+      } else if (isAwaitingSetContinuation) {
+        // Resume the next set/side without resetting state
+        isAwaitingSetContinuation = false;
+        timerState = 'active';
+
+        if (currentExercise?.type === 'reps') {
+          startRepsExercise(); // Continues with current currentSet/sidePhase
+        } else {
+          startDurationExercise();
+        }
       } else {
         // Check if we're mid-exercise (paused during active exercise)
         const isMidExercise = exerciseElapsedSeconds > 0;
@@ -897,6 +1078,8 @@
     isPausingBetweenReps = false;
     currentSet = 1;
     currentRep = 1;
+    sidePhase = 'first';
+    isAwaitingSetContinuation = false;
 
     // Mark current as incomplete if it was marked as completed
     const completedEx = sessionInstance?.completedExercises.find(
@@ -936,6 +1119,9 @@
       isPausingBetweenReps = false;
       currentSet = 1;
       currentRep = 1;
+      sidePhase = 'first';
+      restElapsedSeconds = 0;
+      isAwaitingSetContinuation = false;
     } else {
       // Already at last exercise
       toastStore.show('Already at last exercise', 'info');
@@ -1018,7 +1204,9 @@
     isPausingBetweenReps = false;
     currentSet = 1;
     currentRep = 1;
+    sidePhase = 'first';
     restElapsedSeconds = 0;
+    isAwaitingSetContinuation = false;
 
     // Clear any incomplete markers if jumping backward
     if (index < exercises.length && sessionInstance) {
@@ -1071,6 +1259,9 @@
     const remaining = Math.max(0, restDuration - restElapsedSeconds);
     return formatTime(remaining);
   })();
+
+  // Side label for display
+  $: sideLabel = currentSide ? (currentSide === 'left' ? 'Left' : 'Right') : '';
 
   function getExerciseProgress(exerciseIndex: number): number {
     if (exerciseIndex < currentExerciseIndex) return 100;
@@ -1144,17 +1335,41 @@
     {#key `${timerState}-${currentExerciseIndex}-${currentSet}-${currentRep}-${isPausingBetweenReps}`}
     {#if timerState === 'preparing'}
       <!-- Preparing: Show countdown and resting label -->
-      <DisplayRow size="big">
-        {preparingSeconds}
-      </DisplayRow>
+      <div class="display-row-with-indicators">
+        {#if currentSide}
+          <div class="side-indicator-left">
+            <SideIndicator side="left" active={currentSide === 'left'} />
+          </div>
+        {/if}
+        <DisplayRow size="big">
+          {preparingSeconds}
+        </DisplayRow>
+        {#if currentSide}
+          <div class="side-indicator-right">
+            <SideIndicator side="right" active={currentSide === 'right'} />
+          </div>
+        {/if}
+      </div>
       <DisplayRow size="small">
         Resting
       </DisplayRow>
     {:else if timerState === 'countdown'}
       <!-- Countdown: Big number on top for visual attention -->
-      <DisplayRow size="big">
-        {countdownSeconds}
-      </DisplayRow>
+      <div class="display-row-with-indicators">
+        {#if currentSide}
+          <div class="side-indicator-left">
+            <SideIndicator side="left" active={currentSide === 'left'} />
+          </div>
+        {/if}
+        <DisplayRow size="big">
+          {countdownSeconds}
+        </DisplayRow>
+        {#if currentSide}
+          <div class="side-indicator-right">
+            <SideIndicator side="right" active={currentSide === 'right'} />
+          </div>
+        {/if}
+      </div>
       <DisplayRow size="small">
         Get Ready
       </DisplayRow>
@@ -1180,18 +1395,42 @@
       </DisplayRow>
     {:else if timerState === 'resting' && currentExercise}
       <!-- Rest: Big timer on top -->
-      <DisplayRow size="big">
-        {restTimeDisplay}
-      </DisplayRow>
+      <div class="display-row-with-indicators">
+        {#if currentSide}
+          <div class="side-indicator-left">
+            <SideIndicator side="left" active={currentSide === 'left'} />
+          </div>
+        {/if}
+        <DisplayRow size="big">
+          {restTimeDisplay}
+        </DisplayRow>
+        {#if currentSide}
+          <div class="side-indicator-right">
+            <SideIndicator side="right" active={currentSide === 'right'} />
+          </div>
+        {/if}
+      </div>
       <DisplayRow size="small">
-        Rest · Set {currentSet - 1} of {currentExercise.defaultSets || 3}
+        Resting
       </DisplayRow>
     {:else if currentExercise && timerState === 'active'}
       {#if currentExercise.type === 'duration'}
         <!-- Active Duration: Big timer on top -->
-        <DisplayRow size="big">
-          {currentExerciseTimeDisplay}
-        </DisplayRow>
+        <div class="display-row-with-indicators">
+          {#if currentSide}
+            <div class="side-indicator-left">
+              <SideIndicator side="left" active={currentSide === 'left'} />
+            </div>
+          {/if}
+          <DisplayRow size="big">
+            {currentExerciseTimeDisplay}
+          </DisplayRow>
+          {#if currentSide}
+            <div class="side-indicator-right">
+              <SideIndicator side="right" active={currentSide === 'right'} />
+            </div>
+          {/if}
+        </div>
         <DisplayRow size="small">
           Remaining
         </DisplayRow>
@@ -1199,26 +1438,62 @@
         <!-- Active Reps Exercise -->
         {#if isPausingBetweenReps}
           <!-- Pause between reps: Big countdown on top -->
-          <DisplayRow size="big">
-            {pauseRemainingSeconds}
-          </DisplayRow>
+          <div class="display-row-with-indicators">
+            {#if currentSide}
+              <div class="side-indicator-left">
+                <SideIndicator side="left" active={currentSide === 'left'} />
+              </div>
+            {/if}
+            <DisplayRow size="big">
+              {pauseRemainingSeconds}
+            </DisplayRow>
+            {#if currentSide}
+              <div class="side-indicator-right">
+                <SideIndicator side="right" active={currentSide === 'right'} />
+              </div>
+            {/if}
+          </div>
           <DisplayRow size="small">
-            Set {currentSet}: Transition
+            Transition
           </DisplayRow>
         {:else}
           <!-- Active rep: Big timer on top, compact set/rep info below -->
           {#if (currentExercise.defaultRepDuration || 2) > 2}
-            <DisplayRow size="big">
-              {currentExerciseTimeDisplay}
-            </DisplayRow>
+            <div class="display-row-with-indicators">
+              {#if currentSide}
+                <div class="side-indicator-left">
+                  <SideIndicator side="left" active={currentSide === 'left'} />
+                </div>
+              {/if}
+              <DisplayRow size="big">
+                {currentExerciseTimeDisplay}
+              </DisplayRow>
+              {#if currentSide}
+                <div class="side-indicator-right">
+                  <SideIndicator side="right" active={currentSide === 'right'} />
+                </div>
+              {/if}
+            </div>
             <DisplayRow size="small">
               Set {currentSet} · Rep {currentRep} of {currentExercise.defaultReps || 10}
             </DisplayRow>
           {:else}
             <!-- Quick reps without timer: Show rep counter prominently -->
-            <DisplayRow size="big">
-              {currentRep}
-            </DisplayRow>
+            <div class="display-row-with-indicators">
+              {#if currentSide}
+                <div class="side-indicator-left">
+                  <SideIndicator side="left" active={currentSide === 'left'} />
+                </div>
+              {/if}
+              <DisplayRow size="big">
+                {currentRep}
+              </DisplayRow>
+              {#if currentSide}
+                <div class="side-indicator-right">
+                  <SideIndicator side="right" active={currentSide === 'right'} />
+                </div>
+              {/if}
+            </div>
             <DisplayRow size="small">
               Set {currentSet} of {currentExercise.defaultSets || 3} · Rep {currentRep} of {currentExercise.defaultReps || 10}
             </DisplayRow>
@@ -1276,40 +1551,66 @@
           class="exercise-item"
           class:active={index === currentExerciseIndex}
           class:completed={isExerciseCompleted(index)}
-          class:clickable={timerState === 'paused' && index !== currentExerciseIndex}
-          on:click={() => jumpToExercise(index)}
-          on:keydown={(e) => {
-            if ((e.key === 'Enter' || e.key === ' ') && timerState === 'paused' && index !== currentExerciseIndex) {
-              e.preventDefault();
-              jumpToExercise(index);
-            }
-          }}
-          role="button"
-          tabindex={timerState === 'paused' && index !== currentExerciseIndex ? 0 : -1}
         >
-          <div class="exercise-item-header">
-            <span class="exercise-item-name">{exercise.name}</span>
-            {#if isExerciseCompleted(index)}
-              <span class="material-icons check-icon">check_circle</span>
+          <!-- Info icon (left side) - always show, greyed out if no instructions -->
+          <button
+            class="icon-button info-icon"
+            class:disabled={!exercise.instructions}
+            on:click|stopPropagation={() => exercise.instructions && toggleInstructions(exercise.id)}
+            aria-label={exercise.instructions ? "Toggle instructions" : "No instructions"}
+            title={exercise.instructions ? "Toggle instructions" : "No instructions defined"}
+            disabled={!exercise.instructions}
+          >
+            <span class="material-icons">info</span>
+          </button>
+
+          <div class="exercise-item-content">
+            <div class="exercise-item-header">
+              <span class="exercise-item-name">{exercise.name}</span>
+              {#if isExerciseCompleted(index)}
+                <span class="material-icons check-icon">check_circle</span>
+              {/if}
+            </div>
+
+            <div class="exercise-item-details">
+              {#if exercise.type === 'duration'}
+                <span class="material-icons detail-icon">timer</span>
+                <span>{exercise.defaultDuration}s</span>
+              {:else}
+                <span class="material-icons detail-icon">fitness_center</span>
+                <span>{exercise.defaultSets} {exercise.defaultSets === 1 ? 'set' : 'sets'} × {exercise.defaultReps} reps</span>
+                {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
+                  <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>
+                {/if}
+              {/if}
+            </div>
+
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                style="width: {getExerciseProgress(index)}%"
+              ></div>
+            </div>
+
+            <!-- Expandable instructions panel -->
+            {#if expandedExerciseId === exercise.id && exercise.instructions}
+              <div class="instructions-panel">
+                {exercise.instructions}
+              </div>
             {/if}
           </div>
 
-          <div class="exercise-item-details">
-            {#if exercise.type === 'duration'}
-              <span class="material-icons detail-icon">timer</span>
-              <span>{exercise.defaultDuration}s</span>
-            {:else}
-              <span class="material-icons detail-icon">fitness_center</span>
-              <span>{exercise.defaultSets} sets × {exercise.defaultReps} reps</span>
-            {/if}
-          </div>
-
-          <div class="progress-bar">
-            <div
-              class="progress-fill"
-              style="width: {getExerciseProgress(index)}%"
-            ></div>
-          </div>
+          <!-- Make active icon (right side) -->
+          {#if index !== currentExerciseIndex && timerState === 'paused'}
+            <button
+              class="icon-button make-active-icon"
+              on:click|stopPropagation={() => jumpToExercise(index)}
+              aria-label="Jump to this exercise"
+              title="Jump to this exercise"
+            >
+              <span class="material-icons">play_circle</span>
+            </button>
+          {/if}
         </div>
       {/each}
     </div>
@@ -1509,6 +1810,24 @@
     line-height: 1.2;
   }
 
+  .display-row-with-indicators {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .side-indicator-left {
+    position: absolute;
+    left: 12.5%;
+  }
+
+  .side-indicator-right {
+    position: absolute;
+    right: 12.5%;
+  }
+
   /* Bottom Section - 2/3 of screen */
   .player-bottom {
     flex: 0 0 66.666%;
@@ -1529,16 +1848,9 @@
     border-radius: var(--border-radius);
     padding: var(--spacing-md);
     transition: all 0.3s ease;
-  }
-
-  .exercise-item.clickable {
-    cursor: pointer;
-  }
-
-  .exercise-item.clickable:hover {
-    background-color: #2a4a7f;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
   }
 
   .exercise-item.active {
@@ -1549,6 +1861,52 @@
   .exercise-item.completed {
     background-color: rgba(76, 175, 80, 0.2);
     opacity: 0.7;
+  }
+
+  .exercise-item-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .icon-button {
+    background: none;
+    border: none;
+    padding: var(--spacing-xs);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.7);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .icon-button:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .icon-button:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  .icon-button:disabled,
+  .icon-button.disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .icon-button .material-icons {
+    font-size: var(--icon-size-md);
+  }
+
+  .info-icon {
+    align-self: flex-start;
+  }
+
+  .make-active-icon {
+    align-self: flex-start;
   }
 
   .exercise-item-header {
@@ -1578,6 +1936,16 @@
     margin-bottom: var(--spacing-sm);
   }
 
+  .mode-badge {
+    margin-left: var(--spacing-xs);
+    padding: 2px var(--spacing-xs);
+    border-radius: calc(var(--border-radius) / 2);
+    background-color: rgba(156, 39, 176, 0.3);
+    color: #e1bee7;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+  }
+
   .detail-icon {
     font-size: var(--icon-size-sm);
   }
@@ -1593,6 +1961,28 @@
     height: 100%;
     background-color: white;
     transition: width 0.3s ease;
+  }
+
+  .instructions-panel {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background-color: rgba(0, 0, 0, 0.3);
+    border-left: 3px solid white;
+    border-radius: calc(var(--border-radius) / 2);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    animation: slideDown 0.2s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   @media (max-width: 480px) {

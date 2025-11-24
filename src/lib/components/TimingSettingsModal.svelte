@@ -29,6 +29,7 @@
   let restBetweenSets = 20;
   let enableAutoAdvance = true;
   let pauseBetweenExercises = 20;
+  let startingSide: 'left' | 'right' = 'left';
 
   // Load current settings
   onMount(() => {
@@ -41,6 +42,7 @@
       restBetweenSets = $ptState.settings.restBetweenSets;
       enableAutoAdvance = $ptState.settings.enableAutoAdvance;
       pauseBetweenExercises = $ptState.settings.pauseBetweenExercises;
+      startingSide = $ptState.settings.startingSide || 'left';
     }
   });
 
@@ -60,7 +62,8 @@
       endSessionDelay,
       restBetweenSets,
       enableAutoAdvance,
-      pauseBetweenExercises
+      pauseBetweenExercises,
+      startingSide
     };
 
     try {
@@ -204,6 +207,19 @@
             max={10}
             placeholder="MM:SS or seconds"
           />
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Starting Side</span>
+          <span class="setting-description">For exercises marked as Unilateral or Alternating, which side should be performed first?</span>
+        </div>
+        <div class="setting-control">
+          <select bind:value={startingSide} class="setting-input">
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+          </select>
         </div>
       </div>
     </div>

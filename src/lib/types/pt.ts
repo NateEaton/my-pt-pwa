@@ -39,6 +39,7 @@ export interface Exercise {
   defaultRepDuration?: number; // seconds per rep for timing calculations
   pauseBetweenReps?: number; // seconds of pause between individual reps (default 0.5)
   restBetweenSets?: number; // seconds of rest between sets (optional override)
+  sideMode?: 'bilateral' | 'unilateral' | 'alternating'; // For exercises requiring left/right side tracking
 
   // Optional metadata
   instructions?: string;
@@ -141,6 +142,7 @@ export interface AppSettings {
   enableAutoAdvance: boolean; // Enable automatic advance to next exercise
   pauseBetweenExercises: number; // Rest between exercises when auto-advance is enabled (seconds)
   resumeFromPausePoint: boolean; // When resuming from pause, continue from pause point (true) or restart exercise (false)
+  startingSide: 'left' | 'right'; // Starting side for unilateral/alternating exercises
 
   // UI preferences
   theme: 'light' | 'dark' | 'auto';

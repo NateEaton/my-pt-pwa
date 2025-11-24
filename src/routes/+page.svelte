@@ -48,6 +48,13 @@
   // Exercise preview expansion state
   let showAllExercises = false;
 
+  // Instruction expansion state (accordion pattern)
+  let expandedExerciseId: number | null = null;
+
+  function toggleInstructions(exerciseId: number) {
+    expandedExerciseId = expandedExerciseId === exerciseId ? null : exerciseId;
+  }
+
   // Load persisted session selection from localStorage
   const STORAGE_KEY = 'pt-today-session-id';
 
@@ -594,7 +601,12 @@
                     <span class="exercise-check-icon material-icons">check_circle</span>
                   {/if}
                   <div class="exercise-card-wrapper">
-                    <ExerciseCard {exercise} compact={true} />
+                    <ExerciseCard
+                      {exercise}
+                      compact={false}
+                      showInstructions={expandedExerciseId === exercise.id}
+                      onToggleInstructions={() => toggleInstructions(exercise.id)}
+                    />
                   </div>
                 </div>
               {/each}
