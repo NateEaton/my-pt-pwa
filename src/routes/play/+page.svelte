@@ -37,6 +37,7 @@
   let currentRep = 1;
   let currentSide: 'left' | 'right' | null = null; // Track current side for unilateral/alternating exercises
   let sidePhase: 'first' | 'second' = 'first'; // Track which side phase we're in (for unilateral mode)
+  let setStartingSide: 'left' | 'right' | null = null; // Track which side started current set (for alternating)
   let repElapsedSeconds = 0; // Track time within current rep for countdown
   let isPausingBetweenReps = false; // Track pause state between reps
   let isAwaitingSetContinuation = false; // Track if paused after set/phase completion awaiting manual advance
@@ -407,6 +408,11 @@
     sidePhase = 'first'; // Reset side phase
     initializeSide(currentExercise); // Initialize side for unilateral/alternating
 
+    // Track starting side for alternating exercises
+    if (currentExercise.sideMode === 'alternating') {
+      setStartingSide = currentSide;
+    }
+
     if (currentExercise.type === 'duration') {
       startDurationExercise();
     } else {
@@ -592,6 +598,10 @@
               if (sideMode === 'unilateral' && currentSide) {
                 // Reset to starting side for next set
                 currentSide = startingSide;
+              } else if (sideMode === 'alternating' && currentSide && setStartingSide) {
+                // Alternate the starting side for next set
+                currentSide = getOppositeSide(setStartingSide);
+                setStartingSide = currentSide; // Remember this set's starting side
               }
               exerciseElapsedSeconds = 0;
               repElapsedSeconds = 0;
@@ -754,6 +764,10 @@
               if (sideMode === 'unilateral' && currentSide) {
                 // Reset to starting side for next set
                 currentSide = startingSide;
+              } else if (sideMode === 'alternating' && currentSide && setStartingSide) {
+                // Alternate the starting side for next set
+                currentSide = getOppositeSide(setStartingSide);
+                setStartingSide = currentSide; // Remember this set's starting side
               }
               exerciseElapsedSeconds = 0;
               repElapsedSeconds = 0;
@@ -1338,7 +1352,7 @@
       <div class="display-row-with-indicators">
         {#if currentSide}
           <div class="side-indicator-left">
-            <SideIndicator side="left" active={currentSide === 'left'} />
+            <SideIndicator side="left" active={currentSide === 'left' && timerState === 'active' && !isPausingBetweenReps} />
           </div>
         {/if}
         <DisplayRow size="big">
@@ -1346,7 +1360,7 @@
         </DisplayRow>
         {#if currentSide}
           <div class="side-indicator-right">
-            <SideIndicator side="right" active={currentSide === 'right'} />
+            <SideIndicator side="right" active={currentSide === 'right' && timerState === 'active' && !isPausingBetweenReps} />
           </div>
         {/if}
       </div>
@@ -1358,7 +1372,7 @@
       <div class="display-row-with-indicators">
         {#if currentSide}
           <div class="side-indicator-left">
-            <SideIndicator side="left" active={currentSide === 'left'} />
+            <SideIndicator side="left" active={currentSide === 'left' && timerState === 'active' && !isPausingBetweenReps} />
           </div>
         {/if}
         <DisplayRow size="big">
@@ -1366,7 +1380,7 @@
         </DisplayRow>
         {#if currentSide}
           <div class="side-indicator-right">
-            <SideIndicator side="right" active={currentSide === 'right'} />
+            <SideIndicator side="right" active={currentSide === 'right' && timerState === 'active' && !isPausingBetweenReps} />
           </div>
         {/if}
       </div>
@@ -1398,7 +1412,7 @@
       <div class="display-row-with-indicators">
         {#if currentSide}
           <div class="side-indicator-left">
-            <SideIndicator side="left" active={currentSide === 'left'} />
+            <SideIndicator side="left" active={currentSide === 'left' && timerState === 'active' && !isPausingBetweenReps} />
           </div>
         {/if}
         <DisplayRow size="big">
@@ -1406,7 +1420,7 @@
         </DisplayRow>
         {#if currentSide}
           <div class="side-indicator-right">
-            <SideIndicator side="right" active={currentSide === 'right'} />
+            <SideIndicator side="right" active={currentSide === 'right' && timerState === 'active' && !isPausingBetweenReps} />
           </div>
         {/if}
       </div>
@@ -1419,7 +1433,7 @@
         <div class="display-row-with-indicators">
           {#if currentSide}
             <div class="side-indicator-left">
-              <SideIndicator side="left" active={currentSide === 'left'} />
+              <SideIndicator side="left" active={currentSide === 'left' && timerState === 'active' && !isPausingBetweenReps} />
             </div>
           {/if}
           <DisplayRow size="big">
@@ -1427,7 +1441,7 @@
           </DisplayRow>
           {#if currentSide}
             <div class="side-indicator-right">
-              <SideIndicator side="right" active={currentSide === 'right'} />
+              <SideIndicator side="right" active={currentSide === 'right' && timerState === 'active' && !isPausingBetweenReps} />
             </div>
           {/if}
         </div>
@@ -1441,7 +1455,7 @@
           <div class="display-row-with-indicators">
             {#if currentSide}
               <div class="side-indicator-left">
-                <SideIndicator side="left" active={currentSide === 'left'} />
+                <SideIndicator side="left" active={currentSide === 'left' && timerState === 'active' && !isPausingBetweenReps} />
               </div>
             {/if}
             <DisplayRow size="big">
@@ -1449,7 +1463,7 @@
             </DisplayRow>
             {#if currentSide}
               <div class="side-indicator-right">
-                <SideIndicator side="right" active={currentSide === 'right'} />
+                <SideIndicator side="right" active={currentSide === 'right' && timerState === 'active' && !isPausingBetweenReps} />
               </div>
             {/if}
           </div>
@@ -1462,7 +1476,7 @@
             <div class="display-row-with-indicators">
               {#if currentSide}
                 <div class="side-indicator-left">
-                  <SideIndicator side="left" active={currentSide === 'left'} />
+                  <SideIndicator side="left" active={currentSide === 'left' && timerState === 'active' && !isPausingBetweenReps} />
                 </div>
               {/if}
               <DisplayRow size="big">
@@ -1470,7 +1484,7 @@
               </DisplayRow>
               {#if currentSide}
                 <div class="side-indicator-right">
-                  <SideIndicator side="right" active={currentSide === 'right'} />
+                  <SideIndicator side="right" active={currentSide === 'right' && timerState === 'active' && !isPausingBetweenReps} />
                 </div>
               {/if}
             </div>
@@ -1482,7 +1496,7 @@
             <div class="display-row-with-indicators">
               {#if currentSide}
                 <div class="side-indicator-left">
-                  <SideIndicator side="left" active={currentSide === 'left'} />
+                  <SideIndicator side="left" active={currentSide === 'left' && timerState === 'active' && !isPausingBetweenReps} />
                 </div>
               {/if}
               <DisplayRow size="big">
@@ -1490,7 +1504,7 @@
               </DisplayRow>
               {#if currentSide}
                 <div class="side-indicator-right">
-                  <SideIndicator side="right" active={currentSide === 'right'} />
+                  <SideIndicator side="right" active={currentSide === 'right' && timerState === 'active' && !isPausingBetweenReps} />
                 </div>
               {/if}
             </div>

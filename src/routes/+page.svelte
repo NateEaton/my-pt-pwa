@@ -410,14 +410,25 @@
     goto('/play');
   }
 
-  function handleStartOver() {
-    if (!selectedSession) {
+  async function handleStartOver() {
+    if (!selectedSession || !todaySessionInstance) {
       toastStore.show('No session selected', 'error');
       return;
     }
 
-    // Just start a fresh session (same as Play Session)
-    handlePlaySession();
+    try {
+      // Delete the existing in-progress session to start fresh
+      await ptService.deleteSessionInstance(todaySessionInstance.id);
+
+      // Clear any cached session instance ID
+      localStorage.removeItem('pt-active-session-instance-id');
+
+      // Start fresh session
+      handlePlaySession();
+    } catch (error) {
+      console.error('Error restarting session:', error);
+      toastStore.show('Failed to restart session', 'error');
+    }
   }
 
   function handleViewDetails() {

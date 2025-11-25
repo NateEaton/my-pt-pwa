@@ -51,7 +51,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   startCountdownDuration: 3, // 3 second countdown before start (3-2-1)
   endSessionDelay: 5, // 5 second delay before session player closes
   restBetweenSets: 20, // 20 seconds between sets
-  enableAutoAdvance: true, // Auto-advance enabled by default
+  enableAutoAdvance: false, // Auto-advance disabled by default
   pauseBetweenExercises: 20, // 20 seconds rest between exercises when auto-advance is enabled
   resumeFromPausePoint: true, // Continue from pause point by default (vs restarting exercise)
   startingSide: 'left', // Start with left side for unilateral/alternating exercises
@@ -62,7 +62,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   hapticsEnabled: false, // Haptic feedback OFF by default
   audioLeadInEnabled: true, // Exercise about-to-start countdown (enabled by default)
   audioExerciseAboutToEndEnabled: true, // Exercise about-to-end countdown (enabled by default)
-  audioRestCuesEnabled: true, // Rest period cues enabled by default
+  audioRestCuesEnabled: false, // Rest period cues enabled by default
   enableNotifications: false
 };
 
