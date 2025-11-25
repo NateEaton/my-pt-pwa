@@ -40,7 +40,7 @@
 
   // Load sort preferences from localStorage
   function loadSortPreferences(): {
-    field: 'name' | 'dateAdded' | 'usage';
+    field: 'name' | 'dateAdded';
     asc: boolean;
   } {
     if (typeof window === 'undefined') {
@@ -51,13 +51,13 @@
     const savedAsc = localStorage.getItem(SORT_ASC_KEY);
 
     return {
-      field: (savedField as 'name' | 'dateAdded' | 'usage') || 'name',
+      field: (savedField as 'name' | 'dateAdded') || 'name',
       asc: savedAsc === 'false' ? false : true
     };
   }
 
   // Save sort preferences to localStorage
-  function saveSortPreferences(field: 'name' | 'dateAdded' | 'usage', asc: boolean) {
+  function saveSortPreferences(field: 'name' | 'dateAdded', asc: boolean) {
     if (typeof window === 'undefined') return;
     localStorage.setItem(SORT_FIELD_KEY, field);
     localStorage.setItem(SORT_ASC_KEY, String(asc));
@@ -66,7 +66,7 @@
   // Search and sort state - load from localStorage
   let searchQuery = '';
   const sortPrefs = loadSortPreferences();
-  let sortField: 'name' | 'dateAdded' | 'usage' = sortPrefs.field;
+  let sortField: 'name' | 'dateAdded' = sortPrefs.field;
   let sortAsc = sortPrefs.asc;
 
   // Exercise form data - use settings defaults
@@ -90,7 +90,7 @@
   function filterAndSortExercises(
     exercises: Exercise[],
     query: string,
-    field: 'name' | 'dateAdded' | 'usage',
+    field: 'name' | 'dateAdded',
     ascending: boolean
   ): Exercise[] {
     // Filter by search query
@@ -114,11 +114,6 @@
         case 'dateAdded':
           comparison = new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime();
           break;
-        case 'usage':
-          // Usage sorting would require counting session instance references
-          // For now, fall back to dateAdded (most recent first)
-          comparison = new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
-          break;
       }
 
       return ascending ? comparison : -comparison;
@@ -127,7 +122,7 @@
     return sorted;
   }
 
-  function toggleSort(field: 'name' | 'dateAdded' | 'usage') {
+  function toggleSort(field: 'name' | 'dateAdded') {
     if (sortField === field) {
       sortAsc = !sortAsc;
     } else {
@@ -405,12 +400,6 @@
         <span>Created</span>
         <span class="material-icons sort-icon">
           {sortField === 'dateAdded' ? (sortAsc ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
-        </span>
-      </button>
-      <button class="sort-button" on:click={() => toggleSort('usage')}>
-        <span>Usage</span>
-        <span class="material-icons sort-icon">
-          {sortField === 'usage' ? (sortAsc ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
         </span>
       </button>
     </div>

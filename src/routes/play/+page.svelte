@@ -541,10 +541,7 @@
         // Determine if we've completed a "phase" based on mode
         let isEndOfPhase = false;
 
-        if (sideMode === 'alternating') {
-          // For alternating: end of phase is after both sides complete all reps (reps * 2 iterations)
-          isEndOfPhase = (exerciseElapsedSeconds % (reps * 2 * repDuration) === 0);
-        } else if (sideMode === 'unilateral') {
+        if (sideMode === 'unilateral') {
           // For unilateral: end of phase is after one side completes (reps iterations)
           isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
         } else {
@@ -708,10 +705,7 @@
         // Determine if we've completed a "phase" based on mode
         let isEndOfPhase = false;
 
-        if (sideMode === 'alternating') {
-          // For alternating: end of phase is after both sides complete all reps
-          isEndOfPhase = (exerciseElapsedSeconds % (reps * 2 * repDuration) === 0);
-        } else if (sideMode === 'unilateral') {
+        if (sideMode === 'unilateral') {
           // For unilateral: end of phase is after one side completes
           isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
         } else {
