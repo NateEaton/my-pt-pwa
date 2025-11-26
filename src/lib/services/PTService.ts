@@ -18,7 +18,11 @@
 
 /**
  * @fileoverview PTService - Core data management service for My PT
- * Handles all IndexedDB operations, exercise/session CRUD, and settings persistence
+ *
+ * USAGE:
+ * - For database operations, import { ptService } from '$lib/stores/pt'
+ * - The PTService class is exported for type references only
+ * - Do not instantiate PTService directly; use the singleton
  */
 
 import type {

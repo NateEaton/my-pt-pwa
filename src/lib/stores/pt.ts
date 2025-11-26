@@ -18,7 +18,14 @@
 
 /**
  * @fileoverview Core state management for My PT application
- * Phase 2: Full implementation with IndexedDB integration
+ *
+ * This module provides:
+ * - ptState: Reactive Svelte store for application state
+ * - ptService: Re-exported singleton for database operations
+ * - Derived stores for computed values
+ *
+ * CANONICAL IMPORTS:
+ * import { ptState, ptService } from '$lib/stores/pt';
  */
 
 import { writable, derived } from 'svelte/store';
@@ -102,5 +109,5 @@ export const defaultExercises = derived(ptState, ($ptState) =>
   $ptState.exercises.filter((e) => e.includeInDefault)
 );
 
-// Re-export the PTService singleton from the service file
+// Re-export service singleton as the canonical access point
 export { ptService } from '$lib/services/PTService';

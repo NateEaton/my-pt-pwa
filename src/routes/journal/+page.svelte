@@ -17,8 +17,7 @@
 -->
 
 <script lang="ts">
-  import { ptState } from '$lib/stores/pt';
-  import { ptService } from '$lib/services/PTService';
+  import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
   import Modal from '$lib/components/Modal.svelte';
