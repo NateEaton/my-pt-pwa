@@ -16,7 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
-<script>
+<script lang="ts">
   import { onMount } from "svelte";
   import { logBuildInfo } from "$lib/utils/buildInfo";
   import { page } from "$app/stores";
