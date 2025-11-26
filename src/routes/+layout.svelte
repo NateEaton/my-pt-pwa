@@ -1,6 +1,6 @@
 <!--
  * My PT - Physical Therapy Tracker PWA
- * Copyright (C) 2025 Your Name
+ * Copyright (C) 2025 Nathan A. Eaton Jr.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
