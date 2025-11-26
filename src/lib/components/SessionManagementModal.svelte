@@ -828,22 +828,7 @@
     padding: var(--spacing-lg);
   }
 
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  .form-group label {
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .required {
-    color: var(--error-color);
-  }
-
+  /* Component-specific form input styling */
   .form-group input[type="text"] {
     padding: var(--spacing-sm) var(--spacing-md);
     border: 1px solid var(--divider);
@@ -1040,6 +1025,7 @@
     margin-top: calc(-1 * var(--spacing-md));
   }
 
+  /* Component-specific setting item styling (card-based with border) */
   .setting-item {
     display: flex;
     justify-content: space-between;
@@ -1054,30 +1040,6 @@
   .setting-item.disabled {
     opacity: 0.5;
     pointer-events: none;
-  }
-
-  .setting-info {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    flex: 1;
-  }
-
-  .setting-label {
-    font-size: var(--font-size-base);
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .setting-description {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-  }
-
-  .setting-control {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
   }
 
   .modal-actions {

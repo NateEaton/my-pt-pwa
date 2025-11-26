@@ -922,28 +922,7 @@
     padding: var(--spacing-lg);
   }
 
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--spacing-md);
-  }
-
-  .form-group label {
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .required {
-    color: var(--error-color);
-  }
-
+  /* Component-specific form input styling */
   .form-group input[type="text"],
   .form-group input[type="number"],
   .form-group select,
@@ -1001,10 +980,6 @@
 
     .exercise-card {
       padding: var(--spacing-sm);
-    }
-
-    .form-row {
-      grid-template-columns: 1fr;
     }
   }
 </style>

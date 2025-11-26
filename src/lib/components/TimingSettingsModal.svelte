@@ -248,18 +248,7 @@
     gap: var(--spacing-xl);
   }
 
-  .modal-description {
-    margin: 0;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-
-  .settings-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-
+  /* Component-specific setting item styling (card-based) */
   .setting-item {
     display: flex;
     justify-content: space-between;
@@ -320,52 +309,6 @@
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px var(--primary-alpha-10);
-  }
-
-  /* Toggle Switch */
-  .toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 48px;
-    height: 28px;
-  }
-
-  .toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--divider);
-    transition: 0.3s;
-    border-radius: 28px;
-  }
-
-  .toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 20px;
-    width: 20px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: 0.3s;
-    border-radius: 50%;
-  }
-
-  .toggle-switch input:checked + .toggle-slider {
-    background-color: var(--primary-color);
-  }
-
-  .toggle-switch input:checked + .toggle-slider:before {
-    transform: translateX(20px);
   }
 
   .modal-actions {

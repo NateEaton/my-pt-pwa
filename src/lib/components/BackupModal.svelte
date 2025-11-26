@@ -147,12 +147,6 @@
     gap: var(--spacing-xl);
   }
 
-  .modal-description {
-    margin: 0;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-
   .backup-summary {
     background-color: var(--surface-variant);
     padding: var(--spacing-lg);
@@ -183,13 +177,12 @@
     font-size: var(--icon-size-md);
   }
 
+  /* Component-specific info box styling (horizontal layout with icon) */
   .info-box {
     display: flex;
     align-items: flex-start;
     gap: var(--spacing-md);
-    padding: var(--spacing-md);
     background-color: var(--primary-alpha-10);
-    border-radius: var(--border-radius);
     border-left: 3px solid var(--primary-color);
   }
 

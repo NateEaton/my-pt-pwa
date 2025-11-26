@@ -471,18 +471,7 @@
     gap: var(--spacing-xl);
   }
 
-  .modal-description {
-    margin: 0;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-
-  .settings-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-
+  /* Component-specific setting item styling (card-based) */
   .setting-item {
     display: flex;
     justify-content: space-between;
@@ -565,33 +554,14 @@
     text-align: right;
   }
 
-  /* Info Box */
+  /* Component-specific info box styling (blue theme) */
   .info-box {
-    padding: var(--spacing-md);
     background-color: var(--primary-alpha-10);
-    border-radius: var(--border-radius);
     border-left: 4px solid var(--primary-color);
   }
 
   .info-title {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
     font-size: var(--font-size-base);
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: var(--spacing-sm);
-  }
-
-  .info-title .material-icons {
-    font-size: var(--icon-size-md);
-    color: var(--primary-color);
-  }
-
-  .info-text {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    line-height: 1.5;
   }
 
   .info-text ul {
@@ -601,57 +571,6 @@
 
   .info-text li {
     margin-bottom: var(--spacing-xs);
-  }
-
-  /* Toggle Switch */
-  .toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 48px;
-    height: 26px;
-  }
-
-  .toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--divider);
-    transition: 0.3s;
-    border-radius: 26px;
-  }
-
-  .toggle-slider:before {
-    position: absolute;
-    content: '';
-    height: 20px;
-    width: 20px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: 0.3s;
-    border-radius: 50%;
-  }
-
-  input:checked + .toggle-slider {
-    background-color: var(--primary-color);
-  }
-
-  input:checked + .toggle-slider:before {
-    transform: translateX(22px);
-  }
-
-  input:disabled + .toggle-slider {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 
   /* Test Button */
