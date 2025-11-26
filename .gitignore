@@ -40,10 +40,16 @@ CLAUDE.md
 # --- Logs --- Ignore log files
 logs/ 
 *.log 
-*.log.txt
+
+# Misc
+*.txt
+/*.md
+!README.md
 npm-debug.log* 
 yarn-debug.log* yarn-error.log*
-
+*.bak
+*backup*.json
+.repomixignore
 
 # --- Sub-Repositories --- Ignore the separately-cloned wiki Git 
 # repository. This prevents git from treating it as a submodule.
