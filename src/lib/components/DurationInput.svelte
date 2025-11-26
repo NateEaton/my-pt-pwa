@@ -6,6 +6,7 @@
 	export let max: number = 3600; // 1 hour default
 	export let placeholder: string = 'MM:SS or seconds';
 	export let id: string | undefined = undefined;
+	export let disabled: boolean = false;
 
 	let displayValue: string = formatDurationForInput(value);
 	let inputElement: HTMLInputElement;
@@ -42,6 +43,7 @@
 	on:blur={handleBlur}
 	on:focus={handleFocus}
 	{placeholder}
+	{disabled}
 	class="duration-input"
 	inputmode="numeric"
 />

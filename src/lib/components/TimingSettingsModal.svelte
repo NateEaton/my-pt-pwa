@@ -178,22 +178,21 @@
         </div>
       </div>
 
-      {#if enableAutoAdvance}
-        <div class="setting-item sub-setting">
-          <div class="setting-info">
-            <span class="setting-label">Rest Between Exercises</span>
-            <span class="setting-description">Rest time before automatically starting next exercise</span>
-          </div>
-          <div class="setting-control">
-            <DurationInput
-              bind:value={pauseBetweenExercises}
-              min={0}
-              max={120}
-              placeholder="MM:SS or seconds"
-            />
-          </div>
+      <div class="setting-item sub-setting" class:disabled={!enableAutoAdvance}>
+        <div class="setting-info">
+          <span class="setting-label">Rest Between Exercises</span>
+          <span class="setting-description">Rest time before automatically starting next exercise</span>
         </div>
-      {/if}
+        <div class="setting-control">
+          <DurationInput
+            bind:value={pauseBetweenExercises}
+            min={0}
+            max={120}
+            placeholder="MM:SS or seconds"
+            disabled={!enableAutoAdvance}
+          />
+        </div>
+      </div>
 
       <div class="setting-item">
         <div class="setting-info">
@@ -269,6 +268,11 @@
     margin-left: var(--spacing-xl);
     background-color: var(--surface);
     border-left: 3px solid var(--primary-color);
+  }
+
+  .setting-item.disabled {
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   .setting-info {

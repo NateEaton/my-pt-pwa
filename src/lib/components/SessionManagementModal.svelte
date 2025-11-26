@@ -14,6 +14,7 @@
   import { createEventDispatcher, onMount } from 'svelte';
   import Modal from './Modal.svelte';
   import ConfirmDialog from './ConfirmDialog.svelte';
+  import DurationInput from './DurationInput.svelte';
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import type { SessionDefinition, SessionExercise, Exercise } from '$lib/types/pt';
@@ -68,7 +69,8 @@
     name: '',
     selectedExercises: [] as number[],
     isDefault: false,
-    autoAdvance: undefined as boolean | undefined
+    autoAdvance: undefined as boolean | undefined,
+    pauseBetweenExercises: undefined as number | undefined
   };
 
   // Computed: filtered and sorted sessions
@@ -137,7 +139,8 @@
       name: session.name,
       selectedExercises: session.exercises.map(e => e.exerciseId),
       isDefault: session.isDefault,
-      autoAdvance: session.autoAdvance
+      autoAdvance: session.autoAdvance,
+      pauseBetweenExercises: session.pauseBetweenExercises
     };
     showSessionForm = true;
   }
@@ -147,7 +150,8 @@
       name: '',
       selectedExercises: [],
       isDefault: false,
-      autoAdvance: undefined
+      autoAdvance: undefined,
+      pauseBetweenExercises: undefined
     };
   }
 
@@ -201,7 +205,8 @@
           name: sessionFormData.name.trim(),
           exercises: sessionExercises,
           isDefault: sessionFormData.isDefault,
-          autoAdvance: sessionFormData.autoAdvance
+          autoAdvance: sessionFormData.autoAdvance,
+          pauseBetweenExercises: sessionFormData.pauseBetweenExercises
         };
 
         await ptService.updateSessionDefinition(updated);
@@ -212,6 +217,7 @@
           exercises: sessionExercises,
           isDefault: sessionFormData.isDefault,
           autoAdvance: sessionFormData.autoAdvance,
+          pauseBetweenExercises: sessionFormData.pauseBetweenExercises,
           dateCreated: new Date().toISOString()
         };
 
@@ -414,6 +420,29 @@
             </span>
           </span>
         </label>
+      </div>
+
+      <div class="form-group rest-between-exercises-group">
+        <div class="setting-item" class:disabled={!(sessionFormData.autoAdvance ?? $ptState.settings?.enableAutoAdvance ?? true)}>
+          <div class="setting-info">
+            <span class="setting-label">Rest Between Exercises</span>
+            <span class="setting-description">
+              Rest time before automatically starting next exercise
+              {#if sessionFormData.pauseBetweenExercises === undefined}
+                (using app default: {$ptState.settings?.pauseBetweenExercises ?? 20}s)
+              {/if}
+            </span>
+          </div>
+          <div class="setting-control">
+            <DurationInput
+              bind:value={sessionFormData.pauseBetweenExercises}
+              min={0}
+              max={120}
+              placeholder={`${$ptState.settings?.pauseBetweenExercises ?? 20}s`}
+              disabled={!(sessionFormData.autoAdvance ?? $ptState.settings?.enableAutoAdvance ?? true)}
+            />
+          </div>
+        </div>
       </div>
 
       <div class="form-group">
@@ -1004,6 +1033,51 @@
   .checkbox-description {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
+  }
+
+  .rest-between-exercises-group {
+    margin-left: var(--spacing-xl);
+    margin-top: calc(-1 * var(--spacing-md));
+  }
+
+  .setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background-color: var(--surface);
+    border-radius: var(--border-radius);
+    gap: var(--spacing-md);
+    border-left: 3px solid var(--primary-color);
+  }
+
+  .setting-item.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .setting-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    flex: 1;
+  }
+
+  .setting-label {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .setting-description {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  .setting-control {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
   }
 
   .modal-actions {

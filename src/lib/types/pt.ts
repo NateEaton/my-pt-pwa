@@ -72,6 +72,7 @@ export interface SessionDefinition {
   isDefault: boolean; // Is this the default session?
   dateCreated: string; // ISO date string
   autoAdvance?: boolean; // Enable auto-advance to next exercise (optional, defaults to app setting)
+  pauseBetweenExercises?: number; // Rest between exercises in seconds (optional, defaults to app setting)
 }
 
 /**

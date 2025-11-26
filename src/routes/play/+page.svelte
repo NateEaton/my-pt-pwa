@@ -972,8 +972,27 @@
     }, endSessionDelay * 1000);
   }
 
-  function toggleAutoAdvance() {
+  async function toggleAutoAdvance() {
     autoAdvanceActive = !autoAdvanceActive;
+
+    // Persist the change to the session definition
+    if (sessionDefinition) {
+      try {
+        const updated: SessionDefinition = {
+          ...sessionDefinition,
+          autoAdvance: autoAdvanceActive
+        };
+        await ptService.updateSessionDefinition(updated);
+        sessionDefinition = updated;
+
+        // Update the state store to reflect the change
+        const sessionDefinitions = await ptService.getSessionDefinitions();
+        ptState.update((state) => ({ ...state, sessionDefinitions }));
+      } catch (error) {
+        console.error('Failed to update session definition:', error);
+        // Continue even if save fails - user can still toggle during current session
+      }
+    }
   }
 
   // VCR-style controls
