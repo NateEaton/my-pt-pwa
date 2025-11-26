@@ -426,12 +426,6 @@
         <div class="setting-item" class:disabled={!(sessionFormData.autoAdvance ?? $ptState.settings?.enableAutoAdvance ?? true)}>
           <div class="setting-info">
             <span class="setting-label">Rest Between Exercises</span>
-            <span class="setting-description">
-              Rest time before automatically starting next exercise
-              {#if sessionFormData.pauseBetweenExercises === undefined}
-                (using app default: {$ptState.settings?.pauseBetweenExercises ?? 20}s)
-              {/if}
-            </span>
           </div>
           <div class="setting-control">
             <DurationInput

@@ -271,15 +271,4 @@
     display: flex;
     gap: var(--spacing-xs);
   }
-
-  @media (max-width: 480px) {
-    .exercise-card {
-      flex-direction: column;
-    }
-
-    .exercise-actions {
-      width: 100%;
-      justify-content: flex-end;
-    }
-  }
 </style>
