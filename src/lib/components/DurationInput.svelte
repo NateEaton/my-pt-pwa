@@ -45,7 +45,7 @@
 
 	function handleBlur() {
 		// Reformat on blur to ensure consistent display
-		displayValue = formatDurationForInput(value);
+		displayValue = value !== undefined ? formatDurationForInput(value) : '';
 	}
 
 	function handleFocus(event: Event) {

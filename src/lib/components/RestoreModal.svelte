@@ -21,6 +21,7 @@
   import Modal from './Modal.svelte';
   import { ptService, ptState } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
+  import type { SessionExercise, CompletedExercise } from '$lib/types/pt';
 
   const dispatch = createEventDispatcher();
 
@@ -150,7 +151,7 @@
         const { id, ...sessionData } = session;
 
         // Remap exercise IDs in the exercises array
-        const remappedExercises = sessionData.exercises.map(se => ({
+        const remappedExercises = sessionData.exercises.map((se: SessionExercise) => ({
           ...se,
           exerciseId: exerciseIdMap.get(se.exerciseId) ?? se.exerciseId
         }));
@@ -170,7 +171,7 @@
         const remappedSessionDefId = sessionDefIdMap.get(instanceData.sessionDefinitionId) ?? instanceData.sessionDefinitionId;
 
         // Remap exercise IDs in completed exercises
-        const remappedCompletedExercises = instanceData.completedExercises.map(ce => ({
+        const remappedCompletedExercises = instanceData.completedExercises.map((ce: CompletedExercise) => ({
           ...ce,
           exerciseId: exerciseIdMap.get(ce.exerciseId) ?? ce.exerciseId
         }));

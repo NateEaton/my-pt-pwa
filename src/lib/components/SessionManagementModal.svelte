@@ -143,7 +143,7 @@
     editingSession = session;
     sessionFormData = {
       name: session.name,
-      selectedExercises: session.exercises.map(e => e.exerciseId),
+      selectedExercises: session.exercises.map((e: SessionExercise) => e.exerciseId),
       isDefault: session.isDefault,
       autoAdvance: session.autoAdvance,
       pauseBetweenExercises: session.pauseBetweenExercises

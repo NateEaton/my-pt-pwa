@@ -262,7 +262,7 @@ export class PTService {
    */
   async getDefaultExercises(): Promise<Exercise[]> {
     this.ensureInitialized();
-    return this._getByIndex<Exercise>(STORES.EXERCISES, 'includeInDefault', true);
+    return this._getByIndex<Exercise>(STORES.EXERCISES, 'includeInDefault', true as unknown as IDBValidKey);
   }
 
   // ==================== Session Definition Operations ====================
@@ -291,7 +291,7 @@ export class PTService {
     const defaults = await this._getByIndex<SessionDefinition>(
       STORES.SESSION_DEFINITIONS,
       'isDefault',
-      true
+      true as unknown as IDBValidKey
     );
     return defaults[0] || null;
   }

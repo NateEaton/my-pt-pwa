@@ -52,7 +52,7 @@
       });
 
       // Subscribe to needRefresh and show notification if not on Settings page
-      needRefresh.subscribe(value => {
+      needRefresh.subscribe((value: boolean) => {
         pwaUpdateAvailable.set(value);
         if (value) {
           // Only show "Go to Settings" toast if user is not already on Settings page
@@ -71,7 +71,7 @@
       pwaUpdateFunction.set(updateServiceWorker);
 
       // Subscribe to offlineReady
-      offlineReady.subscribe(value => {
+      offlineReady.subscribe((value: boolean) => {
         pwaOfflineReady.set(value);
         if (value) {
           toastStore.show('App is ready to work offline!', 'success');
@@ -140,7 +140,7 @@
     });
   }
 
-  function applyTheme(theme) {
+  function applyTheme(theme: string) {
     if (theme === "auto") {
       const prefersDark = window.matchMedia(
         "(prefers-color-scheme: dark)"

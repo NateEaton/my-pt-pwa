@@ -407,20 +407,22 @@
   function startExercise() {
     if (!currentExercise) return;
 
+    const exercise = currentExercise; // Store in local const to satisfy TypeScript null checks
+
     timerState = 'active';
     exerciseElapsedSeconds = 0;
     isPausingBetweenReps = false;
     currentSet = 1;
     currentRep = 1;
     sidePhase = 'first'; // Reset side phase
-    initializeSide(currentExercise); // Initialize side for unilateral/alternating
+    initializeSide(exercise); // Initialize side for unilateral/alternating
 
     // Track starting side for alternating exercises
-    if (currentExercise.sideMode === 'alternating') {
+    if (exercise.sideMode === 'alternating') {
       setStartingSide = currentSide;
     }
 
-    if (currentExercise.type === 'duration') {
+    if (exercise.type === 'duration') {
       startDurationExercise();
     } else {
       startRepsExercise();
@@ -498,10 +500,11 @@
   function startRepsExercise() {
     if (!currentExercise) return;
 
-    const reps = currentExercise.defaultReps || 10;
-    const sets = currentExercise.defaultSets || 3;
-    const repDuration = currentExercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 2;
-    const sideMode = currentExercise.sideMode || 'bilateral';
+    const exercise = currentExercise; // Store in local const to satisfy TypeScript null checks
+    const reps = exercise.defaultReps || 10;
+    const sets = exercise.defaultSets || 3;
+    const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 2;
+    const sideMode = exercise.sideMode || 'bilateral';
 
     // Reset counters when starting fresh
     exerciseElapsedSeconds = 0;

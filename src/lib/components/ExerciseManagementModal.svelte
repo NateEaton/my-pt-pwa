@@ -266,21 +266,23 @@
   async function deleteExercise() {
     if (!exerciseToDelete) return;
 
+    const exerciseId = exerciseToDelete.id; // Store ID to satisfy TypeScript null checks
+
     try {
       // Remove exercise from all sessions
       for (const session of sessionsUsingExercise) {
-        const updatedExercises = session.exercises.filter(ex => ex.exerciseId !== exerciseToDelete.id);
+        const updatedExercises = session.exercises.filter(ex => ex.exerciseId !== exerciseId);
         const updated = { ...session, exercises: updatedExercises };
         await ptService.updateSessionDefinition(updated);
       }
 
       // Delete the exercise
-      await ptService.deleteExercise(exerciseToDelete.id);
+      await ptService.deleteExercise(exerciseId);
 
       // Check for empty sessions
       emptySessionsAfterDeletion = [];
       for (const session of sessionsUsingExercise) {
-        const updatedSession = await ptService.getSessionDefinitionById(session.id);
+        const updatedSession = await ptService.getSessionDefinition(session.id);
         if (updatedSession && updatedSession.exercises.length === 0) {
           emptySessionsAfterDeletion.push(updatedSession);
         }
