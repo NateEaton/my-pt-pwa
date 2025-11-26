@@ -1,18 +1,21 @@
 <script lang="ts">
 	import { parseDuration, formatDurationForInput } from '$lib/utils/duration';
 
-	export let value: number; // Always in seconds
+	export let value: number | undefined; // Always in seconds (can be undefined)
 	export let min: number = 0;
 	export let max: number = 3600; // 1 hour default
 	export let placeholder: string = 'MM:SS or seconds';
 	export let id: string | undefined = undefined;
+	export let disabled: boolean = false;
 
-	let displayValue: string = formatDurationForInput(value);
+	let displayValue: string = value !== undefined ? formatDurationForInput(value) : '';
 	let inputElement: HTMLInputElement;
 
 	// Update display value when value prop changes externally
 	$: if (value !== undefined) {
 		displayValue = formatDurationForInput(value);
+	} else {
+		displayValue = '';
 	}
 
 	function handleInput(event: Event) {
@@ -42,6 +45,7 @@
 	on:blur={handleBlur}
 	on:focus={handleFocus}
 	{placeholder}
+	{disabled}
 	class="duration-input"
 	inputmode="numeric"
 />

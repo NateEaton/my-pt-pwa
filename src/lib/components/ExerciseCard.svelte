@@ -176,6 +176,7 @@
     align-items: center;
     gap: var(--spacing-sm);
     margin-bottom: var(--spacing-sm);
+    flex-wrap: wrap;
   }
 
   .exercise-name {
@@ -183,6 +184,15 @@
     font-size: var(--font-size-base);
     font-weight: 600;
     color: var(--text-primary);
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* On desktop, prevent wrapping to keep exercise name beside type badge */
+  @media (min-width: 481px) {
+    .exercise-header {
+      flex-wrap: nowrap;
+    }
   }
 
   .exercise-type-badge {
@@ -260,16 +270,5 @@
   .exercise-actions {
     display: flex;
     gap: var(--spacing-xs);
-  }
-
-  @media (max-width: 480px) {
-    .exercise-card {
-      flex-direction: column;
-    }
-
-    .exercise-actions {
-      width: 100%;
-      justify-content: flex-end;
-    }
   }
 </style>

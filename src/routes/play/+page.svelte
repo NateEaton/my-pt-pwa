@@ -16,6 +16,7 @@
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import { audioService } from '$lib/services/AudioService';
+  import { formatDuration } from '$lib/utils/duration';
   import DisplayRow from '$lib/components/DisplayRow.svelte';
   import SideIndicator from '$lib/components/SideIndicator.svelte';
   import type { Exercise, SessionDefinition, SessionInstance, CompletedExercise } from '$lib/types/pt';
@@ -972,8 +973,27 @@
     }, endSessionDelay * 1000);
   }
 
-  function toggleAutoAdvance() {
+  async function toggleAutoAdvance() {
     autoAdvanceActive = !autoAdvanceActive;
+
+    // Persist the change to the session definition
+    if (sessionDefinition) {
+      try {
+        const updated: SessionDefinition = {
+          ...sessionDefinition,
+          autoAdvance: autoAdvanceActive
+        };
+        await ptService.updateSessionDefinition(updated);
+        sessionDefinition = updated;
+
+        // Update the state store to reflect the change
+        const sessionDefinitions = await ptService.getSessionDefinitions();
+        ptState.update((state) => ({ ...state, sessionDefinitions }));
+      } catch (error) {
+        console.error('Failed to update session definition:', error);
+        // Continue even if save fails - user can still toggle during current session
+      }
+    }
   }
 
   // VCR-style controls
@@ -1396,7 +1416,7 @@
       </DisplayRow>
       <DisplayRow size="small" wrap={true}>
         {#if currentExercise.type === 'duration'}
-          Duration: {currentExercise.defaultDuration}s
+          Duration: {formatDuration(currentExercise.defaultDuration || 0)}
         {:else}
           Set {currentSet} of {currentExercise.defaultSets || 3} · {currentExercise.defaultReps || 10} reps
         {/if}
@@ -1583,7 +1603,7 @@
             <div class="exercise-item-details">
               {#if exercise.type === 'duration'}
                 <span class="material-icons detail-icon">timer</span>
-                <span>{exercise.defaultDuration}s</span>
+                <span>{formatDuration(exercise.defaultDuration || 0)}</span>
               {:else}
                 <span class="material-icons detail-icon">repeat</span>
                 <span>{exercise.defaultSets} {exercise.defaultSets === 1 ? 'set' : 'sets'} × {exercise.defaultReps} reps</span>
