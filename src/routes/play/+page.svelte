@@ -1,13 +1,19 @@
 <!--
  * My PT - Physical Therapy Tracker PWA
- * Copyright (C) 2025 Your Name
- *
- * Session Player - Full-screen exercise timer interface
+ * Copyright (C) 2025 Nathan A. Eaton Jr.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
@@ -401,20 +407,22 @@
   function startExercise() {
     if (!currentExercise) return;
 
+    const exercise = currentExercise; // Store in local const to satisfy TypeScript null checks
+
     timerState = 'active';
     exerciseElapsedSeconds = 0;
     isPausingBetweenReps = false;
     currentSet = 1;
     currentRep = 1;
     sidePhase = 'first'; // Reset side phase
-    initializeSide(currentExercise); // Initialize side for unilateral/alternating
+    initializeSide(exercise); // Initialize side for unilateral/alternating
 
     // Track starting side for alternating exercises
-    if (currentExercise.sideMode === 'alternating') {
+    if (exercise.sideMode === 'alternating') {
       setStartingSide = currentSide;
     }
 
-    if (currentExercise.type === 'duration') {
+    if (exercise.type === 'duration') {
       startDurationExercise();
     } else {
       startRepsExercise();
@@ -492,10 +500,11 @@
   function startRepsExercise() {
     if (!currentExercise) return;
 
-    const reps = currentExercise.defaultReps || 10;
-    const sets = currentExercise.defaultSets || 3;
-    const repDuration = currentExercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 2;
-    const sideMode = currentExercise.sideMode || 'bilateral';
+    const exercise = currentExercise; // Store in local const to satisfy TypeScript null checks
+    const reps = exercise.defaultReps || 10;
+    const sets = exercise.defaultSets || 3;
+    const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 2;
+    const sideMode = exercise.sideMode || 'bilateral';
 
     // Reset counters when starting fresh
     exerciseElapsedSeconds = 0;

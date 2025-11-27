@@ -1,13 +1,19 @@
 <!--
  * My PT - Physical Therapy Tracker PWA
- * Copyright (C) 2025 Your Name
- *
- * RestoreModal Component - Restore from backup file
+ * Copyright (C) 2025 Nathan A. Eaton Jr.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
@@ -15,6 +21,7 @@
   import Modal from './Modal.svelte';
   import { ptService, ptState } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
+  import type { SessionExercise, CompletedExercise } from '$lib/types/pt';
 
   const dispatch = createEventDispatcher();
 
@@ -144,7 +151,7 @@
         const { id, ...sessionData } = session;
 
         // Remap exercise IDs in the exercises array
-        const remappedExercises = sessionData.exercises.map(se => ({
+        const remappedExercises = sessionData.exercises.map((se: SessionExercise) => ({
           ...se,
           exerciseId: exerciseIdMap.get(se.exerciseId) ?? se.exerciseId
         }));
@@ -164,7 +171,7 @@
         const remappedSessionDefId = sessionDefIdMap.get(instanceData.sessionDefinitionId) ?? instanceData.sessionDefinitionId;
 
         // Remap exercise IDs in completed exercises
-        const remappedCompletedExercises = instanceData.completedExercises.map(ce => ({
+        const remappedCompletedExercises = instanceData.completedExercises.map((ce: CompletedExercise) => ({
           ...ce,
           exerciseId: exerciseIdMap.get(ce.exerciseId) ?? ce.exerciseId
         }));

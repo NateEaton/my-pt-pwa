@@ -16,19 +16,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { writable } from 'svelte/store';
-
 /**
- * Store to track if a PWA update is available
+ * @fileoverview Barrel export for all type definitions
+ *
+ * This provides backward compatibility with existing imports:
+ * - import type { Exercise } from '$lib/types/pt' (old)
+ * - import type { Exercise } from '$lib/types' (new preferred)
  */
-export const pwaUpdateAvailable = writable<boolean>(false);
 
-/**
- * Store to hold the update function provided by the service worker
- */
-export const pwaUpdateFunction = writable<(() => Promise<void>) | null>(null);
-
-/**
- * Store to track if the app is ready for offline use
- */
-export const pwaOfflineReady = writable<boolean>(false);
+export type { Exercise, SessionExercise } from './exercise';
+export type { SessionDefinition, SessionInstance, CompletedExercise } from './session';
+export type { AppSettings, DBMetadata } from './settings';

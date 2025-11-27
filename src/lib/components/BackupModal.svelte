@@ -1,13 +1,19 @@
 <!--
  * My PT - Physical Therapy Tracker PWA
- * Copyright (C) 2025 Your Name
- *
- * BackupModal Component - Create and download backup files
+ * Copyright (C) 2025 Nathan A. Eaton Jr.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
@@ -141,12 +147,6 @@
     gap: var(--spacing-xl);
   }
 
-  .modal-description {
-    margin: 0;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-
   .backup-summary {
     background-color: var(--surface-variant);
     padding: var(--spacing-lg);
@@ -177,13 +177,12 @@
     font-size: var(--icon-size-md);
   }
 
+  /* Component-specific info box styling (horizontal layout with icon) */
   .info-box {
     display: flex;
     align-items: flex-start;
     gap: var(--spacing-md);
-    padding: var(--spacing-md);
     background-color: var(--primary-alpha-10);
-    border-radius: var(--border-radius);
     border-left: 3px solid var(--primary-color);
   }
 

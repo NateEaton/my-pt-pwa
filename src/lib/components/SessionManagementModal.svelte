@@ -1,13 +1,19 @@
 <!--
  * My PT - Physical Therapy Tracker PWA
- * Copyright (C) 2025 Your Name
- *
- * SessionManagementModal Component - Manage session definitions
+ * Copyright (C) 2025 Nathan A. Eaton Jr.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
@@ -137,7 +143,7 @@
     editingSession = session;
     sessionFormData = {
       name: session.name,
-      selectedExercises: session.exercises.map(e => e.exerciseId),
+      selectedExercises: session.exercises.map((e: SessionExercise) => e.exerciseId),
       isDefault: session.isDefault,
       autoAdvance: session.autoAdvance,
       pauseBetweenExercises: session.pauseBetweenExercises
@@ -822,22 +828,7 @@
     padding: var(--spacing-lg);
   }
 
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  .form-group label {
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .required {
-    color: var(--error-color);
-  }
-
+  /* Component-specific form input styling */
   .form-group input[type="text"] {
     padding: var(--spacing-sm) var(--spacing-md);
     border: 1px solid var(--divider);
@@ -1034,6 +1025,7 @@
     margin-top: calc(-1 * var(--spacing-md));
   }
 
+  /* Component-specific setting item styling (card-based with border) */
   .setting-item {
     display: flex;
     justify-content: space-between;
@@ -1055,17 +1047,6 @@
     flex-direction: column;
     gap: var(--spacing-xs);
     flex: 1;
-  }
-
-  .setting-label {
-    font-size: var(--font-size-base);
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .setting-description {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
   }
 
   .setting-control {
@@ -1099,6 +1080,15 @@
 
     .session-card {
       padding: var(--spacing-sm);
+    }
+
+    .setting-item {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .setting-control {
+      align-self: flex-end;
     }
   }
 </style>

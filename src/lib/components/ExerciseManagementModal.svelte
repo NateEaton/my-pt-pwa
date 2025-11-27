@@ -1,13 +1,19 @@
 <!--
  * My PT - Physical Therapy Tracker PWA
- * Copyright (C) 2025 Your Name
- *
- * ExerciseManagementModal Component - Manage exercise library
+ * Copyright (C) 2025 Nathan A. Eaton Jr.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
@@ -260,21 +266,23 @@
   async function deleteExercise() {
     if (!exerciseToDelete) return;
 
+    const exerciseId = exerciseToDelete.id; // Store ID to satisfy TypeScript null checks
+
     try {
       // Remove exercise from all sessions
       for (const session of sessionsUsingExercise) {
-        const updatedExercises = session.exercises.filter(ex => ex.exerciseId !== exerciseToDelete.id);
+        const updatedExercises = session.exercises.filter(ex => ex.exerciseId !== exerciseId);
         const updated = { ...session, exercises: updatedExercises };
         await ptService.updateSessionDefinition(updated);
       }
 
       // Delete the exercise
-      await ptService.deleteExercise(exerciseToDelete.id);
+      await ptService.deleteExercise(exerciseId);
 
       // Check for empty sessions
       emptySessionsAfterDeletion = [];
       for (const session of sessionsUsingExercise) {
-        const updatedSession = await ptService.getSessionDefinitionById(session.id);
+        const updatedSession = await ptService.getSessionDefinition(session.id);
         if (updatedSession && updatedSession.exercises.length === 0) {
           emptySessionsAfterDeletion.push(updatedSession);
         }
@@ -914,28 +922,7 @@
     padding: var(--spacing-lg);
   }
 
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--spacing-md);
-  }
-
-  .form-group label {
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .required {
-    color: var(--error-color);
-  }
-
+  /* Component-specific form input styling */
   .form-group input[type="text"],
   .form-group input[type="number"],
   .form-group select,
@@ -993,10 +980,6 @@
 
     .exercise-card {
       padding: var(--spacing-sm);
-    }
-
-    .form-row {
-      grid-template-columns: 1fr;
     }
   }
 </style>

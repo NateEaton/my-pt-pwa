@@ -1,6 +1,6 @@
 <!--
  * My PT - Physical Therapy Tracker PWA
- * Copyright (C) 2025 Your Name
+ * Copyright (C) 2025 Nathan A. Eaton Jr.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
-<script>
+<script lang="ts">
   import { onMount } from "svelte";
   import { logBuildInfo } from "$lib/utils/buildInfo";
   import { page } from "$app/stores";
@@ -52,7 +52,7 @@
       });
 
       // Subscribe to needRefresh and show notification if not on Settings page
-      needRefresh.subscribe(value => {
+      needRefresh.subscribe((value: boolean) => {
         pwaUpdateAvailable.set(value);
         if (value) {
           // Only show "Go to Settings" toast if user is not already on Settings page
@@ -71,7 +71,7 @@
       pwaUpdateFunction.set(updateServiceWorker);
 
       // Subscribe to offlineReady
-      offlineReady.subscribe(value => {
+      offlineReady.subscribe((value: boolean) => {
         pwaOfflineReady.set(value);
         if (value) {
           toastStore.show('App is ready to work offline!', 'success');
@@ -140,7 +140,7 @@
     });
   }
 
-  function applyTheme(theme) {
+  function applyTheme(theme: string) {
     if (theme === "auto") {
       const prefersDark = window.matchMedia(
         "(prefers-color-scheme: dark)"

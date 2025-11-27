@@ -1,6 +1,6 @@
 /*
  * My PT - Physical Therapy Tracker PWA
- * Copyright (C) 2025 Your Name
+ * Copyright (C) 2025 Nathan A. Eaton Jr.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,11 @@
 
 /**
  * @fileoverview PTService - Core data management service for My PT
- * Handles all IndexedDB operations, exercise/session CRUD, and settings persistence
+ *
+ * USAGE:
+ * - For database operations, import { ptService } from '$lib/stores/pt'
+ * - The PTService class is exported for type references only
+ * - Do not instantiate PTService directly; use the singleton
  */
 
 import type {
@@ -258,7 +262,7 @@ export class PTService {
    */
   async getDefaultExercises(): Promise<Exercise[]> {
     this.ensureInitialized();
-    return this._getByIndex<Exercise>(STORES.EXERCISES, 'includeInDefault', true);
+    return this._getByIndex<Exercise>(STORES.EXERCISES, 'includeInDefault', true as unknown as IDBValidKey);
   }
 
   // ==================== Session Definition Operations ====================
@@ -287,7 +291,7 @@ export class PTService {
     const defaults = await this._getByIndex<SessionDefinition>(
       STORES.SESSION_DEFINITIONS,
       'isDefault',
-      true
+      true as unknown as IDBValidKey
     );
     return defaults[0] || null;
   }
