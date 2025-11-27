@@ -42,12 +42,6 @@
         immediate: true,
         onRegisteredSW(swUrl, registration) {
           console.log('Service worker registered:', swUrl);
-          // Check for updates periodically (every hour)
-          if (registration) {
-            setInterval(() => {
-              registration.update();
-            }, 60 * 60 * 1000);
-          }
         },
         onRegisterError(error) {
           console.error('Service worker registration failed:', error);
