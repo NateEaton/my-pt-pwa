@@ -1081,5 +1081,14 @@
     .session-card {
       padding: var(--spacing-sm);
     }
+
+    .setting-item {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .setting-control {
+      align-self: flex-end;
+    }
   }
 </style>
