@@ -1042,6 +1042,19 @@
     pointer-events: none;
   }
 
+  .setting-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    flex: 1;
+  }
+
+  .setting-control {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
   .modal-actions {
     display: flex;
     gap: var(--spacing-md);
