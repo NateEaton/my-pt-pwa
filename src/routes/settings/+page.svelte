@@ -64,6 +64,16 @@
       await ptService.saveSettings(newSettings);
       const settings = await ptService.getSettings();
       ptState.update((state) => ({ ...state, settings }));
+
+      // Apply theme immediately
+      localStorage.setItem("pt_theme", newTheme);
+      if (newTheme === "auto") {
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", prefersDark ? "dark" : "light");
+      } else {
+        document.documentElement.setAttribute("data-theme", newTheme);
+      }
+
       toastStore.show('Theme updated', 'success');
     } catch (error) {
       console.error('Error updating theme:', error);
@@ -389,22 +399,6 @@
       <h2 class="section-title">Support</h2>
 
       <div class="settings-cards">
-        <!-- App Updates Card -->
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div class="settings-card" on:click={() => toastStore.show('Updates install automatically when available', 'info')}>
-          <div class="card-icon">
-            <span class="material-icons">system_update</span>
-          </div>
-          <div class="card-content">
-            <h3>App Updates</h3>
-            <p>Updates install automatically</p>
-          </div>
-          <div class="card-arrow">
-            <span class="material-icons">info</span>
-          </div>
-        </div>
-
         <!-- User Guide Card -->
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->

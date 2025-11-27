@@ -50,12 +50,14 @@
 
 <div class="exercise-card" class:compact>
   <!-- Info icon (left side) -->
-  {#if onToggleInstructions && exercise.instructions}
+  {#if onToggleInstructions}
     <button
       class="icon-button info-icon"
-      on:click|stopPropagation={onToggleInstructions}
-      aria-label="Toggle instructions"
-      title="Toggle instructions"
+      class:disabled={!exercise.instructions}
+      on:click|stopPropagation={() => exercise.instructions && onToggleInstructions()}
+      aria-label={exercise.instructions ? "Toggle instructions" : "No instructions"}
+      title={exercise.instructions ? "Toggle instructions" : "No instructions defined"}
+      disabled={!exercise.instructions}
     >
       <span class="material-icons">info</span>
     </button>
@@ -151,13 +153,19 @@
     flex-shrink: 0;
   }
 
-  .icon-button:hover {
+  .icon-button:hover:not(:disabled) {
     background-color: var(--primary-alpha-10);
     color: var(--primary-color);
   }
 
-  .icon-button:active {
+  .icon-button:active:not(:disabled) {
     transform: scale(0.95);
+  }
+
+  .icon-button:disabled,
+  .icon-button.disabled {
+    opacity: 0.3;
+    cursor: default;
   }
 
   .icon-button .material-icons {

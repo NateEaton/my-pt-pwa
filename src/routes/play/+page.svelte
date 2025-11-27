@@ -95,18 +95,25 @@
     const containerScrollTop = container.scrollTop;
     const containerHeight = container.clientHeight;
 
-    // Calculate where the element's top is relative to the visible area
+    // Calculate where the element's top and bottom are relative to the visible area
     const elementRelativeTop = elementTop - containerScrollTop;
+    const elementRelativeBottom = elementRelativeTop + elementHeight;
 
     // Padding from the bottom edge when scrolling into view
-    const bottomPadding = 100;
+    const bottomPadding = 20;
 
-    // Only scroll if the element's top is below the visible area
-    // (If it's already visible above the bottom, leave it alone)
-    if (elementRelativeTop > containerHeight - bottomPadding) {
-      // Scroll so the element's top appears near the bottom of the container
+    // Check if element is below the visible area (need to scroll down)
+    if (elementRelativeBottom > containerHeight - bottomPadding) {
+      // Scroll so the entire element is visible with bottom padding
       container.scrollTo({
-        top: elementTop - containerHeight + bottomPadding,
+        top: elementTop + elementHeight - containerHeight + bottomPadding,
+        behavior: 'smooth'
+      });
+    }
+    // Check if element is above the visible area (need to scroll up)
+    else if (elementRelativeTop < bottomPadding) {
+      container.scrollTo({
+        top: elementTop - bottomPadding,
         behavior: 'smooth'
       });
     }
@@ -1870,13 +1877,14 @@
     flex: 0 0 66.666%;
     background-color: var(--surface);
     overflow-y: auto;
-    padding: var(--spacing-lg);
+    padding: var(--spacing-lg) var(--spacing-lg) 0 var(--spacing-lg);
   }
 
   .exercise-list {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+    padding-bottom: 150px;
   }
 
   .exercise-item {

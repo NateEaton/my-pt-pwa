@@ -111,6 +111,18 @@ body {
   --bottom-tabs-height: 4rem;  /* 64px */
 }
 
+/* Light theme (explicit) - ensures proper specificity when switching themes */
+[data-theme="light"] {
+  --surface: #ffffff;
+  --surface-variant: #f5f5f5;
+  --divider: #e0e0e0;
+  --text-primary: #212121;
+  --text-secondary: #757575;
+  --hover-overlay: rgba(255, 255, 255, 0.1);
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 /* Dark theme overrides */
 [data-theme="dark"] {
   --surface: #121212;
