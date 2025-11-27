@@ -39,6 +39,7 @@ export interface AppSettings {
 
   // UI preferences
   theme: 'light' | 'dark' | 'auto';
+  colorScheme: 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'teal';
   exerciseSortOrder: 'alphabetical' | 'dateAdded' | 'frequency';
 
   // Sound preferences

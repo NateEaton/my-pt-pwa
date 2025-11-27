@@ -46,6 +46,7 @@
 
   // Quick access settings (directly editable)
   $: theme = $ptState.settings?.theme ?? 'auto';
+  $: colorScheme = $ptState.settings?.colorScheme ?? 'blue';
 
   // Update theme setting
   async function updateTheme(event: Event) {
@@ -70,6 +71,70 @@
     }
   }
 
+  // Update color scheme setting
+  async function updateColorScheme(newScheme: 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'teal') {
+    if (!$ptState.settings) return;
+
+    const newSettings: AppSettings = {
+      ...$ptState.settings,
+      colorScheme: newScheme
+    };
+
+    try {
+      await ptService.saveSettings(newSettings);
+      const settings = await ptService.getSettings();
+      ptState.update((state) => ({ ...state, settings }));
+
+      // Apply the color scheme immediately
+      applyColorScheme(newScheme);
+
+      toastStore.show('Color scheme updated', 'success');
+    } catch (error) {
+      console.error('Error updating color scheme:', error);
+      toastStore.show('Failed to update color scheme', 'error');
+    }
+  }
+
+  // Apply color scheme to document
+  function applyColorScheme(scheme: string) {
+    const colorMap = {
+      blue: { primary: '#1976d2', dark: '#1565c0' },
+      purple: { primary: '#7b1fa2', dark: '#6a1b9a' },
+      green: { primary: '#388e3c', dark: '#2e7d32' },
+      orange: { primary: '#f57c00', dark: '#ef6c00' },
+      red: { primary: '#d32f2f', dark: '#c62828' },
+      teal: { primary: '#00796b', dark: '#00695c' }
+    };
+
+    const colors = colorMap[scheme as keyof typeof colorMap];
+    if (colors) {
+      document.documentElement.style.setProperty('--primary-color', colors.primary);
+      document.documentElement.style.setProperty('--primary-color-dark', colors.dark);
+
+      // Update alpha variants
+      const rgb = hexToRgb(colors.primary);
+      if (rgb) {
+        document.documentElement.style.setProperty('--primary-alpha-10', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`);
+        document.documentElement.style.setProperty('--primary-alpha-20', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`);
+      }
+    }
+  }
+
+  // Helper function to convert hex to RGB
+  function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+
+  // Apply color scheme on mount
+  $: if ($ptState.settings?.colorScheme) {
+    applyColorScheme($ptState.settings.colorScheme);
+  }
+
 </script>
 
 <svelte:head>
@@ -81,27 +146,6 @@
     <header class="page-header">
       <h1>Settings</h1>
     </header>
-
-    <!-- Theme Setting (no heading) -->
-    <section class="settings-section quick-access">
-      <div class="quick-settings">
-        <div class="quick-setting-item">
-          <div class="setting-info">
-            <div class="setting-label">
-              <span class="material-icons">palette</span>
-              <span>Theme</span>
-            </div>
-          </div>
-          <div class="setting-controls">
-            <select value={theme} on:change={updateTheme} class="theme-select">
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-              <option value="auto">Auto</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- Library Section -->
     <section class="settings-section">
@@ -231,6 +275,110 @@
           </div>
           <div class="card-arrow">
             <span class="material-icons">chevron_right</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Display Section -->
+    <section class="settings-section">
+      <h2 class="section-title">Display</h2>
+
+      <div class="quick-settings">
+        <!-- Theme Setting -->
+        <div class="quick-setting-item">
+          <div class="setting-info">
+            <div class="setting-label">
+              <span class="material-icons">brightness_6</span>
+              <span>Theme</span>
+            </div>
+          </div>
+          <div class="setting-controls">
+            <select value={theme} on:change={updateTheme} class="theme-select">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="auto">Auto</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Color Scheme Setting -->
+        <div class="quick-setting-item">
+          <div class="setting-info">
+            <div class="setting-label">
+              <span class="material-icons">palette</span>
+              <span>Color Scheme</span>
+            </div>
+          </div>
+          <div class="setting-controls">
+            <div class="color-scheme-selector">
+              <button
+                class="color-swatch"
+                class:active={colorScheme === 'blue'}
+                style="--swatch-color: #1976d2;"
+                on:click={() => updateColorScheme('blue')}
+                aria-label="Blue color scheme"
+              >
+                {#if colorScheme === 'blue'}
+                  <span class="material-icons">check</span>
+                {/if}
+              </button>
+              <button
+                class="color-swatch"
+                class:active={colorScheme === 'purple'}
+                style="--swatch-color: #7b1fa2;"
+                on:click={() => updateColorScheme('purple')}
+                aria-label="Purple color scheme"
+              >
+                {#if colorScheme === 'purple'}
+                  <span class="material-icons">check</span>
+                {/if}
+              </button>
+              <button
+                class="color-swatch"
+                class:active={colorScheme === 'green'}
+                style="--swatch-color: #388e3c;"
+                on:click={() => updateColorScheme('green')}
+                aria-label="Green color scheme"
+              >
+                {#if colorScheme === 'green'}
+                  <span class="material-icons">check</span>
+                {/if}
+              </button>
+              <button
+                class="color-swatch"
+                class:active={colorScheme === 'orange'}
+                style="--swatch-color: #f57c00;"
+                on:click={() => updateColorScheme('orange')}
+                aria-label="Orange color scheme"
+              >
+                {#if colorScheme === 'orange'}
+                  <span class="material-icons">check</span>
+                {/if}
+              </button>
+              <button
+                class="color-swatch"
+                class:active={colorScheme === 'red'}
+                style="--swatch-color: #d32f2f;"
+                on:click={() => updateColorScheme('red')}
+                aria-label="Red color scheme"
+              >
+                {#if colorScheme === 'red'}
+                  <span class="material-icons">check</span>
+                {/if}
+              </button>
+              <button
+                class="color-swatch"
+                class:active={colorScheme === 'teal'}
+                style="--swatch-color: #00796b;"
+                on:click={() => updateColorScheme('teal')}
+                aria-label="Teal color scheme"
+              >
+                {#if colorScheme === 'teal'}
+                  <span class="material-icons">check</span>
+                {/if}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -513,6 +661,53 @@
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px var(--primary-alpha-10);
+  }
+
+  /* Color Scheme Selector */
+  .color-scheme-selector {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+  }
+
+  .color-swatch {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 2px solid var(--divider);
+    background-color: var(--swatch-color);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .color-swatch:hover {
+    transform: scale(1.1);
+    border-color: var(--text-secondary);
+  }
+
+  .color-swatch.active {
+    border-color: var(--swatch-color);
+    border-width: 3px;
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--swatch-color);
+  }
+
+  .color-swatch .material-icons {
+    font-size: 1.25rem;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .color-swatch:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text-secondary);
+  }
+
+  .color-swatch.active:focus {
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--swatch-color), 0 0 0 6px var(--text-secondary);
   }
 
   /* Settings Cards */

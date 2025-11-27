@@ -60,6 +60,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   resumeFromPausePoint: true, // Continue from pause point by default (vs restarting exercise)
   startingSide: 'left', // Start with left side for unilateral/alternating exercises
   theme: 'auto',
+  colorScheme: 'blue', // Default color scheme (Material Blue)
   exerciseSortOrder: 'alphabetical',
   soundEnabled: false, // Sound OFF by default
   soundVolume: 0.7, // 70% volume (master volume)

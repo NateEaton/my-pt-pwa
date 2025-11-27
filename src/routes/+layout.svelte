@@ -89,6 +89,11 @@
         settings,
         todaySession
       }));
+
+      // Apply color scheme after settings are loaded
+      if (settings?.colorScheme) {
+        applyColorScheme(settings.colorScheme);
+      }
     } catch (error) {
       console.error('Failed to load initial data:', error);
       ptState.update(state => ({
@@ -139,6 +144,39 @@
     } else {
       document.documentElement.setAttribute("data-theme", theme);
     }
+  }
+
+  function applyColorScheme(scheme: string) {
+    const colorMap = {
+      blue: { primary: '#1976d2', dark: '#1565c0' },
+      purple: { primary: '#7b1fa2', dark: '#6a1b9a' },
+      green: { primary: '#388e3c', dark: '#2e7d32' },
+      orange: { primary: '#f57c00', dark: '#ef6c00' },
+      red: { primary: '#d32f2f', dark: '#c62828' },
+      teal: { primary: '#00796b', dark: '#00695c' }
+    };
+
+    const colors = colorMap[scheme as keyof typeof colorMap];
+    if (colors) {
+      document.documentElement.style.setProperty('--primary-color', colors.primary);
+      document.documentElement.style.setProperty('--primary-color-dark', colors.dark);
+
+      // Update alpha variants
+      const rgb = hexToRgb(colors.primary);
+      if (rgb) {
+        document.documentElement.style.setProperty('--primary-alpha-10', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`);
+        document.documentElement.style.setProperty('--primary-alpha-20', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`);
+      }
+    }
+  }
+
+  function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
   }
 </script>
 
