@@ -21,7 +21,7 @@
   import { logBuildInfo } from "$lib/utils/buildInfo";
   import { page } from "$app/stores";
   import { ptState, ptService } from "$lib/stores/pt";
-  import { pwaUpdateAvailable, pwaUpdateFunction, pwaOfflineReady } from "$lib/stores/pwa";
+  import { pwaJustUpdated, pwaOfflineReady } from "$lib/stores/pwa";
   import Toast from "$lib/components/Toast.svelte";
   import { toastStore } from "$lib/stores/toast";
   import "../app.css";
@@ -38,44 +38,37 @@
     if (typeof window !== "undefined") {
       const { useRegisterSW } = await import("virtual:pwa-register/svelte");
 
-      const {
-        needRefresh,
-        offlineReady,
-        updateServiceWorker
-      } = useRegisterSW({
-        onNeedRefresh() {
-          console.log('New version available');
+      useRegisterSW({
+        immediate: true,
+        onRegisteredSW(swUrl, registration) {
+          console.log('Service worker registered:', swUrl);
+          // Check for updates periodically (every hour)
+          if (registration) {
+            setInterval(() => {
+              registration.update();
+            }, 60 * 60 * 1000);
+          }
+        },
+        onRegisterError(error) {
+          console.error('Service worker registration failed:', error);
         },
         onOfflineReady() {
           console.log('App is ready to work offline');
-        }
-      });
-
-      // Subscribe to needRefresh and show notification if not on Settings page
-      needRefresh.subscribe((value: boolean) => {
-        pwaUpdateAvailable.set(value);
-        if (value) {
-          // Only show "Go to Settings" toast if user is not already on Settings page
-          const currentPath = window.location.pathname;
-          if (!currentPath.includes('/settings')) {
-            toastStore.show(
-              'Update available! Go to Settings to update.',
-              'info',
-              0  // Don't auto-dismiss
-            );
-          }
-        }
-      });
-
-      // Store update function for use in Settings
-      pwaUpdateFunction.set(updateServiceWorker);
-
-      // Subscribe to offlineReady
-      offlineReady.subscribe((value: boolean) => {
-        pwaOfflineReady.set(value);
-        if (value) {
+          pwaOfflineReady.set(true);
           toastStore.show('App is ready to work offline!', 'success');
+        },
+        onNeedRefresh() {
+          // With autoUpdate, this triggers automatic update
+          // The page will reload automatically when the new SW activates
+          console.log('New version available, updating...');
         }
+      });
+
+      // Listen for when a new service worker takes control
+      navigator.serviceWorker?.addEventListener('controllerchange', () => {
+        // New SW has taken control - this happens after auto-update
+        pwaJustUpdated.set(true);
+        toastStore.show('App updated to latest version!', 'success');
       });
     }
     logBuildInfo();

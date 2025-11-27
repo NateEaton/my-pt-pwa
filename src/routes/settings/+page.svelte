@@ -18,7 +18,6 @@
 
 <script lang="ts">
   import { ptState, ptService } from '$lib/stores/pt';
-  import { pwaUpdateAvailable, pwaUpdateFunction } from '$lib/stores/pwa';
   import { toastStore } from '$lib/stores/toast';
   import { isDevelopment } from '$lib/utils/buildInfo';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
@@ -71,57 +70,6 @@
     }
   }
 
-  // PWA Update handling
-  let checkingForUpdate = false;
-  let updateCheckTimeout: number | undefined;
-
-  // Watch for update state changes when manually checking
-  $: if (checkingForUpdate && $pwaUpdateAvailable) {
-    // Update detected!
-    checkingForUpdate = false;
-    if (updateCheckTimeout) clearTimeout(updateCheckTimeout);
-    toastStore.show('Update available! Tap "Install Update" below.', 'info', 0);
-  }
-
-  async function checkForUpdate() {
-    try {
-      if ('serviceWorker' in navigator) {
-        toastStore.show('Checking for updates...', 'info');
-        checkingForUpdate = true;
-
-        const registration = await navigator.serviceWorker.getRegistration();
-        await registration?.update();
-
-        // If no update detected after 3 seconds, show "latest version" message
-        updateCheckTimeout = window.setTimeout(() => {
-          if (checkingForUpdate && !$pwaUpdateAvailable) {
-            checkingForUpdate = false;
-            toastStore.show('You\'re running the latest version', 'success');
-          }
-        }, 3000);
-      }
-    } catch (error) {
-      console.error('Update check failed:', error);
-      checkingForUpdate = false;
-      if (updateCheckTimeout) clearTimeout(updateCheckTimeout);
-      toastStore.show('Failed to check for updates', 'error');
-    }
-  }
-
-  async function installUpdate() {
-    const updateFn = $pwaUpdateFunction;
-    if (updateFn) {
-      try {
-        toastStore.show('Installing update...', 'info');
-        await updateFn();
-        // Force hard reload to bypass cache and show new build number
-        window.location.reload();
-      } catch (error) {
-        console.error('Update installation failed:', error);
-        toastStore.show('Failed to install update', 'error');
-      }
-    }
-  }
 </script>
 
 <svelte:head>
@@ -293,25 +241,19 @@
       <h2 class="section-title">Support</h2>
 
       <div class="settings-cards">
-        <!-- Check for Updates Card -->
+        <!-- App Updates Card -->
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div class="settings-card {$pwaUpdateAvailable ? 'update-available' : ''}" on:click={$pwaUpdateAvailable ? installUpdate : checkForUpdate}>
+        <div class="settings-card" on:click={() => toastStore.show('Updates install automatically when available', 'info')}>
           <div class="card-icon">
-            <span class="material-icons">{$pwaUpdateAvailable ? 'system_update' : 'refresh'}</span>
+            <span class="material-icons">system_update</span>
           </div>
           <div class="card-content">
-            <h3>{$pwaUpdateAvailable ? 'Install Update' : 'Check for Updates'}</h3>
-            <p>
-              {#if $pwaUpdateAvailable}
-                New version available - tap to install
-              {:else}
-                Manually check for app updates
-              {/if}
-            </p>
+            <h3>App Updates</h3>
+            <p>Updates install automatically</p>
           </div>
           <div class="card-arrow">
-            <span class="material-icons">{$pwaUpdateAvailable ? 'download' : 'chevron_right'}</span>
+            <span class="material-icons">info</span>
           </div>
         </div>
 

@@ -19,14 +19,9 @@
 import { writable } from 'svelte/store';
 
 /**
- * Store to track if a PWA update is available
+ * Store to track if the app was just updated (for showing notification)
  */
-export const pwaUpdateAvailable = writable<boolean>(false);
-
-/**
- * Store to hold the update function provided by the service worker
- */
-export const pwaUpdateFunction = writable<(() => Promise<void>) | null>(null);
+export const pwaJustUpdated = writable<boolean>(false);
 
 /**
  * Store to track if the app is ready for offline use
