@@ -1,566 +1,369 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Privacy-focused Progressive Web App for tracking physical therapy exercises. All data stays on your device—no server, no tracking, no accounts.">
-  <meta name="keywords" content="physical therapy, PT tracker, exercise tracker, PWA, privacy, offline">
-  <meta name="author" content="Nathan A. Eaton Jr.">
-
-  <title>My PT - Physical Therapy Tracker PWA</title>
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="../static/favicon.svg">
-  <link rel="apple-touch-icon" href="../static/apple-touch-icon.svg">
-
-  <!-- Material Icons -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Track your physical therapy exercises with this free, privacy-focused web app. No ads, no tracking - just simple daily tracking for consistent rehabilitation.">
+  <title>My PT - Physical Therapy Tracker</title>
   <style>
-    :root {
-      --primary-color: #2563eb;
-      --primary-dark: #1e40af;
-      --secondary-color: #10b981;
-      --surface: #ffffff;
-      --surface-variant: #f3f4f6;
-      --text-primary: #1f2937;
-      --text-secondary: #6b7280;
-      --border: #e5e7eb;
-      --shadow: rgba(0, 0, 0, 0.1);
-      --spacing: 1rem;
-    }
-
-    * {
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fdfdfd;
+      color: #333;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       line-height: 1.6;
-      color: var(--text-primary);
-      background-color: var(--surface-variant);
     }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 var(--spacing);
+    header, section, footer {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
     }
-
-    /* Header/Hero Section */
-    .hero {
-      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-      color: white;
-      padding: 4rem 0;
+    h1, h2 {
+      color: #2a2a2a;
+    }
+    header h1 {
+      font-size: 3em;
+      margin: 0.5em 0 0.2em;
       text-align: center;
     }
-
-    .hero h1 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-    }
-
-    .hero .tagline {
-      font-size: 1.25rem;
-      margin-bottom: 2rem;
-      opacity: 0.95;
-    }
-
-    .hero .badges {
-      display: flex;
-      justify-content: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
+    .subtitle {
+      font-size: 1.2rem;
+      color: #555;
+      text-align: center;
       margin-bottom: 2rem;
     }
 
-    .hero .badges img {
-      height: 20px;
-    }
-
-    .cta-buttons {
+    /* Benefits */
+    .benefits {
       display: flex;
       gap: 1rem;
-      justify-content: center;
+      margin: 1.5rem 0;
       flex-wrap: wrap;
+      justify-content: center;
+    }
+    .benefit {
+      flex: 1;
+      min-width: 200px;
+      text-align: center;
+    }
+    .benefit .icon {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 0.5rem;
     }
 
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.875rem 1.5rem;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 600;
-      transition: all 0.2s;
-      font-size: 1rem;
-    }
-
-    .btn-primary {
-      background-color: white;
-      color: var(--primary-color);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .btn-secondary {
-      background-color: rgba(255, 255, 255, 0.2);
-      color: white;
-      border: 2px solid white;
-    }
-
-    .btn-secondary:hover {
-      background-color: rgba(255, 255, 255, 0.3);
-    }
-
-    /* Disclaimer Section */
+    /* Disclaimer */
     .disclaimer {
-      background-color: #fef3c7;
+      background: #fef3c7;
       border-left: 4px solid #f59e0b;
-      padding: 1.5rem;
-      margin: 2rem auto;
-      border-radius: 8px;
-      max-width: 900px;
-    }
-
-    .disclaimer p {
+      padding: 1rem 1.5rem;
+      margin: 2rem 0;
+      border-radius: 4px;
       color: #92400e;
       font-size: 0.95rem;
-      line-height: 1.6;
     }
 
-    /* Main Content Sections */
-    section {
-      padding: 3rem 0;
-    }
-
-    section h2 {
-      font-size: 2rem;
-      margin-bottom: 2rem;
-      text-align: center;
-      color: var(--text-primary);
-    }
-
-    .section-content {
-      background-color: var(--surface);
-      border-radius: 12px;
-      padding: 2rem;
-      box-shadow: 0 1px 3px var(--shadow);
-    }
-
-    /* Features Grid */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 2rem;
-      margin-top: 2rem;
-    }
-
-    .feature-card {
-      background-color: var(--surface);
-      padding: 1.5rem;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px var(--shadow);
-      transition: transform 0.2s;
-    }
-
-    .feature-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 4px 12px var(--shadow);
-    }
-
-    .feature-card h3 {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--primary-color);
-      margin-bottom: 1rem;
-      font-size: 1.25rem;
-    }
-
-    .feature-card .material-icons {
-      font-size: 1.5rem;
-    }
-
-    .feature-card ul {
-      list-style: none;
-      padding-left: 0;
-    }
-
-    .feature-card li {
-      padding: 0.5rem 0;
-      padding-left: 1.5rem;
-      position: relative;
-    }
-
-    .feature-card li::before {
-      content: "✓";
-      position: absolute;
-      left: 0;
-      color: var(--secondary-color);
-      font-weight: bold;
-    }
-
-    /* Installation Steps */
-    .install-steps {
-      display: grid;
-      gap: 1.5rem;
-      margin-top: 2rem;
-    }
-
-    .install-step {
-      background-color: var(--surface);
-      padding: 1.5rem;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px var(--shadow);
-      display: flex;
-      gap: 1.5rem;
-      align-items: start;
-    }
-
-    .step-number {
-      background-color: var(--primary-color);
+    /* CTA Button */
+    .cta-button {
+      display: inline-block;
+      background: #3b82f6;
       color: white;
+      padding: 0.75rem 1.5rem;
+      margin: 1rem 0.5rem;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+    .cta-button:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+    }
+    .cta-button.secondary {
+      background: #6b7280;
+    }
+    .cta-button.secondary:hover {
+      background: #4b5563;
+    }
+    .cta-center {
+      text-align: center;
+    }
+
+    /* Screenshot Carousel */
+    .carousel {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      gap: 1rem;
+      padding: 1rem 0 2rem;
+      -webkit-overflow-scrolling: touch;
+    }
+    .carousel > div {
+      flex: 0 0 auto;
+      scroll-snap-align: start;
+      width: 280px;
+    }
+    .carousel img {
+      width: 100%;
+      height: auto;
+      min-height: 500px;
+      object-fit: cover;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .caption {
+      text-align: center;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      color: #666;
+    }
+
+    /* Features */
+    section h2 {
+      font-size: 2em;
+      margin-bottom: 1rem;
+    }
+    .features-list {
+      list-style: none;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 0.5rem;
+    }
+    .features-list li {
+      padding: 0.25rem 0;
+    }
+
+    /* How It Works */
+    .steps {
+      display: flex;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .step {
+      flex: 1;
+      min-width: 220px;
+      text-align: center;
+    }
+    .step-number {
       width: 40px;
       height: 40px;
+      background: #3b82f6;
+      color: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 700;
-      font-size: 1.25rem;
-      flex-shrink: 0;
+      margin: 0 auto 1rem;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    .step h3 {
+      margin: 0.5rem 0;
+    }
+    .step p {
+      color: #666;
+      font-size: 0.95rem;
     }
 
-    .step-content h3 {
-      color: var(--text-primary);
-      margin-bottom: 0.5rem;
-    }
-
-    .step-content p {
-      color: var(--text-secondary);
-    }
-
-    /* Privacy Highlights */
-    .privacy-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5rem;
-      margin-top: 2rem;
-    }
-
-    .privacy-item {
-      background-color: var(--surface);
-      padding: 1.5rem;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px var(--shadow);
-      text-align: center;
-    }
-
-    .privacy-item .material-icons {
-      font-size: 3rem;
-      color: var(--secondary-color);
-      margin-bottom: 1rem;
-    }
-
-    .privacy-item h3 {
-      color: var(--text-primary);
-      margin-bottom: 0.5rem;
-    }
-
-    .privacy-item p {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-    }
-
-    /* Screenshots Section */
-    .screenshots {
-      background-color: var(--surface);
+    /* Privacy Section */
+    .privacy-section {
+      background: #1f2937;
+      color: #fff;
       padding: 2rem;
-      border-radius: 12px;
+      border-radius: 8px;
+      margin: 3rem 0;
+    }
+    .privacy-section h2 {
+      color: #fff;
+      margin-top: 0;
+    }
+    .privacy-section p {
+      max-width: 700px;
+      margin: 0 auto;
       text-align: center;
-      box-shadow: 0 1px 3px var(--shadow);
+      font-size: 1.05rem;
+      line-height: 1.7;
     }
 
-    .screenshots p {
-      color: var(--text-secondary);
-      font-style: italic;
+    /* About */
+    .about {
+      margin: 2rem 0;
+    }
+    .about p {
+      text-align: center;
+      color: #555;
+      font-size: 1.05rem;
     }
 
     /* Footer */
     footer {
-      background-color: var(--text-primary);
-      color: white;
-      padding: 2rem 0;
       text-align: center;
+      padding: 2rem 1rem;
+      border-top: 1px solid #ddd;
+      color: #666;
+      font-size: 0.9rem;
     }
-
     footer a {
-      color: var(--secondary-color);
+      color: #3b82f6;
       text-decoration: none;
     }
-
     footer a:hover {
       text-decoration: underline;
     }
 
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      .hero h1 {
-        font-size: 2rem;
-      }
+    /* Device Note */
+    .device-note {
+      text-align: center;
+      margin: 1rem 0;
+      color: #666;
+      font-size: 0.95rem;
+    }
 
-      .hero .tagline {
-        font-size: 1rem;
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 2.5em;
       }
-
-      section h2 {
-        font-size: 1.5rem;
-      }
-
-      .features-grid,
-      .privacy-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .install-step {
+      .benefits {
         flex-direction: column;
+      }
+      .carousel > div {
+        width: 240px;
       }
     }
   </style>
 </head>
 <body>
-  <!-- Hero Section -->
-  <header class="hero">
-    <div class="container">
-      <h1>My PT</h1>
-      <p class="tagline">Privacy-Focused Physical Therapy Tracker</p>
+<header>
+  <h1>My PT</h1>
+  <p class="subtitle">Track your physical therapy exercises with privacy and simplicity</p>
 
-      <div class="badges">
-        <img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3">
-        <img src="https://img.shields.io/badge/SvelteKit-2.5-orange.svg" alt="SvelteKit 2.5">
-        <img src="https://img.shields.io/badge/PWA-Enabled-brightgreen.svg" alt="PWA Enabled">
-      </div>
-
-      <div class="cta-buttons">
-        <a href="https://github.com/NateEaton/my-pt-pwa" class="btn btn-primary">
-          <span class="material-icons">code</span>
-          View on GitHub
-        </a>
-        <a href="https://github.com/NateEaton/my-pt-pwa#installing-as-pwa" class="btn btn-secondary">
-          <span class="material-icons">install_mobile</span>
-          Install as App
-        </a>
-      </div>
+  <div class="benefits">
+    <div class="benefit">
+      <span class="icon">💪</span>
+      <p>Custom exercise routines</p>
     </div>
-  </header>
-
-  <main class="container">
-    <!-- Disclaimer -->
-    <div class="disclaimer">
-      <p>
-        This app is intended as an additional aid beyond those provided by medical professionals.
-        The audience is primarily people with recurring or chronic physical issues that require
-        long-term physical therapy regimen, continued at home beyond when they are under the
-        direct care of a therapist.
-      </p>
+    <div class="benefit">
+      <span class="icon">📱</span>
+      <p>Works online or offline</p>
     </div>
-
-    <!-- About Section -->
-    <section>
-      <h2>About My PT</h2>
-      <div class="section-content">
-        <p style="font-size: 1.1rem; text-align: center; color: var(--text-secondary); max-width: 800px; margin: 0 auto;">
-          A privacy-focused Progressive Web App for tracking physical therapy exercises and maintaining
-          consistent rehabilitation routines. All data stays on your device—no server, no tracking, no accounts.
-        </p>
-      </div>
-    </section>
-
-    <!-- Screenshots Section -->
-    <section>
-      <h2>App Screenshots</h2>
-      <div class="screenshots">
-        <p>Screenshots coming soon...</p>
-      </div>
-    </section>
-
-    <!-- Features Section -->
-    <section>
-      <h2>Core Features</h2>
-      <div class="features-grid">
-        <div class="feature-card">
-          <h3>
-            <span class="material-icons">fitness_center</span>
-            Exercise Management
-          </h3>
-          <ul>
-            <li>Custom exercise library</li>
-            <li>Duration or rep/set based exercises</li>
-            <li>Rich text instructions with formatting</li>
-            <li>Search and organize exercises</li>
-          </ul>
-        </div>
-
-        <div class="feature-card">
-          <h3>
-            <span class="material-icons">play_circle</span>
-            Guided Sessions
-          </h3>
-          <ul>
-            <li>Real-time timers and rep counters</li>
-            <li>Audio and haptic feedback</li>
-            <li>Auto-rest between sets</li>
-            <li>Screen wake lock during sessions</li>
-          </ul>
-        </div>
-
-        <div class="feature-card">
-          <h3>
-            <span class="material-icons">insights</span>
-            Progress Tracking
-          </h3>
-          <ul>
-            <li>Complete session journal</li>
-            <li>Statistics dashboard</li>
-            <li>Activity calendar</li>
-            <li>Exercise-by-exercise details</li>
-          </ul>
-        </div>
-
-        <div class="feature-card">
-          <h3>
-            <span class="material-icons">settings</span>
-            Customization
-          </h3>
-          <ul>
-            <li>Configurable timing preferences</li>
-            <li>Audio settings and volume control</li>
-            <li>Light, dark, or auto theme</li>
-            <li>Export/import for backups</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- Privacy Section -->
-    <section>
-      <h2>Privacy & Offline First</h2>
-      <div class="privacy-grid">
-        <div class="privacy-item">
-          <span class="material-icons">storage</span>
-          <h3>Local Storage</h3>
-          <p>All data stored on your device using IndexedDB</p>
-        </div>
-
-        <div class="privacy-item">
-          <span class="material-icons">cloud_off</span>
-          <h3>No Server</h3>
-          <p>No accounts, no tracking, no data collection</p>
-        </div>
-
-        <div class="privacy-item">
-          <span class="material-icons">offline_bolt</span>
-          <h3>Fully Offline</h3>
-          <p>Works completely offline after installation</p>
-        </div>
-
-        <div class="privacy-item">
-          <span class="material-icons">import_export</span>
-          <h3>Data Portability</h3>
-          <p>Export and import your complete database</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Installation Section -->
-    <section>
-      <h2>Getting Started</h2>
-      <div class="install-steps">
-        <div class="install-step">
-          <div class="step-number">1</div>
-          <div class="step-content">
-            <h3>Clone Repository</h3>
-            <p>Clone the repository and install dependencies using <code>npm install</code></p>
-          </div>
-        </div>
-
-        <div class="install-step">
-          <div class="step-number">2</div>
-          <div class="step-content">
-            <h3>Build & Deploy</h3>
-            <p>Build for production with <code>npm run build</code> and deploy to any static hosting</p>
-          </div>
-        </div>
-
-        <div class="install-step">
-          <div class="step-number">3</div>
-          <div class="step-content">
-            <h3>Install as PWA</h3>
-            <p>Once deployed via HTTPS, browsers will prompt to install as a standalone app</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Technology Section -->
-    <section>
-      <h2>Built With</h2>
-      <div class="section-content" style="text-align: center;">
-        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-          Modern web technologies for a fast, reliable experience
-        </p>
-        <div style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-top: 1.5rem;">
-          <div>
-            <strong>SvelteKit</strong>
-            <p style="color: var(--text-secondary); font-size: 0.9rem;">Framework</p>
-          </div>
-          <div>
-            <strong>TypeScript</strong>
-            <p style="color: var(--text-secondary); font-size: 0.9rem;">Type Safety</p>
-          </div>
-          <div>
-            <strong>IndexedDB</strong>
-            <p style="color: var(--text-secondary); font-size: 0.9rem;">Storage</p>
-          </div>
-          <div>
-            <strong>Vite</strong>
-            <p style="color: var(--text-secondary); font-size: 0.9rem;">Build Tool</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Footer -->
-  <footer>
-    <div class="container">
-      <p>
-        <strong>My PT</strong> - Physical Therapy Tracker PWA
-      </p>
-      <p style="margin-top: 0.5rem; font-size: 0.9rem;">
-        Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0">GNU GPL v3.0</a>
-      </p>
-      <p style="margin-top: 1rem; font-size: 0.9rem;">
-        <a href="https://github.com/NateEaton/my-pt-pwa">GitHub Repository</a> •
-        <a href="https://github.com/NateEaton/my-pt-pwa/issues">Report Issues</a>
-      </p>
-      <p style="margin-top: 1rem; font-size: 0.85rem; opacity: 0.8;">
-        Made with care for better rehabilitation outcomes
-      </p>
+    <div class="benefit">
+      <span class="icon">🔒</span>
+      <p>100% private - no tracking</p>
     </div>
-  </footer>
+  </div>
+
+  <div class="disclaimer">
+    <strong>Important:</strong> This app is intended as an additional aid beyond those provided by medical professionals.
+    The audience is primarily people with recurring or chronic physical issues that require long-term physical therapy
+    regimen, continued at home beyond when they are under the direct care of a therapist.
+  </div>
+
+  <div class="cta-center">
+    <a class="cta-button" href="https://my-pt-pwa.vercel.app/" target="_blank">Try It Now</a>
+    <a class="cta-button secondary" href="https://github.com/NateEaton/my-pt-pwa" target="_blank">View on GitHub</a>
+  </div>
+
+  <p class="device-note">Works on any device with a modern web browser. For the best experience, use the "Add to Home Screen" option on your device to install it like a regular app.</p>
+</header>
+
+<section>
+  <h2>Screenshots</h2>
+  <div class="carousel">
+    <div>
+      <img src="https://via.placeholder.com/280x500.png/3b82f6/ffffff?text=Today+View" alt="Today view showing scheduled exercises" />
+      <div class="caption">Today View</div>
+    </div>
+    <div>
+      <img src="https://via.placeholder.com/280x500.png/3b82f6/ffffff?text=Exercise+List" alt="Exercise library" />
+      <div class="caption">Exercise Library</div>
+    </div>
+    <div>
+      <img src="https://via.placeholder.com/280x500.png/3b82f6/ffffff?text=Play+Session" alt="Active session playback" />
+      <div class="caption">Session Playback</div>
+    </div>
+    <div>
+      <img src="https://via.placeholder.com/280x500.png/3b82f6/ffffff?text=Session+List" alt="Saved sessions" />
+      <div class="caption">Saved Sessions</div>
+    </div>
+    <div>
+      <img src="https://via.placeholder.com/280x500.png/3b82f6/ffffff?text=Journal" alt="Session journal" />
+      <div class="caption">Session Journal</div>
+    </div>
+    <div>
+      <img src="https://via.placeholder.com/280x500.png/3b82f6/ffffff?text=Statistics" alt="Statistics dashboard" />
+      <div class="caption">Statistics</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Features</h2>
+  <ul class="features-list">
+    <li>✓ Custom exercise library</li>
+    <li>✓ Duration or rep/set based exercises</li>
+    <li>✓ Session builder and organizer</li>
+    <li>✓ Guided session playback</li>
+    <li>✓ Real-time timers and counters</li>
+    <li>✓ Audio and haptic feedback</li>
+    <li>✓ Complete session journal</li>
+    <li>✓ Statistics and calendar view</li>
+    <li>✓ Light/dark theme support</li>
+    <li>✓ Export/import your data</li>
+    <li>✓ Works completely offline</li>
+    <li>✓ Install as mobile app</li>
+  </ul>
+</section>
+
+<section>
+  <h2>How It Works</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-number">1</div>
+      <h3>Build Your Library</h3>
+      <p>Create custom exercises with instructions, timings, and reps/sets tailored to your PT plan</p>
+    </div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <h3>Create Sessions</h3>
+      <p>Group exercises into reusable workout routines for different therapy goals</p>
+    </div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <h3>Track Progress</h3>
+      <p>Complete sessions with guided playback and review your progress over time</p>
+    </div>
+  </div>
+</section>
+
+<div class="privacy-section">
+  <h2>Privacy First. Always.</h2>
+  <p>
+    Your health data is yours. My PT is a "local-first" app, meaning all data is stored directly on your device using IndexedDB.
+    No server communication, no accounts, no tracking, no analytics. Your exercise data never leaves your device unless you
+    choose to export it for backup purposes.
+  </p>
+</div>
+
+<section class="about">
+  <h2>About This App</h2>
+  <p>
+    Developed by a hobbyist (with help from AI) for personal use during physical therapy recovery, this app is and always
+    will be free, with no ads or tracking. It's a personal project shared in the hope that it helps others maintain
+    consistent rehabilitation routines.
+  </p>
+</section>
+
+<footer>
+  <p>Built by Nathan A. Eaton Jr. &copy; 2025 | Licensed under GPLv3</p>
+  <p style="margin-top: 0.5rem;">
+    <a href="https://github.com/NateEaton/my-pt-pwa" target="_blank">GitHub Repository</a> •
+    <a href="https://github.com/NateEaton/my-pt-pwa/issues" target="_blank">Report Issues</a>
+  </p>
+  <p style="margin-top: 1rem; font-size: 0.85rem;">Made with care for better rehabilitation outcomes</p>
+</footer>
 </body>
 </html>
