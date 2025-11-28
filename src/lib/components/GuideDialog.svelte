@@ -234,7 +234,12 @@
           </li>
           <li>
             <strong>Instructions:</strong> Add optional notes about proper form,
-            breathing, or modifications. Use **bold** for emphasis (e.g., **Hold for 3 seconds**)
+            breathing, or modifications. Supports text emphasis:
+            <ul class="nested-list">
+              <li>**bold** for <strong>bold text</strong></li>
+              <li>*italic* or _italic_ for <em>italic text</em></li>
+              <li>__underline__ for <u>underlined text</u></li>
+            </ul>
           </li>
         </ul>
 
@@ -301,8 +306,8 @@
         Settings & Preferences
       </summary>
       <div class="section-content">
-        <h4>Quick Access Settings</h4>
-        <p>At the top of the Settings page, you can quickly adjust:</p>
+        <h4>Display</h4>
+        <p>In the Display section, you can adjust:</p>
         <ul>
           <li>
             <strong>Theme:</strong> Choose Light, Dark, or Auto (follows system preference)
