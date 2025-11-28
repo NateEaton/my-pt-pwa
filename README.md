@@ -225,6 +225,22 @@ While this is primarily a personal project, suggestions and feedback are welcome
 
 ---
 
+## Acknowledgments
+
+### Built With
+- **[SvelteKit](https://kit.svelte.dev/)** - Full-stack framework for building this PWA
+- **[TypeScript](https://www.typescriptlang.org/)** - Type-safe development
+- **[Vite](https://vitejs.dev/)** - Fast build tool and dev server
+- **[Material Icons](https://fonts.google.com/icons)** - Icon library
+
+### Development
+This app was developed with assistance from **Claude** (Anthropic AI) for code generation, architecture decisions, and problem-solving. All code has been reviewed, tested, and modified to meet the specific requirements of this application.
+
+### Inspiration
+Created to support individuals undergoing physical therapy who need a simple, reliable way to track their home exercise programs without sacrificing privacy or requiring internet connectivity.
+
+---
+
 ## License
 
 This project is licensed under the **GNU General Public License v3.0 or later**.
