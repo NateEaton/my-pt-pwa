@@ -39,22 +39,29 @@ export function parseMarkdown(text: string): string {
   // Process line by line to handle lists
   const lines = escaped.split('\n');
   const processed = lines.map(line => {
+    const trimmed = line.trim();
+
+    // Blank line - preserve as line break
+    if (!trimmed) {
+      return '<br>';
+    }
+
     // Bullet list: * item or - item
-    if (/^[\*\-]\s+(.+)$/.test(line)) {
-      const content = line.replace(/^[\*\-]\s+/, '');
+    if (/^[\*\-]\s+(.+)$/.test(trimmed)) {
+      const content = trimmed.replace(/^[\*\-]\s+/, '');
       return `<div style="padding-left: 0.5rem;">• ${content}</div>`;
     }
     // Numbered list: 1. item, 2. item, etc.
-    else if (/^\d+\.\s+(.+)$/.test(line)) {
-      const match = line.match(/^(\d+)\.\s+(.+)$/);
+    else if (/^\d+\.\s+(.+)$/.test(trimmed)) {
+      const match = trimmed.match(/^(\d+)\.\s+(.+)$/);
       if (match) {
         const [, num, content] = match;
         return `<div style="padding-left: 0.5rem;">${num}. ${content}</div>`;
       }
     }
-    // Regular line
-    return line;
-  }).join('<br>');
+    // Regular line - add space for word separation
+    return trimmed + ' ';
+  }).join('');
 
   // Apply inline emphasis transformations (order matters!)
   return processed
