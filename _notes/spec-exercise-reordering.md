@@ -1,5 +1,10 @@
 # Design/Implementation Spec: Exercise Reordering Enhancement
 
+**Status:** ✅ IMPLEMENTED
+**Implementation Date:** November 2024
+**Related Commit:** 2a63a24
+**Notes:** Exercise reordering functionality added to session editor with button-based vertical reordering controls.
+
 ## Overview
 
 Implement consistent button-based vertical reordering for exercise lists in:

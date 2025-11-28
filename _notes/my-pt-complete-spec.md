@@ -2,6 +2,10 @@
 
 ## Complete Functional Specification
 
+**Status:** ✅ CANONICAL REFERENCE
+**Last Updated:** November 2024
+**Notes:** This is the comprehensive functional specification document that defines the complete application behavior, data models, and UX flows. Use this as the authoritative reference for development. README.md provides user-facing documentation and high-level architecture overview.
+
 ### Overview
 
 The purpose of this application is to create a custom program of physical therapy exercises to do at home (based on direction from a physical therapist), then track the exercises daily. The application features a "session" system where users can time the performance of each exercise and automatically journal their completion.

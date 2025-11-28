@@ -1,5 +1,9 @@
 # Design/Implementation Spec: Timer Logic Extraction
 
+**Status:** 🔄 IN PLANNING
+**Last Updated:** 2025-11-28 (commit: 28d8bb6)
+**Notes:** Comprehensive specification for extracting timer logic from play/+page.svelte into a dedicated service and store. Phase 0 and implementation details are complete and ready for implementation.
+
 ## Overview
 
 Extract the session timer state machine from `play/+page.svelte` (**~2,056 lines**) into a dedicated service and reactive store for improved testability, maintainability, and separation of concerns.

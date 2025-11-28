@@ -1,3 +1,13 @@
+# Audio Service Enhancement Proposal
+
+**Status:** ⚠️ SUPERSEDED
+**Date:** November 2024
+**Related Commits:** 7c1de1d, 5fbdd03, 0a05493, d1a8ffd
+**Notes:** Audio features were implemented differently than this proposal. Obsolete continuous audio cue settings were removed. Current implementation includes symmetrical exercise countdown tones with about-to-start and about-to-end cues.
+
+---
+
+## Original Proposal
 
 The draft code below for the audio service is intended to address smooth attack, smooth release, volume control, automatic cleanup and a revised frequency palette. Review and asses for viability. Also, need some new settings for control:
 make the continuous ticks during duration exercises optional and default to off

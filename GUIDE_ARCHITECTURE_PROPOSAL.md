@@ -1,5 +1,10 @@
 # User Guide & About Dialog - Architecture Proposal
 
+**Status:** ✅ IMPLEMENTED
+**Implementation Date:** November 2024
+**Related Commit:** 11bdc84
+**Notes:** User Guide and About dialog completed with comprehensive content integrated into Settings page.
+
 ## Executive Summary
 
 This document proposes the architecture for adding in-app user guide and About dialog to My PT PWA, based on analysis of Ca-pwa's implementation and My PT's current bottom-tab navigation paradigm.

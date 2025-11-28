@@ -1,4 +1,15 @@
-1. Prevent the “exercise number + name” section from shifting
+# Session Player Display Layout Improvements
+
+**Status:** ✅ IMPLEMENTED
+**Implementation Date:** November 2024
+**Related Commit:** 8048626
+**Notes:** High-priority play panel UX improvements have been implemented.
+
+---
+
+## Recommendations
+
+1. Prevent the "exercise number + name" section from shifting
 
 Right now that block expands only when an exercise is active, so the height changes between "no active exercise" vs. "active exercise." The surrounding layout then jumps.
 
