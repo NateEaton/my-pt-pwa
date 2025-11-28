@@ -305,19 +305,8 @@
         Settings & Preferences
       </summary>
       <div class="section-content">
-        <h4>Display</h4>
-        <p>In the Display section, you can adjust:</p>
-        <ul>
-          <li>
-            <strong>Theme:</strong> Choose Light, Dark, or Auto (follows system preference)
-          </li>
-          <li>
-            <strong>Color Scheme:</strong> Select from Blue, Purple, Green, Orange, Red, or Teal
-          </li>
-        </ul>
-
         <h4>Timing Settings</h4>
-        <p>Configure exercise timing in Settings > Timing Settings:</p>
+        <p>Configure exercise timing in Settings > Player > Timing Settings:</p>
         <ul>
           <li><strong>Default Rep Duration:</strong> Seconds per rep for rep-based exercises</li>
           <li><strong>Start Countdown:</strong> Time to prepare before each exercise</li>
@@ -328,7 +317,7 @@
         </ul>
 
         <h4>Cue Settings</h4>
-        <p>Customize audio and haptic feedback in Settings > Cues:</p>
+        <p>Customize audio and haptic feedback in Settings > Player > Cues:</p>
         <ul>
           <li><strong>Sound & Volume:</strong> Master audio toggle and volume control</li>
           <li><strong>Countdown Tones:</strong> Enable 3-2-1 audio before exercises</li>
@@ -337,6 +326,7 @@
         </ul>
 
         <h4>Data Management</h4>
+        <p>In Settings > Data:</p>
         <ul>
           <li>
             <strong>Create Backup:</strong> Download a JSON file containing all your
@@ -345,6 +335,17 @@
           <li>
             <strong>Restore Backup:</strong> Upload a backup file to restore your data.
             This will replace all current data, so make a backup first if needed.
+          </li>
+        </ul>
+
+        <h4>Display</h4>
+        <p>In Settings > Display, you can adjust:</p>
+        <ul>
+          <li>
+            <strong>Theme:</strong> Choose Light, Dark, or Auto (follows system preference)
+          </li>
+          <li>
+            <strong>Color Scheme:</strong> Select from Blue, Purple, Green, Orange, Red, or Teal
           </li>
         </ul>
 
