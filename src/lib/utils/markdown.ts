@@ -22,8 +22,8 @@
 
 /**
  * Parse limited markdown in text
- * Supports: bold (**text**), italic (*text* or _text_), underline (__text__),
- * bullet lists (* item), numbered lists (1. item), line breaks
+ * Supports: headings (# ## ###), bold (**text**), italic (*text* or _text_),
+ * underline (__text__), bullet lists (* item), numbered lists (1. item), line breaks
  */
 export function parseMarkdown(text: string): string {
   if (!text) return '';
@@ -36,7 +36,7 @@ export function parseMarkdown(text: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 
-  // Process line by line to handle lists
+  // Process line by line to handle lists and headings
   const lines = escaped.split('\n');
   const processed: string[] = [];
 
@@ -50,7 +50,18 @@ export function parseMarkdown(text: string): string {
       continue;
     }
 
-    // Bullet list: * item or - item
+    // Headings: # Title, ## Heading, ### Subheading
+    if (/^#{1,3}\s+(.+)$/.test(trimmed)) {
+      const match = trimmed.match(/^(#{1,3})\s+(.+)$/);
+      if (match) {
+        const [, hashes, content] = match;
+        const level = hashes.length;
+        processed.push(`<h${level} style="margin: 0.5rem 0; font-weight: 600;">${content}</h${level}>`);
+        continue;
+      }
+    }
+
+    // Bullet list: * item or - item (but not after #)
     if (/^[\*\-]\s+(.+)$/.test(trimmed)) {
       const content = trimmed.replace(/^[\*\-]\s+/, '');
       processed.push(`<div style="padding-left: 0.5rem;">• ${content}</div>`);
@@ -93,6 +104,8 @@ export function stripMarkdown(text: string): string {
   if (!text) return '';
 
   return text
+    // Remove headings: # Title -> Title
+    .replace(/^#{1,3}\s+/gm, '')
     // Remove bold: **text** -> text
     .replace(/\*\*(.+?)\*\*/g, '$1')
     // Remove underline: __text__ -> text

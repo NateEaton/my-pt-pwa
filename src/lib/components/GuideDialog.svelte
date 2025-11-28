@@ -29,6 +29,16 @@
 
 <Modal fullScreen={true} title="User Guide" iosStyle={true} on:close={handleClose}>
   <div class="guide-content">
+    <!-- Disclaimer -->
+    <div class="disclaimer">
+      <p>
+        This app is intended as an additional aid beyond those provided by medical
+        professionals. The audience is primarily people with recurring or chronic physical
+        issues that require long-term physical therapy regimen, continued at home beyond
+        when they are under the direct care of a therapist.
+      </p>
+    </div>
+
     <!-- Getting Started -->
     <details class="guide-section" open>
       <summary>
@@ -236,6 +246,7 @@
             <strong>Instructions:</strong> Add optional notes about proper form,
             breathing, or modifications. Supports simple formatting:
             <ul class="nested-list">
+              <li><strong>Headings:</strong> # Title, ## Heading, ### Subheading</li>
               <li><strong>Emphasis:</strong> **bold**, *italic* or _italic_, __underline__</li>
               <li><strong>Lists:</strong> Start lines with * or - for bullets, 1. 2. 3. for numbered lists</li>
             </ul>
@@ -366,6 +377,22 @@
   .guide-content {
     padding: var(--spacing-lg);
     padding-bottom: var(--spacing-2xl);
+  }
+
+  /* Disclaimer */
+  .disclaimer {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    background-color: var(--surface-variant);
+    border-left: 3px solid var(--primary-color);
+    border-radius: var(--border-radius);
+  }
+
+  .disclaimer p {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    margin: 0;
   }
 
   /* Guide Sections (Collapsible) */
