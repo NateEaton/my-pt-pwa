@@ -23,6 +23,7 @@
   import { toastStore } from '$lib/stores/toast';
   import { audioService } from '$lib/services/AudioService';
   import { formatDuration } from '$lib/utils/duration';
+  import { parseMarkdown } from '$lib/utils/markdown';
   import DisplayRow from '$lib/components/DisplayRow.svelte';
   import SideIndicator from '$lib/components/SideIndicator.svelte';
   import type { Exercise, SessionDefinition, SessionInstance, CompletedExercise } from '$lib/types/pt';
@@ -1639,7 +1640,7 @@
             <!-- Expandable instructions panel -->
             {#if expandedExerciseId === exercise.id && exercise.instructions}
               <div class="instructions-panel">
-                {exercise.instructions}
+                {@html parseMarkdown(exercise.instructions)}
               </div>
             {/if}
           </div>
@@ -2017,6 +2018,24 @@
     font-size: var(--font-size-sm);
     line-height: 1.6;
     animation: slideDown 0.2s ease-out;
+  }
+
+  /* Markdown formatting styles */
+  .instructions-panel :global(strong) {
+    font-weight: 600;
+    color: white;
+  }
+
+  .instructions-panel :global(em) {
+    font-style: italic;
+  }
+
+  .instructions-panel :global(u) {
+    text-decoration: underline;
+  }
+
+  .instructions-panel :global(br) {
+    line-height: 1.6;
   }
 
   @keyframes slideDown {

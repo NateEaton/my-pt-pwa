@@ -23,6 +23,7 @@
   import DurationInput from './DurationInput.svelte';
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
+  import { stripMarkdown } from '$lib/utils/markdown';
   import type { Exercise, SessionDefinition } from '$lib/types/pt';
 
   const dispatch = createEventDispatcher();
@@ -457,7 +458,7 @@
               </div>
 
               {#if exercise.instructions}
-                <p class="exercise-instructions">{exercise.instructions}</p>
+                <p class="exercise-instructions">{stripMarkdown(exercise.instructions)}</p>
               {/if}
             </div>
 
