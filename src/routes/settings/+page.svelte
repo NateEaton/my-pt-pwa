@@ -823,5 +823,15 @@
     .volume-slider {
       width: 4rem;
     }
+
+    /* Smaller color swatches on mobile */
+    .color-swatch {
+      width: 2rem;
+      height: 2rem;
+    }
+
+    .color-swatch .material-icons {
+      font-size: 1rem;
+    }
   }
 </style>
