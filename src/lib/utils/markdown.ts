@@ -41,7 +41,7 @@ export function parseMarkdown(text: string): string {
   const processed = lines.map(line => {
     const trimmed = line.trim();
 
-    // Blank line - preserve as line break
+    // Blank line - preserve as paragraph break
     if (!trimmed) {
       return '<br>';
     }
@@ -59,9 +59,9 @@ export function parseMarkdown(text: string): string {
         return `<div style="padding-left: 0.5rem;">${num}. ${content}</div>`;
       }
     }
-    // Regular line - add space for word separation
-    return trimmed + ' ';
-  }).join('');
+    // Regular line
+    return trimmed;
+  }).join('<br>');
 
   // Apply inline emphasis transformations (order matters!)
   return processed
