@@ -6,6 +6,8 @@
 
 A privacy-focused Progressive Web App for tracking physical therapy exercises and maintaining consistent rehabilitation routines. All data stays on your device—no server, no tracking, no accounts.
 
+This app is intended as an additional aid beyond those provided by medical professionals. The audience is primarily people with recurring or chronic physical issues that require long-term physical therapy regimen, continued at home beyond when they are under the direct care of a therapist.
+
 ---
 
 ## App Screenshots
@@ -234,7 +236,7 @@ While this is primarily a personal project, suggestions and feedback are welcome
 - **[Material Icons](https://fonts.google.com/icons)** - Icon library
 
 ### Development
-This app was developed with assistance from **Claude** (Anthropic AI) for code generation, architecture decisions, and problem-solving. All code has been reviewed, tested, and modified to meet the specific requirements of this application.
+This project was developed with assistance from AI tools including **Claude**, **AI Studio** (Google) and **ChatGPT** (OpenAI) following best practices in modern web development. The underlying concept, architecture decisions, implementation and testing were performed by the developer.
 
 ### Inspiration
 Created to support individuals undergoing physical therapy who need a simple, reliable way to track their home exercise programs without sacrificing privacy or requiring internet connectivity.
@@ -244,24 +246,6 @@ Created to support individuals undergoing physical therapy who need a simple, re
 ## License
 
 This project is licensed under the **GNU General Public License v3.0 or later**.
-
-```
-My PT - Physical Therapy Tracker PWA
-Copyright (C) 2025 Nathan A. Eaton Jr.
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-```
 
 See [LICENSE](LICENSE) for the full license text.
 
