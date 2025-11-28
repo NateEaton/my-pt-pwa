@@ -38,33 +38,43 @@ export function parseMarkdown(text: string): string {
 
   // Process line by line to handle lists
   const lines = escaped.split('\n');
-  const processed = lines.map(line => {
-    const trimmed = line.trim();
+  const processed: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    const isLastLine = i === lines.length - 1;
 
     // Blank line - preserve as paragraph break
     if (!trimmed) {
-      return '<br>';
+      processed.push('<br>');
+      continue;
     }
 
     // Bullet list: * item or - item
     if (/^[\*\-]\s+(.+)$/.test(trimmed)) {
       const content = trimmed.replace(/^[\*\-]\s+/, '');
-      return `<div style="padding-left: 0.5rem;">• ${content}</div>`;
+      processed.push(`<div style="padding-left: 0.5rem;">• ${content}</div>`);
+      continue;
     }
+
     // Numbered list: 1. item, 2. item, etc.
-    else if (/^\d+\.\s+(.+)$/.test(trimmed)) {
+    if (/^\d+\.\s+(.+)$/.test(trimmed)) {
       const match = trimmed.match(/^(\d+)\.\s+(.+)$/);
       if (match) {
         const [, num, content] = match;
-        return `<div style="padding-left: 0.5rem;">${num}. ${content}</div>`;
+        processed.push(`<div style="padding-left: 0.5rem;">${num}. ${content}</div>`);
+        continue;
       }
     }
-    // Regular line
-    return trimmed;
-  }).join('<br>');
+
+    // Regular line - add <br> after it unless it's the last line
+    processed.push(trimmed + (isLastLine ? '' : '<br>'));
+  }
+
+  const html = processed.join('');
 
   // Apply inline emphasis transformations (order matters!)
-  return processed
+  return html
     // Bold: **text** (must come before italic to avoid conflicts)
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     // Underline: __text__ (must come before italic)
