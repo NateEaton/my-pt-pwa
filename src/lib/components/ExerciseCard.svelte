@@ -46,6 +46,35 @@
       return formatDuration(totalSeconds);
     }
   }
+
+  /**
+   * Parse limited markdown in exercise instructions
+   * Supports: bold (**text**), italic (*text* or _text_), underline (__text__), line breaks
+   */
+  function parseMarkdown(text: string): string {
+    if (!text) return '';
+
+    // Escape HTML entities to prevent XSS
+    let escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    // Apply markdown transformations (order matters!)
+    return escaped
+      // Bold: **text** (must come before italic to avoid conflicts)
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      // Underline: __text__ (must come before italic)
+      .replace(/__(.+?)__/g, '<u>$1</u>')
+      // Italic: *text*
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      // Italic: _text_ (single underscore, not part of __ pair)
+      .replace(/(?<!_)_([^_]+?)_(?!_)/g, '<em>$1</em>')
+      // Line breaks
+      .replace(/\n/g, '<br>');
+  }
 </script>
 
 <div class="exercise-card" class:compact>
@@ -99,7 +128,7 @@
     <!-- Expandable instructions panel -->
     {#if showInstructions && exercise.instructions}
       <div class="instructions-panel">
-        {exercise.instructions}
+        {@html parseMarkdown(exercise.instructions)}
       </div>
     {/if}
   </div>
@@ -268,6 +297,24 @@
     color: var(--text-secondary);
     line-height: 1.6;
     animation: slideDown 0.2s ease-out;
+  }
+
+  /* Markdown formatting styles */
+  .instructions-panel :global(strong) {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .instructions-panel :global(em) {
+    font-style: italic;
+  }
+
+  .instructions-panel :global(u) {
+    text-decoration: underline;
+  }
+
+  .instructions-panel :global(br) {
+    line-height: 1.6;
   }
 
   @keyframes slideDown {
