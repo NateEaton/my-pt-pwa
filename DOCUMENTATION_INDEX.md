@@ -15,13 +15,13 @@ This index provides a comprehensive guide to all documentation in the My PT PWA 
   - Privacy & security information
 
 ### For Developers
-- **[WORKFLOW_CHEATSHEET.md](WORKFLOW_CHEATSHEET.md)** - Git workflow for Claude Code Web sessions
+- **[_notes/WORKFLOW_CHEATSHEET.md](_notes/WORKFLOW_CHEATSHEET.md)** - Git workflow for Claude Code Web sessions
   - Branch management strategies
   - Local testing procedures
   - Common git issues and solutions
   - Best practices for feature branches
 
-- **[ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md)** - Professional architecture assessment
+- **[_notes/ARCHITECTURE_REVIEW.md](_notes/ARCHITECTURE_REVIEW.md)** - Professional architecture assessment
   - Architecture scores and evaluation (9/10 overall)
   - Critical fixes completed
   - Component architecture and design patterns
@@ -65,18 +65,18 @@ This index provides a comprehensive guide to all documentation in the My PT PWA 
 
 ### ✅ Implemented Features
 
-- **[SETTINGS_REFACTOR_PROPOSAL.md](SETTINGS_REFACTOR_PROPOSAL.md)** ✅ IMPLEMENTED
+- **[_notes/SETTINGS_REFACTOR_PROPOSAL.md](_notes/SETTINGS_REFACTOR_PROPOSAL.md)** ✅ IMPLEMENTED
   - Settings page reorganization
   - Modal component extraction
   - Improved navigation sections
   - *Implemented: November 2024*
 
-- **[GUIDE_ARCHITECTURE_PROPOSAL.md](GUIDE_ARCHITECTURE_PROPOSAL.md)** ✅ IMPLEMENTED
+- **[_notes/GUIDE_ARCHITECTURE_PROPOSAL.md](_notes/GUIDE_ARCHITECTURE_PROPOSAL.md)** ✅ IMPLEMENTED
   - User Guide and About dialog architecture
   - Settings page integration approach
   - *Implemented: November 2024*
 
-- **[PLAYER_ENHANCEMENTS.md](PLAYER_ENHANCEMENTS.md)** ✅ PHASE 1 IMPLEMENTED
+- **[_notes/PLAYER_ENHANCEMENTS.md](_notes/PLAYER_ENHANCEMENTS.md)** ✅ PHASE 1 IMPLEMENTED
   - Session player timer behavior analysis
   - Rest between exercises feature
   - Auto-advance functionality
@@ -95,14 +95,14 @@ This index provides a comprehensive guide to all documentation in the My PT PWA 
 
 ### 🔄 Planning Phase
 
-- **[MATERIAL_SYMBOLS_MIGRATION.md](MATERIAL_SYMBOLS_MIGRATION.md)** 🔄 PLANNING PHASE
+- **[_notes/MATERIAL_SYMBOLS_MIGRATION.md](_notes/MATERIAL_SYMBOLS_MIGRATION.md)** 🔄 PLANNING PHASE
   - Migration from Material Icons v143 to Material Symbols
   - Complete icon inventory (67 unique icons)
   - Implementation strategy and timeline
 
 ### ⚠️ Superseded
 
-- **[AUDIO_ENHANCEMENT.md](AUDIO_ENHANCEMENT.md)** ⚠️ SUPERSEDED
+- **[_notes/AUDIO_ENHANCEMENT.md](_notes/AUDIO_ENHANCEMENT.md)** ⚠️ SUPERSEDED
   - Original audio service proposal
   - *Implementation took a different approach*
   - *See commits: 7c1de1d, 5fbdd03, 0a05493, d1a8ffd*
@@ -136,8 +136,8 @@ See [_notes/_archive/README.md](_notes/_archive/README.md) for details on archiv
 When creating new documentation files:
 
 1. **Choose the Right Location**
-   - **Root directory**: User-facing docs, primary guides, architectural reviews
-   - **_notes directory**: Development specs, proposals, planning documents
+   - **Root directory**: README.md and DOCUMENTATION_INDEX.md only
+   - **_notes directory**: All specs, proposals, guides, and planning documents
    - **_notes/_archive**: Outdated or superseded documents
 
 2. **Use Standard Headers**
@@ -175,8 +175,8 @@ When creating new documentation files:
 ### I want to...
 
 - **Understand the app features** → [README.md](README.md)
-- **Learn the development workflow** → [WORKFLOW_CHEATSHEET.md](WORKFLOW_CHEATSHEET.md)
-- **Review architecture decisions** → [ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md)
+- **Learn the development workflow** → [_notes/WORKFLOW_CHEATSHEET.md](_notes/WORKFLOW_CHEATSHEET.md)
+- **Review architecture decisions** → [_notes/ARCHITECTURE_REVIEW.md](_notes/ARCHITECTURE_REVIEW.md)
 - **Understand data models** → [_notes/my-pt-complete-spec.md](_notes/my-pt-complete-spec.md)
 - **Implement a new feature** → Check relevant spec in `_notes/spec-*.md`
 - **Review implementation status** → Check status headers in proposal documents

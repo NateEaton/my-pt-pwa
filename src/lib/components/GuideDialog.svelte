@@ -75,59 +75,43 @@
           session.
         </p>
 
-        <h4>During a Session</h4>
+        <h4>Session Controls</h4>
         <ul>
           <li>
-            <strong>3-Second Countdown:</strong> Before each exercise begins, you'll get
-            a 3-2-1 countdown with audio/haptic cues (if enabled) to prepare.
+            <strong>Pause/Resume:</strong>
+            <span class="material-icons inline-icon">pause</span> /
+            <span class="material-icons inline-icon">play_arrow</span>
+            Control session playback
           </li>
           <li>
-            <strong>Exercise Timer:</strong> Each exercise displays with a countdown
-            timer based on your configured duration or rep settings.
-            <ul class="nested-list">
-              <li><strong>Duration exercises:</strong> Show remaining time with optional
-                end-of-exercise countdown</li>
-              <li><strong>Rep/Set exercises:</strong> Show current set, current rep,
-                and play tones at start/end of each rep</li>
-            </ul>
+            <strong>Skip:</strong>
+            <span class="material-icons inline-icon">skip_next</span>
+            Advance to next exercise
           </li>
           <li>
-            <strong>Audio & Haptic Cues:</strong> Distinct tones and vibrations signal
-            exercise start/end, rep start/end, rest periods, and session completion.
+            <strong>Previous:</strong>
+            <span class="material-icons inline-icon">skip_previous</span>
+            Go back to previous exercise (while paused)
           </li>
           <li>
-            <strong>Auto-Rest:</strong> If enabled in Timing Settings, the app automatically
-            starts rest timers between sets (can be disabled to manually control rest).
+            <strong>Exit:</strong>
+            <span class="material-icons inline-icon">exit_to_app</span>
+            Save progress and resume later
           </li>
           <li>
-            <strong>Screen Wake Lock:</strong> Your screen stays awake during active sessions
-            so you can focus on your exercises.
+            <strong>Finish:</strong>
+            <span class="material-icons inline-icon">check_circle</span>
+            Complete and save session
           </li>
-          <li>
-            <strong>Pause/Resume:</strong> Tap
-            <span class="material-icons inline-icon">pause</span> to pause or
-            <span class="material-icons inline-icon">play_arrow</span> to resume.
-          </li>
-          <li>
-            <strong>Skip:</strong> Tap
-            <span class="material-icons inline-icon">skip_next</span> to skip to the
-            next exercise (marks current as skipped).
-          </li>
-          <li>
-            <strong>Previous:</strong> Tap
-            <span class="material-icons inline-icon">skip_previous</span> to go back
-            to the previous exercise (while paused).
-          </li>
-          <li>
-            <strong>Exit:</strong> Tap
-            <span class="material-icons inline-icon">exit_to_app</span> to save progress
-            and exit (you can resume later from Today page).
-          </li>
-          <li>
-            <strong>Finish:</strong> Tap
-            <span class="material-icons inline-icon">check_circle</span> to end the session
-            and mark it as completed.
-          </li>
+        </ul>
+
+        <h4>During Exercises</h4>
+        <ul>
+          <li><strong>3-Second Countdown:</strong> Get ready with a 3-2-1 countdown before each exercise</li>
+          <li><strong>Duration exercises:</strong> Countdown timer with audio cues at start/end</li>
+          <li><strong>Rep/Set exercises:</strong> Current set and rep count with tones at each rep transition</li>
+          <li><strong>Auto-Rest:</strong> Automatic rest timers between sets (configurable in Timing Settings)</li>
+          <li><strong>Screen Wake:</strong> Screen stays on during active sessions</li>
         </ul>
 
         <h4>Resuming Sessions</h4>
@@ -293,63 +277,24 @@
           </li>
         </ul>
 
-        <h4>Cue Settings (Audio & Haptic)</h4>
-        <p>
-          Tap <strong>Cues</strong> to customize audio and haptic feedback:
-        </p>
+        <h4>Cue Settings</h4>
+        <p>Customize audio and haptic feedback in Settings > Cues:</p>
         <ul>
-          <li>
-            <strong>Sound Enabled:</strong> Master toggle for all audio cues
-          </li>
-          <li>
-            <strong>Master Volume:</strong> Adjust volume for all audio cues (0-100%)
-          </li>
-          <li>
-            <strong>Countdown Before Exercise:</strong> Enable 3-2-1 countdown tones
-            when starting exercises (helps you get ready)
-          </li>
-          <li>
-            <strong>Haptic Feedback:</strong> Enable vibration for all audio cues
-            (requires device support)
-          </li>
-          <li>
-            <strong>Preview Sounds:</strong> Test all audio cues:
-            <ul class="nested-list">
-              <li><strong>Duration Start/End:</strong> Tones for timed exercises (A5/A4, 0.20s)</li>
-              <li><strong>Rep Start/End:</strong> Tones for each rep (C6/F5, 0.12s, crisp)</li>
-              <li><strong>Rest Start/End:</strong> Tones for rest periods</li>
-              <li><strong>3-2-1 Countdown:</strong> Rising tones before exercises</li>
-              <li><strong>Session Complete:</strong> Celebratory three-note chime</li>
-            </ul>
-          </li>
+          <li><strong>Sound & Volume:</strong> Master audio toggle and volume control</li>
+          <li><strong>Countdown Tones:</strong> Enable 3-2-1 audio before exercises</li>
+          <li><strong>Haptic Feedback:</strong> Vibration for audio cues (device-dependent)</li>
+          <li><strong>Preview Sounds:</strong> Test all audio cues (duration, rep, rest, countdown, completion)</li>
         </ul>
 
         <h4>Timing Settings</h4>
-        <p>
-          Tap <strong>Timing Settings</strong> to customize:
-        </p>
+        <p>Configure exercise timing in Settings > Timing Settings:</p>
         <ul>
-          <li>
-            <strong>Default Rep Duration:</strong> Seconds per rep for rep-based exercises
-          </li>
-          <li>
-            <strong>Start Countdown:</strong> Duration of 3-2-1 countdown before each
-            exercise begins (gives you time to get into position)
-          </li>
-          <li>
-            <strong>Rest Between Sets:</strong> Rest time between sets of the same exercise
-          </li>
-          <li>
-            <strong>Rest Between Exercises:</strong> Rest time when moving to a new exercise
-          </li>
-          <li>
-            <strong>End Session Delay:</strong> Time before session player automatically
-            returns to Today page after completion
-          </li>
-          <li>
-            <strong>Auto-Rest:</strong> Automatically start rest timers between sets
-            (disable to manually control rest periods)
-          </li>
+          <li><strong>Default Rep Duration:</strong> Seconds per rep for rep-based exercises</li>
+          <li><strong>Start Countdown:</strong> Time to prepare before each exercise</li>
+          <li><strong>Rest Between Sets:</strong> Rest time between sets</li>
+          <li><strong>Rest Between Exercises:</strong> Rest time when transitioning to new exercise</li>
+          <li><strong>End Session Delay:</strong> Auto-return delay after session completion</li>
+          <li><strong>Auto-Rest:</strong> Automatic vs manual rest timer control</li>
         </ul>
 
         <h4>Data Management</h4>
@@ -390,170 +335,6 @@
       </div>
     </details>
 
-    <!-- Tips & Best Practices -->
-    <details class="guide-section">
-      <summary>
-        <span class="material-icons">lightbulb</span>
-        Tips & Best Practices
-      </summary>
-      <div class="section-content">
-        <h4>Building Your Exercise Library</h4>
-        <ul>
-          <li>
-            Add all exercises prescribed by your physical therapist, even if you
-            don't use them daily
-          </li>
-          <li>
-            Choose the right exercise type:
-            <ul class="nested-list">
-              <li><strong>Duration:</strong> For holds, planks, stretches (e.g., "Hold 30 seconds")</li>
-              <li><strong>Reps & Sets:</strong> For count-based exercises (e.g., "10 reps × 3 sets")</li>
-            </ul>
-          </li>
-          <li>
-            Include detailed instructions for proper form, especially for complex
-            movements
-          </li>
-          <li>
-            Use clear, consistent naming (e.g., "Left Shoulder Rotation" vs
-            "Right Shoulder Rotation")
-          </li>
-        </ul>
-
-        <h4>Creating Effective Sessions</h4>
-        <ul>
-          <li>
-            Create separate sessions for morning and evening if your therapist
-            recommends split routines
-          </li>
-          <li>
-            Order exercises from warm-up to cooldown, typically:
-            <ol class="nested-list">
-              <li>Gentle range-of-motion exercises</li>
-              <li>Strengthening exercises</li>
-              <li>Stretching and flexibility</li>
-            </ol>
-          </li>
-          <li>
-            Start with shorter sessions and gradually increase as you build strength
-          </li>
-        </ul>
-
-        <h4>Staying Consistent</h4>
-        <ul>
-          <li>
-            Set a regular time each day for your exercises - consistency is key
-            to rehabilitation
-          </li>
-          <li>
-            Enable audio and haptic cues to stay focused on form without constantly
-            watching the timer - the app will guide you through each phase
-          </li>
-          <li>
-            Use the Journal to track your progress and see how far you've come
-          </li>
-          <li>
-            Create a backup of your data regularly, especially after adding new
-            exercises or completing important milestones
-          </li>
-        </ul>
-
-        <h4>Privacy & Data</h4>
-        <ul>
-          <li>
-            All your data is stored locally on your device - nothing is sent to
-            any servers
-          </li>
-          <li>
-            The app works completely offline once installed
-          </li>
-          <li>
-            Your backups are plain JSON files you can read, edit, or store wherever
-            you prefer
-          </li>
-        </ul>
-      </div>
-    </details>
-
-    <!-- Troubleshooting -->
-    <details class="guide-section">
-      <summary>
-        <span class="material-icons">help_outline</span>
-        Troubleshooting
-      </summary>
-      <div class="section-content">
-        <h4>Common Issues</h4>
-
-        <p><strong>The app won't load or appears blank:</strong></p>
-        <ul>
-          <li>Try refreshing the page (pull down on mobile)</li>
-          <li>Clear your browser cache and reload</li>
-          <li>Make sure JavaScript is enabled in your browser</li>
-        </ul>
-
-        <p><strong>Audio cues aren't working:</strong></p>
-        <ul>
-          <li>Check that Sound is enabled in Settings > Cues</li>
-          <li>Increase the Master Volume slider in Cue Settings</li>
-          <li>Check your device's volume settings</li>
-          <li>Test with the Preview Sounds buttons in Cue Settings</li>
-          <li>Some browsers require user interaction before playing audio -
-            tap the Play button to unlock audio on first session</li>
-        </ul>
-
-        <p><strong>Haptic feedback (vibration) isn't working:</strong></p>
-        <ul>
-          <li><strong>iOS:</strong> Vibration API is not supported by Safari - haptic feedback will not work on iPhone/iPad</li>
-          <li><strong>Android:</strong> Check the following:
-            <ul class="nested-list">
-              <li>Haptic Feedback is enabled in Settings > Cues</li>
-              <li>Device is not on silent mode (must be on vibrate or ring)</li>
-              <li>In Android Settings > Vibration & haptics > Interactive haptics, ensure "Touch feedback" is not set to off</li>
-              <li>Use the "Test Vibration" button in Cue Settings to verify</li>
-            </ul>
-          </li>
-          <li>Check Device Capabilities section in Cue Settings to see if Vibration API is supported</li>
-        </ul>
-
-        <p><strong>Screen goes to sleep during sessions:</strong></p>
-        <ul>
-          <li><strong>Android:</strong> Wake Lock API should work on modern Chrome/Edge browsers</li>
-          <li><strong>iOS (browser):</strong> Wake Lock supported on Safari 16.4+ when browsing</li>
-          <li><strong>iOS (installed PWA):</strong> Wake Lock support added in iOS 18.4 for home screen web apps</li>
-          <li>If using an older iOS version, manually adjust your device's auto-lock timeout in Settings > Display & Brightness</li>
-          <li>Check browser console logs for Wake Lock activation messages</li>
-        </ul>
-
-        <p><strong>Data disappeared after updating:</strong></p>
-        <ul>
-          <li>Your data should be preserved, but browser storage can be cleared</li>
-          <li>Restore from your most recent backup file</li>
-          <li>This is why regular backups are important!</li>
-        </ul>
-
-        <p><strong>Session won't start:</strong></p>
-        <ul>
-          <li>Make sure you have at least one exercise in your library</li>
-          <li>Make sure the selected session contains at least one exercise</li>
-          <li>Try creating a new session with different exercises</li>
-        </ul>
-
-        <h4>Installing as an App</h4>
-        <p>
-          For the best experience, install My PT as a standalone app:
-        </p>
-        <ul>
-          <li>
-            <strong>Mobile (Chrome/Safari):</strong> Tap the share button and
-            select "Add to Home Screen"
-          </li>
-          <li>
-            <strong>Desktop (Chrome/Edge):</strong> Click the install icon in the
-            address bar, or go to Settings > Install My PT
-          </li>
-        </ul>
-      </div>
-    </details>
   </div>
 </Modal>
 
