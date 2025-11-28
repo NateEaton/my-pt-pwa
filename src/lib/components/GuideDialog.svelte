@@ -124,12 +124,12 @@
           <li>
             <strong>Auto-Advance:</strong>
             <span class="material-icons inline-icon">autorenew</span>
-            Toggle automatic progression between exercises (enabled by default)
+            Toggle automatic progression between exercises (persists for this session)
           </li>
           <li>
             <strong>Mute:</strong>
             <span class="material-icons inline-icon">volume_off</span>
-            Temporarily mute audio cues for current session
+            Toggle audio cues on/off (persists across all sessions)
           </li>
           <li>
             <strong>Exit:</strong>
@@ -155,7 +155,7 @@
         <h4>Selecting Different Exercises</h4>
         <p>
           While paused, tap the
-          <span class="material-icons inline-icon">fitness_center</span> icon on any
+          <span class="material-icons inline-icon">play_circle</span> icon on any
           exercise card in the list to jump directly to that exercise. This is useful
           for skipping ahead or going back to repeat an exercise.
         </p>
@@ -346,27 +346,11 @@
 
         <h4>App Updates</h4>
         <p>
-          The app updates safely without interrupting your work:
+          The app updates automatically in the background. When a new version is
+          available, it downloads and installs silently. You'll see a brief
+          notification when the update is complete. No action needed - your data
+          is always preserved during updates.
         </p>
-        <ul>
-          <li>
-            <strong>Automatic Detection:</strong> When a new version is available, you'll
-            see a notification prompting you to update.
-          </li>
-          <li>
-            <strong>Manual Check:</strong> Tap <strong>Check for Updates</strong> in the
-            Support section to manually check for new versions.
-          </li>
-          <li>
-            <strong>User Control:</strong> Updates only install when you choose - your
-            active sessions and data entry won't be interrupted. Finish your current
-            tasks, then tap "Install Update" when ready.
-          </li>
-          <li>
-            <strong>Data Safety:</strong> Your exercises, sessions, and journal entries
-            are safely preserved during updates.
-          </li>
-        </ul>
       </div>
     </details>
 
