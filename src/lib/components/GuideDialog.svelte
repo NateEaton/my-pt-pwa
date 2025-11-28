@@ -65,16 +65,44 @@
     <details class="guide-section">
       <summary>
         <span class="material-icons">today</span>
-        Today Page - Daily Tracking
+        Today Page
       </summary>
       <div class="section-content">
         <h4>Starting a Session</h4>
         <p>
           Tap the <strong>Start Session</strong> button to choose a session and begin
-          your exercises. You can select from your saved sessions or use the default
-          session.
+          your exercises. Select from your saved sessions to start.
         </p>
 
+        <h4>Exercise Cards</h4>
+        <p>
+          Each exercise card shows the exercise name and key details. Tap the
+          <span class="material-icons inline-icon">info</span> info icon to view
+          complete exercise instructions.
+        </p>
+
+        <h4>Today's Summary</h4>
+        <p>
+          The Today page shows all sessions completed today with timestamps and
+          exercise counts. Tap any completed session card to view details.
+        </p>
+
+        <h4>Resuming Sessions</h4>
+        <p>
+          If you exit a session before completing it, you can resume from where you
+          left off. The Today page will show an "in-progress" session that you can
+          tap to continue.
+        </p>
+      </div>
+    </details>
+
+    <!-- Play Page -->
+    <details class="guide-section">
+      <summary>
+        <span class="material-icons">play_circle</span>
+        Play Page - Session Player
+      </summary>
+      <div class="section-content">
         <h4>Session Controls</h4>
         <ul>
           <li>
@@ -92,6 +120,16 @@
             <strong>Previous:</strong>
             <span class="material-icons inline-icon">skip_previous</span>
             Go back to previous exercise (while paused)
+          </li>
+          <li>
+            <strong>Auto-Advance:</strong>
+            <span class="material-icons inline-icon">autorenew</span>
+            Toggle automatic progression between exercises (enabled by default)
+          </li>
+          <li>
+            <strong>Mute:</strong>
+            <span class="material-icons inline-icon">volume_off</span>
+            Temporarily mute audio cues for current session
           </li>
           <li>
             <strong>Exit:</strong>
@@ -114,17 +152,12 @@
           <li><strong>Screen Wake:</strong> Screen stays on during active sessions</li>
         </ul>
 
-        <h4>Resuming Sessions</h4>
+        <h4>Selecting Different Exercises</h4>
         <p>
-          If you exit a session before completing it, you can resume from where you
-          left off. The Today page will show an "in-progress" session that you can
-          tap to continue.
-        </p>
-
-        <h4>Today's Summary</h4>
-        <p>
-          The Today page shows all sessions completed today with timestamps and
-          exercise counts. Tap any completed session card to view details.
+          While paused, tap the
+          <span class="material-icons inline-icon">fitness_center</span> icon on any
+          exercise card in the list to jump directly to that exercise. This is useful
+          for skipping ahead or going back to repeat an exercise.
         </p>
       </div>
     </details>
@@ -181,9 +214,18 @@
           </li>
           <li>
             <strong>Exercise Type:</strong> Choose between:
-            <ul>
+            <ul class="nested-list">
               <li><strong>Duration</strong> - Timed exercises (hold for X seconds)</li>
               <li><strong>Reps & Sets</strong> - Count-based exercises (10 reps × 3 sets)</li>
+            </ul>
+          </li>
+          <li>
+            <strong>Side Mode:</strong> Select how the exercise is performed:
+            <ul class="nested-list">
+              <li><strong>Bilateral</strong> - Both sides together (default)</li>
+              <li><strong>Unilateral (Left first)</strong> - Left side, then right</li>
+              <li><strong>Unilateral (Right first)</strong> - Right side, then left</li>
+              <li><strong>Alternating</strong> - Alternate between left and right each rep</li>
             </ul>
           </li>
           <li>
@@ -192,7 +234,7 @@
           </li>
           <li>
             <strong>Instructions:</strong> Add optional notes about proper form,
-            breathing, or modifications
+            breathing, or modifications. Use **bold** for emphasis (e.g., **Hold for 3 seconds**)
           </li>
         </ul>
 
@@ -249,12 +291,6 @@
           Tap any session card to edit it. You can add/remove exercises, reorder them,
           or rename the session.
         </p>
-
-        <h4>Default Session</h4>
-        <p>
-          You can mark one session as the default. This session will be pre-selected
-          when you tap "Start Session" on the Today page.
-        </p>
       </div>
     </details>
 
@@ -269,21 +305,11 @@
         <p>At the top of the Settings page, you can quickly adjust:</p>
         <ul>
           <li>
-            <strong>Audio:</strong> Toggle sound on/off and adjust volume for
-            audio cues during exercises
-          </li>
-          <li>
             <strong>Theme:</strong> Choose Light, Dark, or Auto (follows system preference)
           </li>
-        </ul>
-
-        <h4>Cue Settings</h4>
-        <p>Customize audio and haptic feedback in Settings > Cues:</p>
-        <ul>
-          <li><strong>Sound & Volume:</strong> Master audio toggle and volume control</li>
-          <li><strong>Countdown Tones:</strong> Enable 3-2-1 audio before exercises</li>
-          <li><strong>Haptic Feedback:</strong> Vibration for audio cues (device-dependent)</li>
-          <li><strong>Preview Sounds:</strong> Test all audio cues (duration, rep, rest, countdown, completion)</li>
+          <li>
+            <strong>Color Scheme:</strong> Select from Blue, Purple, Green, Orange, Red, or Teal
+          </li>
         </ul>
 
         <h4>Timing Settings</h4>
@@ -295,6 +321,15 @@
           <li><strong>Rest Between Exercises:</strong> Rest time when transitioning to new exercise</li>
           <li><strong>End Session Delay:</strong> Auto-return delay after session completion</li>
           <li><strong>Auto-Rest:</strong> Automatic vs manual rest timer control</li>
+        </ul>
+
+        <h4>Cue Settings</h4>
+        <p>Customize audio and haptic feedback in Settings > Cues:</p>
+        <ul>
+          <li><strong>Sound & Volume:</strong> Master audio toggle and volume control</li>
+          <li><strong>Countdown Tones:</strong> Enable 3-2-1 audio before exercises</li>
+          <li><strong>Haptic Feedback:</strong> Vibration for audio cues (device-dependent)</li>
+          <li><strong>Preview Sounds:</strong> Test all audio cues (duration, rep, rest, countdown, completion)</li>
         </ul>
 
         <h4>Data Management</h4>
