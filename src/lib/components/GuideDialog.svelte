@@ -234,11 +234,10 @@
           </li>
           <li>
             <strong>Instructions:</strong> Add optional notes about proper form,
-            breathing, or modifications. Supports text emphasis:
+            breathing, or modifications. Supports simple formatting:
             <ul class="nested-list">
-              <li>**bold** for <strong>bold text</strong></li>
-              <li>*italic* or _italic_ for <em>italic text</em></li>
-              <li>__underline__ for <u>underlined text</u></li>
+              <li><strong>Emphasis:</strong> **bold**, *italic* or _italic_, __underline__</li>
+              <li><strong>Lists:</strong> Start lines with * or - for bullets, 1. 2. 3. for numbered lists</li>
             </ul>
           </li>
         </ul>

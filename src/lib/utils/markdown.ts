@@ -22,7 +22,8 @@
 
 /**
  * Parse limited markdown in text
- * Supports: bold (**text**), italic (*text* or _text_), underline (__text__), line breaks
+ * Supports: bold (**text**), italic (*text* or _text_), underline (__text__),
+ * bullet lists (* item), numbered lists (1. item), line breaks
  */
 export function parseMarkdown(text: string): string {
   if (!text) return '';
@@ -35,18 +36,36 @@ export function parseMarkdown(text: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 
-  // Apply markdown transformations (order matters!)
-  return escaped
+  // Process line by line to handle lists
+  const lines = escaped.split('\n');
+  const processed = lines.map(line => {
+    // Bullet list: * item or - item
+    if (/^[\*\-]\s+(.+)$/.test(line)) {
+      const content = line.replace(/^[\*\-]\s+/, '');
+      return `<div style="padding-left: 0.5rem;">• ${content}</div>`;
+    }
+    // Numbered list: 1. item, 2. item, etc.
+    else if (/^\d+\.\s+(.+)$/.test(line)) {
+      const match = line.match(/^(\d+)\.\s+(.+)$/);
+      if (match) {
+        const [, num, content] = match;
+        return `<div style="padding-left: 0.5rem;">${num}. ${content}</div>`;
+      }
+    }
+    // Regular line
+    return line;
+  }).join('<br>');
+
+  // Apply inline emphasis transformations (order matters!)
+  return processed
     // Bold: **text** (must come before italic to avoid conflicts)
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     // Underline: __text__ (must come before italic)
     .replace(/__(.+?)__/g, '<u>$1</u>')
-    // Italic: *text*
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Italic: *text* (but not list bullets)
+    .replace(/(?<![\*\-]\s)\*(.+?)\*/g, '<em>$1</em>')
     // Italic: _text_ (single underscore, not part of __ pair)
-    .replace(/(?<!_)_([^_]+?)_(?!_)/g, '<em>$1</em>')
-    // Line breaks
-    .replace(/\n/g, '<br>');
+    .replace(/(?<!_)_([^_]+?)_(?!_)/g, '<em>$1</em>');
 }
 
 /**
@@ -65,6 +84,10 @@ export function stripMarkdown(text: string): string {
     .replace(/\*(.+?)\*/g, '$1')
     // Remove italic: _text_ -> text (single underscore)
     .replace(/(?<!_)_([^_]+?)_(?!_)/g, '$1')
+    // Remove list markers: * item or - item -> item
+    .replace(/^[\*\-]\s+/gm, '')
+    // Remove numbered list markers: 1. item -> item
+    .replace(/^\d+\.\s+/gm, '')
     // Keep line breaks as spaces for abbreviated text
     .replace(/\n/g, ' ')
     // Collapse multiple spaces
