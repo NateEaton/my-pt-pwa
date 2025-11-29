@@ -42,7 +42,6 @@ export interface Exercise {
 
   // Optional metadata
   instructions?: string;
-  includeInDefault: boolean; // Include in default session
   dateAdded: string; // ISO date string
 }
 

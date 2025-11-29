@@ -142,7 +142,6 @@ export class PTService {
       });
       exerciseStore.createIndex('name', 'name', { unique: false });
       exerciseStore.createIndex('type', 'type', { unique: false });
-      exerciseStore.createIndex('includeInDefault', 'includeInDefault', { unique: false });
       exerciseStore.createIndex('dateAdded', 'dateAdded', { unique: false });
     }
 
@@ -257,14 +256,6 @@ export class PTService {
   async deleteExercise(id: number): Promise<void> {
     this.ensureInitialized();
     return this._delete(STORES.EXERCISES, id);
-  }
-
-  /**
-   * Get exercises included in default session
-   */
-  async getDefaultExercises(): Promise<Exercise[]> {
-    this.ensureInitialized();
-    return this._getByIndex<Exercise>(STORES.EXERCISES, 'includeInDefault', true as unknown as IDBValidKey);
   }
 
   // ==================== Session Definition Operations ====================

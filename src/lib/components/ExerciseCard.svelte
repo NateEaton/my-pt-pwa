@@ -19,6 +19,7 @@
 <script lang="ts">
   import type { Exercise } from '$lib/types/pt';
   import { parseMarkdown } from '$lib/utils/markdown';
+  import { ptState } from '$lib/stores/pt';
 
   export let exercise: Exercise;
   export let showActions: boolean = false;
@@ -42,7 +43,7 @@
       // For reps: calculate total time based on reps, sets, and rep duration
       const reps = exercise.defaultReps || 0;
       const sets = exercise.defaultSets || 0;
-      const repDuration = exercise.defaultRepDuration || 2;
+      const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
       const totalSeconds = reps * sets * repDuration;
       return formatDuration(totalSeconds);
     }

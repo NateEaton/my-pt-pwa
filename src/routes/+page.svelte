@@ -231,9 +231,9 @@
       } else {
         const reps = exercise.defaultReps || 0;
         const sets = exercise.defaultSets || 0;
-        const repDuration = exercise.defaultRepDuration || 2;
-        const pauseBetweenReps = exercise.pauseBetweenReps || 5;
-        const restBetweenSets = exercise.restBetweenSets || 30;
+        const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
+        const pauseBetweenReps = exercise.pauseBetweenReps || $ptState.settings?.defaultPauseBetweenReps || 5;
+        const restBetweenSets = exercise.restBetweenSets || $ptState.settings?.restBetweenSets || 20;
 
         // Total rep time = (reps × repDuration) per set
         totalSeconds += reps * sets * repDuration;
@@ -371,7 +371,7 @@
         completed: true,
         actualDuration: exercise.type === 'duration'
           ? exercise.defaultDuration
-          : (exercise.defaultReps || 0) * (exercise.defaultSets || 0) * (exercise.defaultRepDuration || 2),
+          : (exercise.defaultReps || 0) * (exercise.defaultSets || 0) * (exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30),
         skipped: false,
         completedAt: now.toISOString()
       }));
