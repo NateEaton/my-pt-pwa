@@ -16,12 +16,12 @@ This app is intended as an additional aid beyond those provided by medical profe
   <table>
     <tr valign="top">
       <td><img src="./docs/screenshots/Screenshot_Today_View.png" width="180" alt="Today View"/></td>
-      <td><img src="./docs/screenshots/Screenshot_Exercise_Library.png" width="180" alt="Exercise Library"/></td>
       <td><img src="./docs/screenshots/Screenshot_Play_Session.png" width="180" alt="Active Session Playback"/></td>
+      <td><img src="./docs/screenshots/Screenshot_Journal.png" width="180" alt="Session Journal"/></td>
     </tr>
     <tr valign="top">
+      <td><img src="./docs/screenshots/Screenshot_Exercise_Library.png" width="180" alt="Exercise Library"/></td>
       <td><img src="./docs/screenshots/Screenshot_Edit_Exercise.png" width="180" alt="Create Exercise"/></td>
-      <td><img src="./docs/screenshots/Screenshot_Journal.png" width="180" alt="Session Journal"/></td>
       <td><img src="./docs/screenshots/Screenshot_Settings_1.png" width="180" alt="Settings"/></td>
     </tr>
   </table>
