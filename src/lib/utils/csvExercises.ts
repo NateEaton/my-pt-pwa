@@ -24,280 +24,205 @@
 import type { Exercise } from '$lib/types/pt';
 
 /**
- * CSV column headers in order
+ * robust CSV Parser
+ * Handles quoted fields containing commas or newlines.
+ * Escaped quotes ("") are converted to single quotes (").
  */
-const CSV_HEADERS = [
-  'name',
-  'type',
-  'defaultDuration',
-  'defaultReps',
-  'defaultSets',
-  'defaultRepDuration',
-  'pauseBetweenReps',
-  'restBetweenSets',
-  'sideMode',
-  'instructions'
-] as const;
+function parseCSV(text: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = '';
+  let inQuotes = false;
 
-/**
- * Export exercises to CSV format
- */
-export function exportExercisesToCSV(exercises: Exercise[]): string {
-  const lines: string[] = [];
+  // Normalize line endings to avoid issues with Windows (\r\n) vs Unix (\n)
+  const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  // Add metadata comments
-  const now = new Date().toISOString();
-  lines.push('# My PT Exercise Library Export');
-  lines.push(`# Exported: ${now}`);
-  lines.push('# Version: 1.0');
-  lines.push('');
+  for (let i = 0; i < normalizedText.length; i++) {
+    const char = normalizedText[i];
+    const nextChar = normalizedText[i + 1];
 
-  // Add header row
-  lines.push(CSV_HEADERS.join(','));
-
-  // Add data rows
-  for (const exercise of exercises) {
-    const row = CSV_HEADERS.map((header) => {
-      const value = exercise[header as keyof Exercise];
-      return escapeCsvField(value);
-    });
-    lines.push(row.join(','));
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        // Handle escaped quotes ("") inside a field -> treat as single literal quote
+        currentField += '"';
+        i++; // Skip the next quote
+      } else {
+        // Toggle "inside quotes" state
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // Found a comma outside of quotes -> End of Field
+      currentRow.push(currentField);
+      currentField = '';
+    } else if (char === '\n' && !inQuotes) {
+      // Found a newline outside of quotes -> End of Row
+      currentRow.push(currentField);
+      
+      // Only push if row has data (ignore empty lines at end of file)
+      if (currentRow.length > 0 && (currentRow.length > 1 || currentRow[0] !== '')) {
+         rows.push(currentRow);
+      }
+      
+      currentRow = [];
+      currentField = '';
+    } else {
+      // Normal character, just add to field
+      currentField += char;
+    }
   }
 
-  return lines.join('\n');
+  // Push the very last field and row if content didn't end with \n
+  if (currentField || currentRow.length > 0) {
+    currentRow.push(currentField);
+    rows.push(currentRow);
+  }
+
+  return rows;
 }
 
-/**
- * Escape a CSV field according to RFC 4180
- * - Wrap in quotes if contains comma, quote, or newline
- * - Escape internal quotes by doubling them
- */
-function escapeCsvField(value: unknown): string {
-  if (value === undefined || value === null) {
-    return '';
-  }
-
-  const str = String(value);
-
-  // Check if field needs quoting
-  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
-    // Escape quotes by doubling them
-    const escaped = str.replace(/"/g, '""');
-    return `"${escaped}"`;
-  }
-
-  return str;
-}
-
-/**
- * Parse CSV content into exercises
- * Returns parsed exercises and any errors encountered
- */
-export function importExercisesFromCSV(csvContent: string): {
-  exercises: Omit<Exercise, 'id' | 'dateAdded'>[];
-  errors: string[];
+export function importExercisesFromCSV(content: string): { 
+  exercises: Omit<Exercise, 'id' | 'dateAdded'>[]; 
+  errors: string[]; 
 } {
   const exercises: Omit<Exercise, 'id' | 'dateAdded'>[] = [];
   const errors: string[] = [];
 
   try {
-    // Split into lines, removing comments and empty lines
-    const lines = csvContent
-      .split(/\r?\n/)
-      .filter((line) => line.trim() && !line.startsWith('#'));
+    // 1. Parse content using the robust parser
+    const rows = parseCSV(content);
 
-    if (lines.length === 0) {
-      errors.push('CSV file is empty');
-      return { exercises, errors };
+    if (rows.length === 0) {
+      return { exercises: [], errors: ['File appears to be empty'] };
     }
 
-    // Parse header
-    const headerLine = lines[0];
-    const headers = parseCsvLine(headerLine);
+    // 2. Map Headers
+    // Get the first row as headers, normalize to lowercase/trimmed
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    
+    // Define mapping from CSV header names (lowercase) to Exercise object keys
+    const fieldMapping: Record<string, keyof Omit<Exercise, 'id' | 'dateAdded'>> = {
+      'name': 'name',
+      'type': 'type',
+      'defaultduration': 'defaultDuration',
+      'defaultreps': 'defaultReps',
+      'defaultsets': 'defaultSets',
+      'defaultrepduration': 'defaultRepDuration',
+      'pausebetweenreps': 'pauseBetweenReps',
+      'restbetweensets': 'restBetweenSets',
+      'sidemode': 'sideMode',
+      'instructions': 'instructions',
+      'description': 'instructions' // Allow 'description' as alias for instructions
+    };
 
-    // Validate headers
-    const requiredHeaders = ['name', 'type'];
-    for (const required of requiredHeaders) {
-      if (!headers.includes(required)) {
-        errors.push(`Missing required column: ${required}`);
+    const colIndexes: Record<string, number> = {};
+    
+    // Identify which column index belongs to which field
+    headers.forEach((header, index) => {
+      // Remove spaces/special chars from header for fuzzy matching (e.g., "Default Reps" -> "defaultreps")
+      const cleanHeader = header.replace(/[^a-z0-9]/g, '');
+      
+      if (fieldMapping[cleanHeader]) {
+        colIndexes[fieldMapping[cleanHeader]] = index;
       }
+    });
+
+    // Validate mandatory 'name' column exists
+    if (colIndexes['name'] === undefined) {
+      return { 
+        exercises: [], 
+        errors: ['CSV is missing the required "name" column.'] 
+      };
     }
 
-    if (errors.length > 0) {
-      return { exercises, errors };
-    }
+    // 3. Process Data Rows (start at index 1 to skip header)
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      
+      // Skip completely empty rows
+      if (row.length === 0 || (row.length === 1 && !row[0])) continue;
 
-    // Parse data rows
-    for (let i = 1; i < lines.length; i++) {
-      const lineNum = i + 1;
-      const line = lines[i];
-
-      try {
-        const values = parseCsvLine(line);
-
-        if (values.length !== headers.length) {
-          errors.push(`Line ${lineNum}: Column count mismatch (expected ${headers.length}, got ${values.length})`);
-          continue;
-        }
-
-        // Build exercise object
-        const exercise: any = {};
-
-        for (let j = 0; j < headers.length; j++) {
-          const header = headers[j];
-          const value = values[j];
-
-          if (value === '') {
-            continue; // Skip empty values
-          }
-
-          // Type conversions
-          switch (header) {
-            case 'name':
-              exercise.name = value;
-              break;
-
-            case 'type':
-              if (value !== 'duration' && value !== 'reps') {
-                errors.push(`Line ${lineNum}: Invalid type "${value}" (must be "duration" or "reps")`);
-                continue;
-              }
-              exercise.type = value;
-              break;
-
-            case 'defaultDuration':
-            case 'defaultReps':
-            case 'defaultSets':
-            case 'defaultRepDuration':
-            case 'pauseBetweenReps':
-            case 'restBetweenSets':
-              const num = parseFloat(value);
-              if (isNaN(num)) {
-                errors.push(`Line ${lineNum}: Invalid number for ${header}: "${value}"`);
-              } else {
-                exercise[header] = num;
-              }
-              break;
-
-            case 'sideMode':
-              if (value !== 'bilateral' && value !== 'unilateral' && value !== 'alternating') {
-                errors.push(
-                  `Line ${lineNum}: Invalid sideMode "${value}" (must be "bilateral", "unilateral", or "alternating")`
-                );
-              } else {
-                exercise.sideMode = value;
-              }
-              break;
-
-            case 'instructions':
-              exercise.instructions = value;
-              break;
-          }
-        }
-
-        // Validate required fields
-        if (!exercise.name || !exercise.type) {
-          errors.push(`Line ${lineNum}: Missing required fields (name and type)`);
-          continue;
-        }
-
-        exercises.push(exercise);
-      } catch (error) {
-        errors.push(`Line ${lineNum}: ${error instanceof Error ? error.message : 'Parse error'}`);
+      // Extract Name
+      const nameVal = row[colIndexes['name']]?.trim();
+      
+      if (!nameVal) {
+        errors.push(`Row ${i + 1}: Skipped (Missing Name)`);
+        continue;
       }
+
+      // Initialize object with required Type defaults
+      // We cast to 'any' temporarily to build the object dynamically
+      const exercise: any = {
+        name: nameVal,
+        type: 'rep', // Default type if not specified
+        instructions: ''
+      };
+
+      // Populate other fields if they exist in the CSV
+      for (const [key, colIndex] of Object.entries(colIndexes)) {
+        if (key === 'name') continue; // Already handled
+
+        const rawValue = row[colIndex];
+        if (rawValue === undefined || rawValue === '') continue;
+
+        // Type conversion
+        if ([
+          'defaultDuration', 
+          'defaultReps', 
+          'defaultSets', 
+          'defaultRepDuration', 
+          'pauseBetweenReps', 
+          'restBetweenSets'
+        ].includes(key)) {
+          const num = parseInt(rawValue);
+          if (!isNaN(num)) {
+            exercise[key] = num;
+          }
+        } else if (key === 'sideMode') {
+          // Convert 'true', 'TRUE', '1', 'yes' to boolean true
+          const lower = rawValue.toLowerCase().trim();
+          exercise[key] = ['true', '1', 'yes', 'on'].includes(lower);
+        } else {
+          // Strings (type, instructions)
+          exercise[key] = rawValue.trim();
+        }
+      }
+
+      // Validate 'type' is valid
+      if (exercise.type !== 'rep' && exercise.type !== 'duration') {
+        exercise.type = 'rep'; // Fallback
+      }
+
+      exercises.push(exercise);
     }
-  } catch (error) {
-    errors.push(`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+  } catch (err) {
+    console.error('CSV Import Error:', err);
+    errors.push('Fatal error parsing CSV structure.');
   }
 
   return { exercises, errors };
 }
 
-/**
- * Parse a single CSV line according to RFC 4180
- * Handles quoted fields with commas, quotes, and newlines
- */
-function parseCsvLine(line: string): string[] {
-  const fields: string[] = [];
-  let currentField = '';
-  let inQuotes = false;
-  let i = 0;
-
-  while (i < line.length) {
-    const char = line[i];
-    const nextChar = line[i + 1];
-
-    if (inQuotes) {
-      if (char === '"') {
-        if (nextChar === '"') {
-          // Escaped quote - add single quote to field
-          currentField += '"';
-          i += 2;
-        } else {
-          // End of quoted field
-          inQuotes = false;
-          i++;
-        }
-      } else {
-        currentField += char;
-        i++;
-      }
-    } else {
-      if (char === '"') {
-        // Start of quoted field
-        inQuotes = true;
-        i++;
-      } else if (char === ',') {
-        // Field separator
-        fields.push(currentField);
-        currentField = '';
-        i++;
-      } else {
-        currentField += char;
-        i++;
-      }
-    }
-  }
-
-  // Add final field
-  fields.push(currentField);
-
-  return fields;
-}
-
-/**
- * Detect duplicate exercises by name (case-insensitive)
- */
 export function detectDuplicates(
-  importedExercises: Omit<Exercise, 'id' | 'dateAdded'>[],
-  existingExercises: Exercise[]
-): {
-  newExercises: Omit<Exercise, 'id' | 'dateAdded'>[];
-  duplicates: Array<{
-    imported: Omit<Exercise, 'id' | 'dateAdded'>;
-    existing: Exercise;
-  }>;
-} {
+  imported: Omit<Exercise, 'id' | 'dateAdded'>[], 
+  existing: Exercise[]
+) {
   const newExercises: Omit<Exercise, 'id' | 'dateAdded'>[] = [];
   const duplicates: Array<{
     imported: Omit<Exercise, 'id' | 'dateAdded'>;
     existing: Exercise;
   }> = [];
 
-  // Create case-insensitive name map of existing exercises
-  const existingMap = new Map<string, Exercise>();
-  for (const exercise of existingExercises) {
-    existingMap.set(exercise.name.toLowerCase(), exercise);
-  }
+  for (const importItem of imported) {
+    // Case-insensitive name match
+    const match = existing.find(
+      (ex) => ex.name.trim().toLowerCase() === importItem.name.trim().toLowerCase()
+    );
 
-  // Check each imported exercise
-  for (const imported of importedExercises) {
-    const existingMatch = existingMap.get(imported.name.toLowerCase());
-
-    if (existingMatch) {
-      duplicates.push({ imported, existing: existingMatch });
+    if (match) {
+      duplicates.push({ imported: importItem, existing: match });
     } else {
-      newExercises.push(imported);
+      newExercises.push(importItem);
     }
   }
 
