@@ -211,7 +211,7 @@
       <div class="file-input-container">
         <input
           type="file"
-          accept=".csv,.json"
+          accept=".csv,.json,text/CSV, application/json"
           on:change={handleFileSelect}
           bind:this={fileInput}
           id="file-input"
