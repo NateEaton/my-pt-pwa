@@ -204,7 +204,6 @@ export function importExercisesFromCSV(content: string): {
 // --- MAIN: Export Function ---
 export function exportExercisesToCSV(exercises: Exercise[]): string {
   // 1. Define Metadata
-  const BOM = '\uFEFF'; // Byte Order Mark for Excel compatibility
   const metadata = [
       '# My PT Exercise Library Export',
       `# Exported: ${new Date().toISOString()}`,
@@ -237,7 +236,7 @@ export function exportExercisesToCSV(exercises: Exercise[]): string {
   });
 
   // 4. Combine parts
-  return BOM + metadata + '\n' + headerRow + '\n' + rows.join('\n');
+  return metadata + '\n' + headerRow + '\n' + rows.join('\n');
 }
 
 // --- MAIN: Duplicate Detection ---
