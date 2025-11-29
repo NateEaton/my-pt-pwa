@@ -41,6 +41,7 @@ export interface AppSettings {
   theme: 'light' | 'dark' | 'auto';
   colorScheme: 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'teal';
   exerciseSortOrder: 'alphabetical' | 'dateAdded' | 'frequency';
+  fullscreenEnabled: boolean; // Enable fullscreen mode for exercise player
 
   // Sound preferences
   soundEnabled: boolean;

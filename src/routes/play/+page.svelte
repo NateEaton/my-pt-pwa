@@ -86,6 +86,9 @@
   // Wake Lock to keep screen awake during session
   let wakeLock: any = null;
 
+  // Fullscreen state
+  let isFullscreen = false;
+
   // Scroll active exercise into view when index changes
   $: if (currentExerciseIndex >= 0 && exerciseElements[currentExerciseIndex] && exerciseListContainer) {
     const activeElement = exerciseElements[currentExerciseIndex];
@@ -166,10 +169,58 @@
     }
   }
 
+  // Request fullscreen
+  async function requestFullscreen() {
+    // Only request fullscreen if the setting is enabled
+    const fullscreenEnabled = $ptState.settings?.fullscreenEnabled ?? false;
+    if (!fullscreenEnabled) return;
+
+    try {
+      const element = document.documentElement;
+      if (element.requestFullscreen) {
+        await element.requestFullscreen();
+        isFullscreen = true;
+        console.log('✓ Fullscreen activated successfully');
+      } else if ((element as any).webkitRequestFullscreen) {
+        // Safari support
+        await (element as any).webkitRequestFullscreen();
+        isFullscreen = true;
+        console.log('✓ Fullscreen activated successfully (WebKit)');
+      }
+    } catch (err) {
+      console.error('✗ Fullscreen request failed:', err);
+      console.log('Fullscreen may require user interaction first');
+    }
+  }
+
+  // Exit fullscreen
+  async function exitFullscreen() {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        isFullscreen = false;
+        console.log('Fullscreen exited');
+      } else if ((document as any).webkitFullscreenElement) {
+        // Safari support
+        await (document as any).webkitExitFullscreen();
+        isFullscreen = false;
+        console.log('Fullscreen exited (WebKit)');
+      }
+    } catch (err) {
+      console.error('Fullscreen exit failed:', err);
+    }
+  }
+
+  // Listen for fullscreen changes (e.g., user pressing ESC)
+  function handleFullscreenChange() {
+    isFullscreen = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
+  }
+
   // Unlock audio and configure settings on mount
   onMount(() => {
     audioService.unlock();
     requestWakeLock();
+    requestFullscreen();
 
     // Configure audio service with user settings
     if ($ptState.settings) {
@@ -178,6 +229,10 @@
       audioService.setExerciseAboutToEndEnabled($ptState.settings.audioExerciseAboutToEndEnabled);
       audioService.setHapticsEnabled($ptState.settings.hapticsEnabled);
     }
+
+    // Listen for fullscreen changes
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
   });
 
   // Wait for ptState to be initialized, then load session
@@ -262,6 +317,11 @@
     if (preparingInterval) clearInterval(preparingInterval);
     if (pauseInterval) clearInterval(pauseInterval);
     releaseWakeLock();
+    exitFullscreen();
+
+    // Remove fullscreen event listeners
+    document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
   });
 
   async function createSessionInstance() {
