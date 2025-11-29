@@ -62,6 +62,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: 'auto',
   colorScheme: 'blue', // Default color scheme (Material Blue)
   exerciseSortOrder: 'alphabetical',
+  fullscreenEnabled: false, // Fullscreen mode disabled by default
   soundEnabled: false, // Sound OFF by default
   soundVolume: 0.7, // 70% volume (master volume)
   hapticsEnabled: false, // Haptic feedback OFF by default

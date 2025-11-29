@@ -47,6 +47,7 @@
   // Quick access settings (directly editable)
   $: theme = $ptState.settings?.theme ?? 'auto';
   $: colorScheme = $ptState.settings?.colorScheme ?? 'blue';
+  $: fullscreenEnabled = $ptState.settings?.fullscreenEnabled ?? false;
 
   // Update theme setting
   async function updateTheme(event: Event) {
@@ -143,6 +144,33 @@
   // Apply color scheme on mount
   $: if ($ptState.settings?.colorScheme) {
     applyColorScheme($ptState.settings.colorScheme);
+  }
+
+  // Update fullscreen setting
+  async function updateFullscreen(event: Event) {
+    if (!$ptState.settings) return;
+
+    const target = event.target as HTMLInputElement;
+    const enabled = target.checked;
+
+    const newSettings: AppSettings = {
+      ...$ptState.settings,
+      fullscreenEnabled: enabled
+    };
+
+    try {
+      await ptService.saveSettings(newSettings);
+      const settings = await ptService.getSettings();
+      ptState.update((state) => ({ ...state, settings }));
+
+      toastStore.show(
+        enabled ? 'Fullscreen mode enabled' : 'Fullscreen mode disabled',
+        'success'
+      );
+    } catch (error) {
+      console.error('Error updating fullscreen setting:', error);
+      toastStore.show('Failed to update fullscreen setting', 'error');
+    }
   }
 
 </script>
@@ -389,6 +417,29 @@
                 {/if}
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- Fullscreen Setting -->
+        <div class="quick-setting-item">
+          <div class="setting-info">
+            <div class="setting-label">
+              <span class="material-icons">fullscreen</span>
+              <span>Fullscreen Mode</span>
+            </div>
+            <div class="setting-description">
+              Enter fullscreen when playing exercises
+            </div>
+          </div>
+          <div class="setting-controls">
+            <label class="toggle-switch">
+              <input
+                type="checkbox"
+                checked={fullscreenEnabled}
+                on:change={updateFullscreen}
+              />
+              <span class="toggle-slider"></span>
+            </label>
           </div>
         </div>
       </div>
