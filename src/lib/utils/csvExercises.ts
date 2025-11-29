@@ -53,9 +53,11 @@ function parseCSV(text: string): string[][] {
     } else if (char === '\n' && !inQuotes) {
       // Found a newline outside of quotes -> New Row
       currentRow.push(currentField);
-      if (currentRow.length > 0 && (currentRow.length > 1 || currentRow[0] !== '')) {
-         rows.push(currentRow);
-      }
+      
+      // We push the row even if it looks empty here; 
+      // filtering of empty/comment lines happens in the main import function
+      rows.push(currentRow);
+      
       currentRow = [];
       currentField = '';
     } else {
@@ -98,14 +100,31 @@ export function importExercisesFromCSV(content: string): {
   const errors: string[] = [];
 
   try {
-    const rows = parseCSV(content);
+    // 1. Remove BOM if present (prevents ï»¿ issues)
+    // \uFEFF is the Byte Order Mark character
+    const cleanContent = content.startsWith('\uFEFF') ? content.slice(1) : content;
 
-    if (rows.length === 0) {
-      return { exercises: [], errors: ['File appears to be empty'] };
+    // 2. Parse content using robust parser
+    const allRows = parseCSV(cleanContent);
+
+    // 3. Filter out Comment lines (#) and Empty lines
+    const dataRows = allRows.filter(row => {
+        // Skip empty rows
+        if (row.length === 0 || (row.length === 1 && !row[0].trim())) return false;
+        
+        // Skip comment rows (starts with #)
+        const firstCell = row[0].trim();
+        if (firstCell.startsWith('#')) return false;
+
+        return true;
+    });
+
+    if (dataRows.length === 0) {
+      return { exercises: [], errors: ['File appears to contain no data'] };
     }
 
-    // Map Headers
-    const headers = rows[0].map(h => h.trim().toLowerCase());
+    // 4. Map Headers (First non-comment row is header)
+    const headers = dataRows[0].map(h => h.trim().toLowerCase());
     
     const fieldMapping: Record<string, keyof Omit<Exercise, 'id' | 'dateAdded'>> = {
       'name': 'name',
@@ -134,14 +153,15 @@ export function importExercisesFromCSV(content: string): {
       return { exercises: [], errors: ['CSV is missing the required "name" column.'] };
     }
 
-    // Process Data Rows
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (row.length === 0 || (row.length === 1 && !row[0])) continue;
+    // 5. Process Data Rows (Skip header row)
+    for (let i = 1; i < dataRows.length; i++) {
+      const row = dataRows[i];
 
       const nameVal = row[colIndexes['name']]?.trim();
       if (!nameVal) {
-        errors.push(`Row ${i + 1}: Skipped (Missing Name)`);
+        // We calculate row number based on dataRows, actual file line might differ due to comments
+        // but this is usually sufficient for user feedback
+        errors.push(`Row (Data) ${i + 1}: Skipped (Missing Name)`);
         continue;
       }
 
@@ -183,6 +203,15 @@ export function importExercisesFromCSV(content: string): {
 
 // --- MAIN: Export Function ---
 export function exportExercisesToCSV(exercises: Exercise[]): string {
+  // 1. Define Metadata
+  const BOM = '\uFEFF'; // Byte Order Mark for Excel compatibility
+  const metadata = [
+      '# My PT Exercise Library Export',
+      `# Exported: ${new Date().toISOString()}`,
+      '# Version: 1.0'
+  ].join('\n');
+
+  // 2. Define Headers
   const headers = [
     'name',
     'type',
@@ -198,6 +227,7 @@ export function exportExercisesToCSV(exercises: Exercise[]): string {
 
   const headerRow = headers.join(',');
 
+  // 3. Generate Data Rows
   const rows = exercises.map(ex => {
     return headers.map(header => {
       // @ts-ignore - Dynamic access to exercise properties
@@ -206,7 +236,8 @@ export function exportExercisesToCSV(exercises: Exercise[]): string {
     }).join(',');
   });
 
-  return [headerRow, ...rows].join('\n');
+  // 4. Combine parts
+  return BOM + metadata + '\n' + headerRow + '\n' + rows.join('\n');
 }
 
 // --- MAIN: Duplicate Detection ---
