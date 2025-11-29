@@ -75,8 +75,6 @@
         <li>Guided session player with timers and rest periods</li>
         <li>View your progress in the journal</li>
         <li>Customizable timing settings and audio cues</li>
-        <li>Your data stays private on your device</li>
-        <li>Works completely offline</li>
         <li>Export and restore data with backups</li>
       </ul>
     </div>
