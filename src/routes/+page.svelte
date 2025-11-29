@@ -463,8 +463,6 @@
   function selectSession(session: SessionDefinition) {
     selectedSession = session;
     persistSessionId(session.id);
-    loadSessionExercises();
-    loadTodaySessionInstance();
     showSessionSelectModal = false;
     toastStore.show(`Switched to "${session.name}"`, 'success');
   }
