@@ -156,11 +156,16 @@
         }
       }
 
-      // Import exercises
+      // Import exercises with settings defaults for missing fields
       let importedCount = 0;
       for (const exercise of exercisesToImport) {
         await ptService.addExercise({
           ...exercise,
+          // Apply settings defaults for missing timing fields
+          defaultDuration: exercise.defaultDuration ?? $ptState.settings?.defaultDuration ?? 60,
+          defaultRepDuration: exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 30,
+          pauseBetweenReps: exercise.pauseBetweenReps ?? $ptState.settings?.defaultPauseBetweenReps ?? 5,
+          restBetweenSets: exercise.restBetweenSets ?? $ptState.settings?.restBetweenSets ?? 20,
           dateAdded: new Date().toISOString()
         });
         importedCount++;
