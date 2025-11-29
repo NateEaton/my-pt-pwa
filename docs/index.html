@@ -53,15 +53,20 @@
       margin-bottom: 0.5rem;
     }
 
-    /* Disclaimer */
-    .disclaimer {
+    /* Emphasis Box (for disclaimer and privacy) */
+    .emphasis-box {
       background: #fef3c7;
       border-left: 4px solid #f59e0b;
       padding: 1rem 1.5rem;
       margin: 2rem 0;
       border-radius: 4px;
-      color: #92400e;
+      color: #333;
       font-size: 0.95rem;
+    }
+    .emphasis-box h2 {
+      margin-top: 0;
+      text-align: center;
+      color: #333;
     }
 
     /* CTA Button */
@@ -79,12 +84,6 @@
     .cta-button:hover {
       background: #2563eb;
       transform: translateY(-2px);
-    }
-    .cta-button.secondary {
-      background: #6b7280;
-    }
-    .cta-button.secondary:hover {
-      background: #4b5563;
     }
     .cta-center {
       text-align: center;
@@ -124,6 +123,7 @@
     section h2 {
       font-size: 2em;
       margin-bottom: 1rem;
+      text-align: center;
     }
     .features-list {
       list-style: none;
@@ -167,36 +167,6 @@
     .step p {
       color: #666;
       font-size: 0.95rem;
-    }
-
-    /* Privacy Section */
-    .privacy-section {
-      background: #1f2937;
-      color: #fff;
-      padding: 2rem;
-      border-radius: 8px;
-      margin: 3rem 0;
-    }
-    .privacy-section h2 {
-      color: #fff;
-      margin-top: 0;
-    }
-    .privacy-section p {
-      max-width: 700px;
-      margin: 0 auto;
-      text-align: center;
-      font-size: 1.05rem;
-      line-height: 1.7;
-    }
-
-    /* About */
-    .about {
-      margin: 2rem 0;
-    }
-    .about p {
-      text-align: center;
-      color: #555;
-      font-size: 1.05rem;
     }
 
     /* Footer */
@@ -256,55 +226,31 @@
     </div>
   </div>
 
-  <div class="disclaimer">
-    <strong>Note:</strong> This app is intended as an additional aid beyond those provided by medical professionals.
-    The audience is primarily people with recurring or chronic physical issues that require long-term physical therapy
-    regimen, continued at home beyond when they are under the direct care of a therapist.
-  </div>
-
   <div class="cta-center">
     <a class="cta-button" href="https://my-pt-pwa.vercel.app/" target="_blank">Try It Now</a>
-    <a class="cta-button secondary" href="https://github.com/NateEaton/my-pt-pwa" target="_blank">View on GitHub</a>
   </div>
 
   <p class="device-note">Works on any device with a modern web browser. For the best experience, use the "Add to Home Screen" option on your device to install it like a regular app.</p>
 </header>
 
 <section>
-  <h2>Screenshots</h2>
-  <div class="carousel">
-    <div>
-      <img src="https://via.placeholder.com/280x500.png/3b82f6/ffffff?text=Today+View" alt="Today view showing scheduled exercises" />
-      <div class="caption">Today View</div>
-    </div>
-    <div>
-      <img src="https://via.placeholder.com/280x500.png/3b82f6/ffffff?text=Exercise+List" alt="Exercise library" />
-      <div class="caption">Exercise Library</div>
-    </div>
-    <div>
-      <img src="https://via.placeholder.com/280x500.png/3b82f6/ffffff?text=Play+Session" alt="Active session playback" />
-      <div class="caption">Session Playback</div>
-    </div>
-    <div>
-      <img src="https://via.placeholder.com/280x500.png/3b82f6/ffffff?text=Session+List" alt="Saved sessions" />
-      <div class="caption">Saved Sessions</div>
-    </div>
-    <div>
-      <img src="https://via.placeholder.com/280x500.png/3b82f6/ffffff?text=Journal" alt="Session journal" />
-      <div class="caption">Session Journal</div>
-    </div>
-    <div>
-      <img src="https://via.placeholder.com/280x500.png/3b82f6/ffffff?text=Statistics" alt="Statistics dashboard" />
-      <div class="caption">Statistics</div>
-    </div>
-  </div>
+  <h2>What is My PT?</h2>
+  <p>
+    My PT is a privacy-focused Progressive Web App for tracking physical therapy exercises and maintaining
+    consistent rehabilitation routines. All data stays on your device—no server, no tracking, no accounts.
+  </p>
+  <p>
+    This app is intended as an additional aid beyond those provided by medical professionals.
+    The audience is primarily people with recurring or chronic physical issues that require long-term
+    physical therapy regimen, continued at home beyond when they are under the direct care of a therapist.
+  </p>
 </section>
 
 <section>
   <h2>Features</h2>
   <ul class="features-list">
     <li>✓ Custom exercise library</li>
-    <li>✓ Duration or rep/set based exercises</li>
+    <li>✓ Duration or rep/set exercises</li>
     <li>✓ Session builder and organizer</li>
     <li>✓ Guided session playback</li>
     <li>✓ Real-time timers and counters</li>
@@ -316,6 +262,36 @@
     <li>✓ Works completely offline</li>
     <li>✓ Install as mobile app</li>
   </ul>
+</section>
+
+<section>
+  <h2>Screenshots</h2>
+  <div class="carousel">
+    <div>
+      <img src="docs/screenshots/Screenshot_Today_View.png" alt="Today view showing scheduled exercises" />
+      <div class="caption">Today View</div>
+    </div>
+    <div>
+      <img src="docs/screenshots/Screenshot_Exercise_List.png" alt="Exercise library" />
+      <div class="caption">Exercise Library</div>
+    </div>
+    <div>
+      <img src="docs/screenshots/Screenshot_Play_Session.png" alt="Active session playback" />
+      <div class="caption">Session Playback</div>
+    </div>
+    <div>
+      <img src="docs/screenshots/Screenshot_Session_List.png" alt="Saved sessions" />
+      <div class="caption">Saved Sessions</div>
+    </div>
+    <div>
+      <img src="docs/screenshots/Screenshot_Journal.png" alt="Session journal" />
+      <div class="caption">Session Journal</div>
+    </div>
+    <div>
+      <img src="docs/screenshots/Screenshot_Statistics.png" alt="Statistics dashboard" />
+      <div class="caption">Statistics</div>
+    </div>
+  </div>
 </section>
 
 <section>
@@ -339,19 +315,21 @@
   </div>
 </section>
 
-<div class="privacy-section">
-  <h2>Privacy First. Always.</h2>
-  <p>
-    Your health data is yours. My PT is a "local-first" app, meaning all data is stored directly on your device using IndexedDB.
-    No server communication, no accounts, no tracking, no analytics. Your exercise data never leaves your device unless you
-    choose to export it for backup purposes.
-  </p>
-</div>
+<section>
+  <div class="emphasis-box">
+    <h2>Privacy First. Always.</h2>
+    <p>
+      Your health data is yours. My PT is a "local-first" app, meaning all data is stored directly on your device using IndexedDB.
+      No server communication, no accounts, no tracking, no analytics. Your exercise data never leaves your device unless you
+      choose to export it for backup purposes.
+    </p>
+  </div>
+</section>
 
-<section class="about">
+<section>
   <h2>About This App</h2>
   <p>
-    Developed by a hobbyist (with help from AI) for personal use during physical therapy recovery, this app is and always
+    Developed by a retired hobbyist (with help from AI) for personal use during physical therapy recovery, this app is and always
     will be free, with no ads or tracking. It's a personal project shared in the hope that it helps others maintain
     consistent rehabilitation routines.
   </p>
