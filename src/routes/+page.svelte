@@ -184,6 +184,9 @@
     loadTodaySessionInstance();
   }
 
+  // Reactive: Calculate total duration whenever sessionExercises changes
+  $: totalDuration = (sessionExercises, calculateTotalDuration());
+
   // Reload state when navigating to this page (e.g., returning from player)
   afterNavigate(() => {
     if (selectedSession) {
@@ -567,7 +570,7 @@
                     <span class="stat-value">{calculateActualDuration()}</span>
                     <span class="stat-label">Elapsed</span>
                   {:else}
-                    <span class="stat-value">{calculateTotalDuration()}</span>
+                    <span class="stat-value">{totalDuration}</span>
                     <span class="stat-label">Estimated</span>
                   {/if}
                 </div>
