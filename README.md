@@ -59,7 +59,7 @@ This app is intended as an additional aid beyond those provided by medical profe
 - **Local-First**: All data stored on device using IndexedDB
 - **Fully Offline**: Works completely offline after installation
 - **No Tracking**: No accounts, no servers, no data collection
-- **Data Portability**: Export/import your complete database
+- **Data Portability**: Export/import your complete database for backups, or export/import exercises via CSV
 
 ---
 
