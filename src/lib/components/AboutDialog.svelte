@@ -39,12 +39,20 @@
   // Format build time for display
   function getFormattedBuildTime(): string {
     try {
-      const date = new Date(buildTime);
-      return date.toLocaleDateString('en-US', {
+      const d = new Date(buildTime);
+      const date = d.toLocaleDateString([], {
+        year: 'numeric',
         month: 'short',
-        day: 'numeric',
-        year: 'numeric'
+        day: 'numeric'
       });
+
+      const time = d.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+
+      return `${date} • ${time}`;
     } catch {
       return 'Unknown';
     }
@@ -75,7 +83,8 @@
         <li>Guided session player with timers and rest periods</li>
         <li>View your progress in the journal</li>
         <li>Customizable timing settings and audio cues</li>
-        <li>Export and restore data with backups</li>
+        <li>Backup and restore all data</li>
+        <li>Export and import exercises</li>
       </ul>
     </div>
 

@@ -48,10 +48,76 @@
   let showGuide = false;
   let showAbout = false;
 
+  // Service Worker Update State
+  let updateAvailable = false;
+  let registration: ServiceWorkerRegistration | null = null;
+
   // Quick access settings (directly editable)
   $: theme = $ptState.settings?.theme ?? 'auto';
   $: colorScheme = $ptState.settings?.colorScheme ?? 'blue';
   $: fullscreenEnabled = $ptState.settings?.fullscreenEnabled ?? false;
+
+  // Install/update the service worker alert system
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then((reg) => {
+      registration = reg || null;
+
+      if (!registration) return;
+
+      // Detect already-waiting SW (happens if user left app open during update)
+      if (registration.waiting) {
+        updateAvailable = true;
+      }
+
+      // Detect new SW once it's installed and waiting
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration?.installing;
+        if (!newWorker) return;
+
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && registration?.waiting) {
+            updateAvailable = true;
+            toastStore.show('New version available. Open Settings to install.', 'info');
+          }
+        });
+      });
+
+      // If controller changes (after SKIP_WAITING), reload exactly once
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // Prevent infinite reload loops
+        if (!sessionStorage.getItem('app_reloaded_after_update')) {
+          sessionStorage.setItem('app_reloaded_after_update', '1');
+          window.location.reload();
+        }
+      });
+    });
+  }
+
+  // User manually checks for update
+  async function checkForUpdate() {
+    if (!registration) {
+      toastStore.show('Service worker not ready', 'error');
+      return;
+    }
+
+    try {
+      await registration.update(); // triggers update check
+      if (!updateAvailable) {
+        toastStore.show('No update available', 'info');
+      }
+    } catch {
+      toastStore.show('Failed to check for update', 'error');
+    }
+  }
+
+  // User taps "Install Update"
+  function installUpdate() {
+    if (registration?.waiting) {
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      toastStore.show('Installing update...', 'success');
+    }
+  }
+
 
   // Update theme setting
   async function updateTheme(event: Event) {
@@ -488,6 +554,31 @@
     <!-- Support Section -->
     <section class="settings-section">
       <h2 class="section-title">Support</h2>
+
+      <!-- App Update Card -->
+      <div
+        class="settings-card {updateAvailable ? 'update-available' : ''}"
+        on:click={updateAvailable ? installUpdate : checkForUpdate}
+      >
+        <div class="card-icon">
+          <span class="material-icons">
+            {updateAvailable ? 'system_update' : 'update'}
+          </span>
+        </div>
+
+        <div class="card-content">
+          <h3>{updateAvailable ? 'Install Update' : 'Check for App Update'}</h3>
+          <p>
+            {updateAvailable
+              ? 'A new version is ready to install'
+              : 'Check if a new version is available'}
+          </p>
+        </div>
+
+        <div class="card-arrow">
+          <span class="material-icons">chevron_right</span>
+        </div>
+      </div>
 
       <div class="settings-cards">
         <!-- User Guide Card -->

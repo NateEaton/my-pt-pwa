@@ -17,7 +17,8 @@
 -->
 
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
+  import { browser } from "$app/environment";
   import { logBuildInfo } from "$lib/utils/buildInfo";
   import { page } from "$app/stores";
   import { ptState, ptService } from "$lib/stores/pt";
@@ -25,6 +26,53 @@
   import Toast from "$lib/components/Toast.svelte";
   import { toastStore } from "$lib/stores/toast";
   import "../app.css";
+
+  // --- VERSION MISMATCH HANDLER ---
+  // defined at top-level to ensure it runs as early as possible
+  const handleChunkError = async (event: Event | PromiseRejectionEvent) => {
+    let errorMsg = '';
+    
+    // Safely extract the error message
+    if ('message' in event && typeof event.message === 'string') {
+      errorMsg = event.message;
+    } else if ('reason' in event && event.reason instanceof Error) {
+      errorMsg = event.reason.message;
+    }
+
+    // Check for "Zombie" version errors
+    const isVersionMismatch = 
+      errorMsg.includes('Failed to fetch dynamically imported module') || 
+      errorMsg.includes('Importing a module script failed') ||
+      errorMsg.includes('text/html');
+
+    if (isVersionMismatch) {
+      // If we are offline, we can't fetch new chunks anyway, so don't loop
+      if (!navigator.onLine) return;
+
+      console.warn('Version mismatch detected. clearing cache and reloading...');
+
+      // 1. Nuclear Option: Unregister Service Worker to kill stale cache
+      if (navigator.serviceWorker) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+
+      // 2. Hard Reload: Append timestamp to URL to bust browser cache
+      const url = new URL(window.location.href);
+      url.searchParams.set('v', Date.now().toString());
+      window.location.href = url.toString();
+    }
+  };
+
+  // Attach listeners immediately if we are in the browser
+  if (browser) {
+    window.addEventListener('error', handleChunkError);
+    window.addEventListener('unhandledrejection', handleChunkError);
+  }
+
+  // --- END HANDLER ---
 
   onMount(async () => {
     // Initialize PTService and IndexedDB
@@ -35,7 +83,7 @@
 
     initializeTheme();
 
-    if (typeof window !== "undefined") {
+    if (browser) {
       const { useRegisterSW } = await import("virtual:pwa-register/svelte");
 
       useRegisterSW({
@@ -52,27 +100,31 @@
           toastStore.show('App is ready to work offline!', 'success');
         },
         onNeedRefresh() {
-          // With autoUpdate, this triggers automatic update
-          // The page will reload automatically when the new SW activates
           console.log('New version available, updating...');
         }
       });
 
-      // Listen for when a new service worker takes control
       navigator.serviceWorker?.addEventListener('controllerchange', () => {
-        // New SW has taken control - this happens after auto-update
-        pwaJustUpdated.set(true);
-        toastStore.show('App updated to latest version!', 'success');
+        console.log('New version activated. Reloading to apply changes...');
+        
+        // Force a reload to swap the UI to the new version immediately
+        window.location.reload(); 
       });
     }
     logBuildInfo();
+  });
+
+  onDestroy(() => {
+    if (browser) {
+      window.removeEventListener('error', handleChunkError);
+      window.removeEventListener('unhandledrejection', handleChunkError);
+    }
   });
 
   async function loadInitialData() {
     try {
       ptState.update(state => ({ ...state, loading: true }));
 
-      // Load all data in parallel
       const [exercises, sessionDefinitions, settings, todaySession] = await Promise.all([
         ptService.getExercises(),
         ptService.getSessionDefinitions(),
@@ -90,7 +142,6 @@
         todaySession
       }));
 
-      // Apply color scheme after settings are loaded
       if (settings?.colorScheme) {
         applyColorScheme(settings.colorScheme);
       }
@@ -99,7 +150,7 @@
       ptState.update(state => ({
         ...state,
         loading: false,
-        initialized: true // Still mark as initialized even if data load fails
+        initialized: true
       }));
     }
   }
@@ -121,8 +172,7 @@
 
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
     prefersDark.addEventListener("change", (e) => {
-      const currentThemeSetting =
-        localStorage.getItem("pt_theme") || "auto";
+      const currentThemeSetting = localStorage.getItem("pt_theme") || "auto";
       if (currentThemeSetting === "auto") {
         document.documentElement.setAttribute(
           "data-theme",
@@ -134,9 +184,7 @@
 
   function applyTheme(theme: string) {
     if (theme === "auto") {
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       document.documentElement.setAttribute(
         "data-theme",
         prefersDark ? "dark" : "light"
@@ -161,7 +209,6 @@
       document.documentElement.style.setProperty('--primary-color', colors.primary);
       document.documentElement.style.setProperty('--primary-color-dark', colors.dark);
 
-      // Update alpha variants
       const rgb = hexToRgb(colors.primary);
       if (rgb) {
         document.documentElement.style.setProperty('--primary-alpha-10', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`);

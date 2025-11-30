@@ -49,32 +49,30 @@ export default defineConfig(({ mode }) => {
     plugins: [
       sveltekit(),
       VitePWA({
-        registerType: "autoUpdate",
+        registerType: "prompt",
         workbox: {
           cleanupOutdatedCaches: true,
           globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
-          additionalManifestEntries: [{ url: "index.html", revision: null }],
           runtimeCaching: [
+            // HTML navigation: must be network-first
             {
-              urlPattern: /^https:\/\/.*\/?$/,
+              urlPattern: ({ request }) => request.mode === "navigate",
               handler: "NetworkFirst",
               options: {
                 cacheName: "navigation",
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 // 1 day
-                },
-                networkTimeoutSeconds: 3
+                networkTimeoutSeconds: 3,
               }
             },
+          
+            // Hashed build assets: safe to cache with SWR
             {
-              urlPattern: /\.(?:js|css)$/,
+              urlPattern: /\.(js|css|woff2?|png|jpg|svg|ico)$/,
               handler: "StaleWhileRevalidate",
               options: {
                 cacheName: "assets",
                 expiration: {
-                  maxEntries: 100,
-                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                  maxEntries: 200,
+                  maxAgeSeconds: 60 * 60 * 24 * 30
                 }
               }
             }
