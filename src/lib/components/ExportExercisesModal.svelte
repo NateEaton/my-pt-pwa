@@ -17,20 +17,25 @@
 -->
 
 <script lang="ts">
-  import { createEventDispatcher, onMount } from 'svelte';
+  import { createEventDispatcher } from 'svelte';
   import Modal from './Modal.svelte';
-  import { ptState, ptService } from '$lib/stores/pt';
+  import { ptState } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import { exportExercisesToCSV } from '$lib/utils/csvExercises';
+  import type { Exercise } from '$lib/types/pt';
 
   const dispatch = createEventDispatcher();
 
-  let exercisesCount = 0;
+  export let show = false; // or however you handle modal visibility
+
+  // 1. Define the timestamp and default filename
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  let fileName = `my-pt-exercises-${timestamp}`;
+  
+  // Your existing state for format selection
   let selectedFormat: 'csv' | 'json' = 'csv';
 
-  onMount(async () => {
-    exercisesCount = $ptState.exercises.length;
-  });
+  $: exercisesCount = $ptState.exercises.length;
 
   function handleClose() {
     dispatch('close');
@@ -44,38 +49,32 @@
       }
 
       const exercises = $ptState.exercises;
-
       let blob: Blob;
-      let filename: string;
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+
+      // 2. Use 'fileName' (from the input) and 'selectedFormat' (from the radio buttons)
+      const cleanName = fileName.replace(/\.(csv|json)$/i, '');
+      const finalFilename = `${cleanName}.${selectedFormat}`;
 
       if (selectedFormat === 'csv') {
-        // Export as CSV
         const csv = exportExercisesToCSV(exercises);
-        // Add UTF-8 BOM for Excel compatibility
         const bom = '\ufeff';
         blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
-        filename = `my-pt-exercises-${timestamp}.csv`;
       } else {
-        // Export as JSON (exercises only)
         const exportData = {
           version: 1,
           exportType: 'exercises',
           exportDate: new Date().toISOString(),
-          data: {
-            exercises
-          }
+          data: { exercises }
         };
         const json = JSON.stringify(exportData, null, 2);
         blob = new Blob([json], { type: 'application/json' });
-        filename = `my-pt-exercises-${timestamp}.json`;
       }
 
       // Create download
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename;
+      a.download = finalFilename; // Uses the corrected name
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -96,71 +95,62 @@
       Export your exercise library to share with others or backup just your exercises.
     </p>
 
-    <!-- Exercise Count -->
-    <div class="export-summary">
-      <div class="summary-item">
-        <span class="material-icons">fitness_center</span>
-        <span class="summary-text">
-          {exercisesCount} {exercisesCount === 1 ? 'exercise' : 'exercises'}
-        </span>
+    <div class="stats-card">
+      <span class="material-icons">fitness_center</span>
+      <div class="stats-info">
+        <span class="stats-value">{exercisesCount}</span>
+        <span class="stats-label">{exercisesCount === 1 ? 'exercise' : 'exercises'}</span>
       </div>
     </div>
 
-    <!-- Format Selection -->
-    <div class="format-selection">
-      <h4>Export Format</h4>
-
+    <!-- File Name Input Section -->
+    <div class="input-section">
+      <!-- Changed from <label> to <h3> to match "Export Format" -->
+      <h3>File Name</h3>
+      
+      <div class="input-wrapper">
+        <input 
+          type="text" 
+          id="filename" 
+          bind:value={fileName} 
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="File Name" 
+        />
+        <span class="extension-badge">.{selectedFormat}</span>
+      </div>
+      
+      <p class="input-helper">
+        Enter a custom name or keep the default (timestamp added automatically)
+      </p>
+    </div>
+    
+    <h3>Export Format</h3>
+    <div class="format-options">
       <label class="format-option" class:selected={selectedFormat === 'csv'}>
         <input type="radio" name="format" value="csv" bind:group={selectedFormat} />
+        <span class="material-icons">table_chart</span>
         <div class="format-details">
-          <div class="format-header">
-            <span class="material-icons">table_chart</span>
-            <span class="format-name">CSV (Spreadsheet)</span>
-          </div>
-          <p class="format-description">
-            Best for editing in Excel or Google Sheets. Easy to review and share.
-          </p>
+          <strong>CSV (Spreadsheet)</strong>
+          <span>Best for editing in Excel or Google Sheets. Easy to review and share.</span>
         </div>
       </label>
 
       <label class="format-option" class:selected={selectedFormat === 'json'}>
         <input type="radio" name="format" value="json" bind:group={selectedFormat} />
+        <span class="material-icons">code</span>
         <div class="format-details">
-          <div class="format-header">
-            <span class="material-icons">code</span>
-            <span class="format-name">JSON (App Format)</span>
-          </div>
-          <p class="format-description">
-            Technical format preserving all data structure. For developers.
-          </p>
+          <strong>JSON (App Format)</strong>
+          <span>Technical format preserving all data structure. For developers.</span>
         </div>
       </label>
     </div>
 
-    {#if exercisesCount === 0}
-      <div class="info-box warning">
-        <span class="material-icons">info</span>
-        <p>You don't have any exercises to export. Create some exercises first!</p>
-      </div>
-    {:else}
-      <div class="info-box">
-        <span class="material-icons">info</span>
-        <p>
-          This exports <strong>only your exercises</strong>. Sessions, journal entries, and
-          settings are not included. Use "Backup" for a complete backup.
-        </p>
-      </div>
-    {/if}
   </div>
-
+  
   <div slot="footer" class="modal-actions">
-    <button class="btn btn-secondary" on:click={handleClose} type="button">Cancel</button>
-    <button
-      class="btn btn-primary"
-      on:click={handleExport}
-      type="button"
-      disabled={exercisesCount === 0}
-    >
+    <button class="btn btn-secondary" on:click={handleClose}>Cancel</button>
+    <button class="btn btn-primary" on:click={handleExport}>
       <span class="material-icons">file_download</span>
       Export
     </button>
@@ -345,4 +335,54 @@
   .btn .material-icons {
     font-size: 20px;
   }
+
+  .input-section {
+    margin-top: 2rem;    /* Adds the whitespace you requested */
+    margin-bottom: 1.5rem;
+  }
+
+  .input-wrapper {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0 0.75rem;
+    height: 48px;
+    transition: all 0.2s ease;
+  }
+
+  .input-wrapper:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-alpha-10);
+  }
+
+  .input-wrapper input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    color: var(--text-primary);
+    padding: 0.5rem 0;
+    outline: none;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .extension-badge {
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding-left: 0.5rem;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .input-helper {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
 </style>
