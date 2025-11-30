@@ -29,16 +29,6 @@
 
 <Modal fullScreen={true} title="User Guide" iosStyle={true} on:close={handleClose}>
   <div class="guide-content">
-    <!-- Disclaimer -->
-    <div class="disclaimer">
-      <p>
-        This app is intended as an additional aid beyond those provided by medical
-        professionals. The audience is primarily people with recurring or chronic physical
-        issues that require long-term physical therapy regimen, continued at home beyond
-        when they are under the direct care of a therapist.
-      </p>
-    </div>
-
     <!-- Getting Started -->
     <details class="guide-section" open>
       <summary>
@@ -48,9 +38,15 @@
       <div class="section-content">
         <h4>Welcome to My PT!</h4>
         <p>
-          This app helps you track your physical therapy exercises and maintain
+          My PT helps you track your physical therapy exercises and maintain
           consistent rehabilitation routines. Your data stays private on your device,
           and you can use the app offline.
+        </p>
+        <p>
+          This app is intended as an additional aid beyond those provided by medical
+          professionals. The audience is primarily people with recurring or chronic physical
+          issues that require long-term physical therapy regimen, continued at home beyond
+          when they are under the direct care of a therapist.
         </p>
 
         <h4>First Steps</h4>
@@ -346,6 +342,15 @@
           <li>
             <strong>Restore Backup:</strong> Upload a backup file to restore your data.
             This will replace all current data, so make a backup first if needed.
+          </li>
+          <li>
+            <strong>Export Exercises:</strong> Save your library as a CSV file to edit 
+            in Excel/Google Sheets, or as JSON to share with other devices.
+          </li>
+          <li>
+            <strong>Import Exercises:</strong> Load exercises from a file (without affecting
+            settings or journal entries). The app will detect duplicates and allow you to skip
+            them or import them as copies.
           </li>
         </ul>
 

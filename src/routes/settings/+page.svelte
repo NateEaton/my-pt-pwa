@@ -27,6 +27,8 @@
   import AudioSettingsModal from '$lib/components/AudioSettingsModal.svelte';
   import BackupModal from '$lib/components/BackupModal.svelte';
   import RestoreModal from '$lib/components/RestoreModal.svelte';
+  import ExportExercisesModal from '$lib/components/ExportExercisesModal.svelte';
+  import ImportExercisesModal from '$lib/components/ImportExercisesModal.svelte';
   import GuideDialog from '$lib/components/GuideDialog.svelte';
   import AboutDialog from '$lib/components/AboutDialog.svelte';
   import type { AppSettings } from '$lib/types/pt';
@@ -41,6 +43,8 @@
   let showAudioSettings = false;
   let showBackupModal = false;
   let showRestoreModal = false;
+  let showExportExercises = false;
+  let showImportExercises = false;
   let showGuide = false;
   let showAbout = false;
 
@@ -315,6 +319,42 @@
             <span class="material-icons">chevron_right</span>
           </div>
         </div>
+
+        <!-- Export Exercises Card -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="settings-card" on:click={() => (showExportExercises = true)}>
+          <div class="card-icon">
+            <span class="material-icons">file_upload</span>
+          </div>
+          <div class="card-content">
+            <h3>Export Exercises</h3>
+            <p>Share your exercise library as CSV or JSON</p>
+            <div class="card-meta">
+              <span class="material-icons">fitness_center</span>
+              <span>{$ptState.exercises.length} {$ptState.exercises.length === 1 ? 'exercise' : 'exercises'}</span>
+            </div>
+          </div>
+          <div class="card-arrow">
+            <span class="material-icons">chevron_right</span>
+          </div>
+        </div>
+
+        <!-- Import Exercises Card -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="settings-card" on:click={() => (showImportExercises = true)}>
+          <div class="card-icon">
+            <span class="material-icons">file_download</span>
+          </div>
+          <div class="card-content">
+            <h3>Import Exercises</h3>
+            <p>Add exercises from CSV or JSON file</p>
+          </div>
+          <div class="card-arrow">
+            <span class="material-icons">chevron_right</span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -511,6 +551,14 @@
 
 {#if showRestoreModal}
   <RestoreModal on:close={() => (showRestoreModal = false)} />
+{/if}
+
+{#if showExportExercises}
+  <ExportExercisesModal on:close={() => (showExportExercises = false)} />
+{/if}
+
+{#if showImportExercises}
+  <ImportExercisesModal on:close={() => (showImportExercises = false)} />
 {/if}
 
 {#if showGuide}

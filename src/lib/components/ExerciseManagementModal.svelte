@@ -87,8 +87,7 @@
     pauseBetweenReps: $ptState.settings?.defaultPauseBetweenReps || 5,
     restBetweenSets: $ptState.settings?.restBetweenSets || 20,
     sideMode: 'bilateral' as 'bilateral' | 'unilateral' | 'alternating',
-    instructions: '',
-    includeInDefault: true
+    instructions: ''
   };
 
   // Computed: filtered and sorted exercises
@@ -157,15 +156,14 @@
     exerciseFormData = {
       name: exercise.name,
       type: exercise.type,
-      defaultDuration: exercise.defaultDuration || 60,
+      defaultDuration: exercise.defaultDuration || $ptState.settings?.defaultDuration || 60,
       defaultReps: exercise.defaultReps || 10,
       defaultSets: exercise.defaultSets || 3,
-      defaultRepDuration: exercise.defaultRepDuration || 2,
-      pauseBetweenReps: exercise.pauseBetweenReps ?? 5,
-      restBetweenSets: exercise.restBetweenSets ?? 30,
+      defaultRepDuration: exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30,
+      pauseBetweenReps: exercise.pauseBetweenReps ?? $ptState.settings?.defaultPauseBetweenReps ?? 5,
+      restBetweenSets: exercise.restBetweenSets ?? $ptState.settings?.restBetweenSets ?? 20,
       sideMode: exercise.sideMode || 'bilateral',
-      instructions: exercise.instructions || '',
-      includeInDefault: exercise.includeInDefault
+      instructions: exercise.instructions || ''
     };
     showExerciseForm = true;
   }
@@ -183,8 +181,7 @@
       pauseBetweenReps: settings?.defaultPauseBetweenReps || 5,
       restBetweenSets: settings?.restBetweenSets || 20,
       sideMode: 'bilateral',
-      instructions: '',
-      includeInDefault: true
+      instructions: ''
     };
   }
 
@@ -212,8 +209,7 @@
           pauseBetweenReps: exerciseFormData.type === 'reps' ? exerciseFormData.pauseBetweenReps : undefined,
           restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
           sideMode: exerciseFormData.type === 'reps' ? exerciseFormData.sideMode : undefined,
-          instructions: exerciseFormData.instructions.trim() || undefined,
-          includeInDefault: exerciseFormData.includeInDefault
+          instructions: exerciseFormData.instructions.trim() || undefined
         };
 
         await ptService.updateExercise(updated);
@@ -230,7 +226,6 @@
           restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
           sideMode: exerciseFormData.type === 'reps' ? exerciseFormData.sideMode : undefined,
           instructions: exerciseFormData.instructions.trim() || undefined,
-          includeInDefault: exerciseFormData.includeInDefault,
           dateAdded: new Date().toISOString()
         };
 

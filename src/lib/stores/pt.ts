@@ -66,14 +66,6 @@ const initialState: PTState = {
 export const ptState = writable<PTState>(initialState);
 
 /**
- * Derived store: Get default session definition
- */
-export const defaultSessionDefinition = derived(
-  ptState,
-  ($ptState) => $ptState.sessionDefinitions.find((s) => s.isDefault) || null
-);
-
-/**
  * Derived store: Get exercises sorted by settings preference
  */
 export const sortedExercises = derived(ptState, ($ptState) => {
@@ -101,13 +93,6 @@ export const sortedExercises = derived(ptState, ($ptState) => {
       return exercises;
   }
 });
-
-/**
- * Derived store: Get exercises included in default session
- */
-export const defaultExercises = derived(ptState, ($ptState) =>
-  $ptState.exercises.filter((e) => e.includeInDefault)
-);
 
 // Re-export service singleton as the canonical access point
 export { ptService } from '$lib/services/PTService';

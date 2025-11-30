@@ -1342,7 +1342,7 @@
       return formatTime(remaining);
     } else {
       // For reps with duration > 2 seconds, show countdown within current rep
-      const repDuration = currentExercise.defaultRepDuration || 2;
+      const repDuration = currentExercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
       if (repDuration > 2 && timerState === 'active') {
         const repRemaining = Math.max(0, repDuration - repElapsedSeconds);
         return formatTime(repRemaining);
@@ -1379,7 +1379,7 @@
     } else {
       const reps = exercise.defaultReps || 10;
       const sets = exercise.defaultSets || 3;
-      const repDuration = exercise.defaultRepDuration || 2;
+      const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
       const total = reps * sets * repDuration;
       return Math.min(100, (exerciseElapsedSeconds / total) * 100);
     }
@@ -1563,7 +1563,7 @@
           </DisplayRow>
         {:else}
           <!-- Active rep: Big timer on top, compact set/rep info below -->
-          {#if (currentExercise.defaultRepDuration || 2) > 2}
+          {#if (currentExercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30) > 2}
             <div class="display-row-with-indicators">
               {#if currentSide}
                 <div class="side-indicator-left">
