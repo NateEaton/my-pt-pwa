@@ -50,6 +50,7 @@ yarn-debug.log* yarn-error.log*
 *.bak
 *backup*.json
 .repomixignore
+*.csv
 
 # --- Sub-Repositories --- Ignore the separately-cloned wiki Git 
 # repository. This prevents git from treating it as a submodule.
