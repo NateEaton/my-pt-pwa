@@ -352,8 +352,9 @@
             in Excel/Google Sheets, or as JSON to share with other devices.
           </li>
           <li>
-            <strong>Import Exercises:</strong> Load exercises from a file. The app will 
-            detect duplicates and allow you to skip them or import them as copies.
+            <strong>Import Exercises:</strong> Load exercises from a file (without affecting
+            settings or journal entries). The app will detect duplicates and allow you to skip
+            them or import them as copies.
           </li>
         </ul>
 
