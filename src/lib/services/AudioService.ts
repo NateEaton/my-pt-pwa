@@ -92,6 +92,74 @@ export class AudioService {
   }
 
   /**
+   * Internal helper to play a tone at a specific time
+   */
+  private playToneAtTime(frequency: number, startTime: number, duration: number, type: OscillatorType = 'sine'): void {
+    if (!this.unlocked || !this.audioContext) return;
+
+    const osc = this.audioContext.createOscillator();
+    const gain = this.audioContext.createGain();
+
+    // Smooth envelope
+    const attack = 0.015;
+    const release = 0.030;
+    const volume = this.masterVolume ?? 0.7;
+
+    osc.frequency.value = frequency;
+    osc.type = type;
+
+    // Envelope: 0 -> volume -> volume -> 0
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(volume, startTime + attack);
+    gain.gain.setValueAtTime(volume, startTime + duration - release);
+    gain.gain.linearRampToValueAtTime(0, startTime + duration);
+
+    osc.connect(gain);
+    gain.connect(this.audioContext.destination);
+
+    osc.start(startTime);
+    osc.stop(startTime + duration);
+
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+    };
+  }
+
+  /**
+   * Play a resonating chime/gong sound (Exponential decay)
+   */
+  private playChime(frequency: number): void {
+    if (!this.unlocked || !this.audioContext) return;
+
+    const now = this.audioContext.currentTime;
+    const osc = this.audioContext.createOscillator();
+    const gain = this.audioContext.createGain();
+
+    const volume = this.masterVolume ?? 0.7;
+
+    osc.frequency.value = frequency;
+    osc.type = 'sine'; // Sine is best for "wind chime" purity
+
+    // Gong Envelope: Fast attack, long exponential decay
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(volume, now + 0.02); // Fast attack
+    // Exponentially decay to near-silence over 2 seconds
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+
+    osc.connect(gain);
+    gain.connect(this.audioContext.destination);
+
+    osc.start(now);
+    osc.stop(now + 2.0); // Allow full 2s resonance
+
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+    };
+  }
+
+  /**
    * Trigger haptic vibration if enabled
    * @param duration - Vibration duration in milliseconds (default: 50ms)
    */
@@ -256,6 +324,20 @@ export class AudioService {
     if (!this.perRepBeepsEnabled) return;
     this.playBeep(1000, 0.06); // Quick, high ping
     this.triggerHaptic(25); // Quick vibration
+  }
+
+  /**
+   * Called when switching sides in a unilateral exercise
+   * Plays a "Soft Gong/Wind Chime" sound
+   */
+  public onSwitchSides(): void {
+    // Play a single, resonant C5 note (523.25Hz)
+    // This sounds like a mid-tone wind chime
+    this.playChime(523.25);
+
+    // Distinct haptic pattern: Long-Short
+    this.triggerHaptic(200);
+    setTimeout(() => this.triggerHaptic(50), 300);
   }
 
   /**

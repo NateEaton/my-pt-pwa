@@ -34,6 +34,7 @@
   let endSessionDelay = 5;
   let restBetweenSets = 20;
   let enableAutoAdvance = true;
+  let autoAdvanceSets = true; 
   let pauseBetweenExercises = 20;
   let startingSide: 'left' | 'right' = 'left';
 
@@ -47,6 +48,7 @@
       endSessionDelay = $ptState.settings.endSessionDelay;
       restBetweenSets = $ptState.settings.restBetweenSets;
       enableAutoAdvance = $ptState.settings.enableAutoAdvance;
+      autoAdvanceSets = $ptState.settings.autoAdvanceSets ?? true;
       pauseBetweenExercises = $ptState.settings.pauseBetweenExercises;
       startingSide = $ptState.settings.startingSide || 'left';
     }
@@ -68,6 +70,7 @@
       endSessionDelay,
       restBetweenSets,
       enableAutoAdvance,
+      autoAdvanceSets,
       pauseBetweenExercises,
       startingSide
     };
@@ -197,6 +200,25 @@
             placeholder="MM:SS or seconds"
             disabled={!enableAutoAdvance}
           />
+        </div>
+      </div>
+
+      <div class="setting-item sub-setting" class:disabled={enableAutoAdvance}>
+        <div class="setting-info">
+          <span class="setting-label">Auto-Start Next Set</span>
+          <span class="setting-description">
+            {#if enableAutoAdvance}
+              Controlled by Auto-Advance above
+            {:else}
+              Automatically start next set/side after rest period ends
+            {/if}
+          </span>
+        </div>
+        <div class="setting-control">
+          <label class="toggle-switch">
+            <input type="checkbox" bind:checked={autoAdvanceSets} disabled={enableAutoAdvance} />
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
 

@@ -412,7 +412,8 @@
       return;
     }
 
-    // Store session instance ID for player to resume
+    // Store BOTH the session definition ID and instance ID for player to resume
+    localStorage.setItem('pt-active-session-id', selectedSession.id.toString());
     localStorage.setItem('pt-active-session-instance-id', todaySessionInstance.id.toString());
 
     // Navigate to player

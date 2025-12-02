@@ -76,8 +76,13 @@
     selectedExercises: [] as number[],
     isDefault: false,
     autoAdvance: undefined as boolean | undefined,
-    pauseBetweenExercises: undefined as number | undefined
+    pauseBetweenExercises: undefined as number | undefined,
+    autoAdvanceSets: undefined as boolean | undefined,
+    allowMultiplePerDay: undefined as boolean | undefined
   };
+
+  // Helper to determine if auto-advance is effectively on (for UI disabled states)
+  $: resolvedAutoAdvance = sessionFormData.autoAdvance ?? $ptState.settings?.enableAutoAdvance ?? true;
 
   // Computed: filtered and sorted sessions
   $: filteredSessions = filterAndSortSessions($ptState.sessionDefinitions, searchQuery, sortField, sortAsc);
@@ -146,7 +151,9 @@
       selectedExercises: session.exercises.map((e: SessionExercise) => e.exerciseId),
       isDefault: session.isDefault,
       autoAdvance: session.autoAdvance,
-      pauseBetweenExercises: session.pauseBetweenExercises
+      pauseBetweenExercises: session.pauseBetweenExercises,
+      autoAdvanceSets: session.autoAdvanceSets,
+      allowMultiplePerDay: session.allowMultiplePerDay
     };
     showSessionForm = true;
   }
@@ -157,7 +164,9 @@
       selectedExercises: [],
       isDefault: false,
       autoAdvance: undefined,
-      pauseBetweenExercises: undefined
+      pauseBetweenExercises: undefined,
+      autoAdvanceSets: undefined,
+      allowMultiplePerDay: undefined
     };
   }
 
@@ -212,7 +221,9 @@
           exercises: sessionExercises,
           isDefault: sessionFormData.isDefault,
           autoAdvance: sessionFormData.autoAdvance,
-          pauseBetweenExercises: sessionFormData.pauseBetweenExercises
+          pauseBetweenExercises: sessionFormData.pauseBetweenExercises,
+          autoAdvanceSets: sessionFormData.autoAdvanceSets,
+          allowMultiplePerDay: sessionFormData.allowMultiplePerDay
         };
 
         await ptService.updateSessionDefinition(updated);
@@ -224,6 +235,8 @@
           isDefault: sessionFormData.isDefault,
           autoAdvance: sessionFormData.autoAdvance,
           pauseBetweenExercises: sessionFormData.pauseBetweenExercises,
+          autoAdvanceSets: sessionFormData.autoAdvanceSets,
+          allowMultiplePerDay: sessionFormData.allowMultiplePerDay,
           dateCreated: new Date().toISOString()
         };
 
@@ -413,7 +426,7 @@
         <label class="checkbox-label">
           <input
             type="checkbox"
-            checked={sessionFormData.autoAdvance ?? $ptState.settings?.enableAutoAdvance ?? true}
+            checked={resolvedAutoAdvance}
             on:change={(e) => sessionFormData.autoAdvance = e.currentTarget.checked}
           />
           <span class="checkbox-text">
@@ -429,7 +442,8 @@
       </div>
 
       <div class="form-group rest-between-exercises-group">
-        <div class="setting-item" class:disabled={!(sessionFormData.autoAdvance ?? $ptState.settings?.enableAutoAdvance ?? true)}>
+        <!-- Existing Rest Between Exercises Setting -->
+        <div class="setting-item" class:disabled={!resolvedAutoAdvance}>
           <div class="setting-info">
             <span class="setting-label">Rest Between Exercises</span>
           </div>
@@ -439,12 +453,39 @@
               min={0}
               max={120}
               placeholder={`${$ptState.settings?.pauseBetweenExercises ?? 20}s`}
-              disabled={!(sessionFormData.autoAdvance ?? $ptState.settings?.enableAutoAdvance ?? true)}
+              disabled={!resolvedAutoAdvance}
             />
           </div>
         </div>
-      </div>
 
+        <!-- NEW: Auto-Start Sets Setting (Visible/Enabled when AutoAdvance is OFF) -->
+        <div class="setting-item" class:disabled={resolvedAutoAdvance}>
+          <div class="setting-info">
+            <span class="setting-label">Auto-Start Next Set</span>
+            <span class="setting-description" style="font-size: var(--font-size-xs); color: var(--text-secondary);">
+              {#if resolvedAutoAdvance}
+                Controlled by Auto-Advance
+              {:else}
+                {#if sessionFormData.autoAdvanceSets === undefined}
+                  (Default: {$ptState.settings?.autoAdvanceSets ? 'On' : 'Off'})
+                {/if}
+              {/if}
+            </span>
+          </div>
+          <div class="setting-control">
+            <label class="toggle-switch">
+              <input 
+                type="checkbox" 
+                checked={sessionFormData.autoAdvanceSets ?? $ptState.settings?.autoAdvanceSets ?? true} 
+                on:change={(e) => sessionFormData.autoAdvanceSets = e.currentTarget.checked}
+                disabled={resolvedAutoAdvance}
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      
       <div class="form-group">
         <h4 class="form-label">
           Session Exercises {#if sessionFormData.selectedExercises.length > 0}({sessionFormData.selectedExercises.length}){/if}
@@ -506,15 +547,19 @@
       </div>
 
       <div class="form-group">
-        <h4 class="form-label">
-          Add Exercises <span class="required">*</span>
-        </h4>
+        <h4 class="form-label">Available Exercises</h4>
         <div class="exercise-selector">
           {#if $ptState.exercises.length === 0}
             <p class="empty-hint">No exercises available. Add exercises first.</p>
           {:else}
-            {#each $ptState.exercises as exercise (exercise.id)}
-              {#if !sessionFormData.selectedExercises.includes(exercise.id)}
+            {@const availableExercises = $ptState.exercises.filter(e => !sessionFormData.selectedExercises.includes(e.id))}
+            {#if availableExercises.length === 0}
+              <p class="empty-hint" style="text-align: center; color: var(--success-color);">
+                <span class="material-icons" style="vertical-align: middle; font-size: 1.2rem;">check_circle</span>
+                All exercises have been added to this session
+              </p>
+            {:else}
+              {#each availableExercises as exercise (exercise.id)}
                 <label class="exercise-checkbox">
                   <input
                     type="checkbox"
@@ -534,10 +579,26 @@
                     </span>
                   </span>
                 </label>
-              {/if}
-            {/each}
+              {/each}
+            {/if}
           {/if}
         </div>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            checked={sessionFormData.allowMultiplePerDay ?? false}
+            on:change={(e) => sessionFormData.allowMultiplePerDay = e.currentTarget.checked}
+          />
+          <span class="checkbox-text">
+            <span class="checkbox-title">Allow Multiple Per Day</span>
+            <span class="checkbox-description">
+              Enable this for sessions you plan to do more than once daily (e.g., stretching routines)
+            </span>
+          </span>
+        </label>
       </div>
     </form>
 

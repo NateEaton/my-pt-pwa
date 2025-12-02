@@ -161,6 +161,12 @@
     setTimeout(() => audioService.onCountdownEnd(1), 2000);
   }
 
+  function previewSwitchSides() {
+    audioService.setMasterVolume(soundVolume);
+    audioService.setHapticsEnabled(hapticsEnabled);
+    audioService.onSwitchSides();
+  }
+
   function previewSessionComplete() {
     audioService.setMasterVolume(soundVolume);
     audioService.setHapticsEnabled(hapticsEnabled);
@@ -266,6 +272,7 @@
         </div>
       </div>
 
+      <!-- Temporarily commented out - Rest Period Cues
       <div class="setting-item">
         <div class="setting-info">
           <span class="setting-label">Rest Period Cues</span>
@@ -284,6 +291,7 @@
           </label>
         </div>
       </div>
+      -->
 
       <!-- Haptic Feedback -->
       <div class="setting-item">
@@ -340,34 +348,6 @@
             <li>Exercise start and completion</li>
             <li>Rest period start and end</li>
             <li>Session completion</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Device Capabilities -->
-      <div class="info-box" style="margin-top: var(--spacing-lg);">
-        <div class="info-title">
-          <span class="material-icons">devices</span>
-          Device Capabilities
-        </div>
-        <div class="info-text">
-          <ul>
-            <li>
-              <strong>Vibration API:</strong>
-              {#if vibrationSupported}
-                <span style="color: var(--success-color);">✓ Supported</span>
-              {:else}
-                <span style="color: var(--error-color);">✗ Not Supported</span>
-              {/if}
-            </li>
-            <li>
-              <strong>Wake Lock API:</strong>
-              {#if wakeLockSupported}
-                <span style="color: var(--success-color);">✓ Supported</span>
-              {:else}
-                <span style="color: var(--error-color);">✗ Not Supported</span>
-              {/if}
-            </li>
           </ul>
         </div>
       </div>
@@ -442,12 +422,48 @@
           </button>
           <button
             class="btn-preview"
+            on:click={previewSwitchSides}
+            disabled={!soundEnabled}
+          >
+            <span class="material-icons">swap_horiz</span>
+            Switch Sides
+          </button>
+          <button
+            class="btn-preview"
             on:click={previewSessionComplete}
             disabled={!soundEnabled}
           >
             <span class="material-icons">celebration</span>
             Session Complete
           </button>
+        </div>
+      </div>
+
+      <!-- Device Capabilities -->
+      <div class="info-box" style="margin-top: var(--spacing-lg);">
+        <div class="info-title">
+          <span class="material-icons">devices</span>
+          Device Capabilities
+        </div>
+        <div class="info-text">
+          <ul>
+            <li>
+              <strong>Vibration API:</strong>
+              {#if vibrationSupported}
+                <span style="color: var(--success-color);">✓ Supported</span>
+              {:else}
+                <span style="color: var(--error-color);">✗ Not Supported</span>
+              {/if}
+            </li>
+            <li>
+              <strong>Wake Lock API:</strong>
+              {#if wakeLockSupported}
+                <span style="color: var(--success-color);">✓ Supported</span>
+              {:else}
+                <span style="color: var(--error-color);">✗ Not Supported</span>
+              {/if}
+            </li>
+          </ul>
         </div>
       </div>
     </div>

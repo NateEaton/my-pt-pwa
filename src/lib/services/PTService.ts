@@ -56,6 +56,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   endSessionDelay: 5, // 5 second delay before session player closes
   restBetweenSets: 20, // 20 seconds between sets
   enableAutoAdvance: false, // Auto-advance disabled by default
+  autoAdvanceSets: true, // Auto-start next set enabled by default
   pauseBetweenExercises: 20, // 20 seconds rest between exercises when auto-advance is enabled
   resumeFromPausePoint: true, // Continue from pause point by default (vs restarting exercise)
   startingSide: 'left', // Start with left side for unilateral/alternating exercises
@@ -372,18 +373,23 @@ export class PTService {
   /**
    * Get today's session instance
    */
-  async getTodaySessionInstance(): Promise<SessionInstance | null> {
+  async getTodaySessionInstance(sessionDefinitionId?: number): Promise<SessionInstance | null> {
     const today = this.formatDate(new Date());
     const instances = await this.getSessionInstancesByDate(today);
 
+    // Filter by session definition ID if provided
+    const filteredInstances = sessionDefinitionId
+      ? instances.filter(inst => inst.sessionDefinitionId === sessionDefinitionId)
+      : instances;
+
     // First, try to find an in-progress session
-    const inProgress = instances.find(inst => inst.status === 'in-progress');
+    const inProgress = filteredInstances.find(inst => inst.status === 'in-progress');
     if (inProgress) {
       return inProgress;
     }
 
     // Otherwise, return the most recent instance (last in array)
-    return instances[instances.length - 1] || null;
+    return filteredInstances[filteredInstances.length - 1] || null;
   }
 
   /**

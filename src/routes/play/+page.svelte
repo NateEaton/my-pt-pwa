@@ -26,6 +26,7 @@
   import { parseMarkdown } from '$lib/utils/markdown';
   import DisplayRow from '$lib/components/DisplayRow.svelte';
   import SideIndicator from '$lib/components/SideIndicator.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import type { Exercise, SessionDefinition, SessionInstance, CompletedExercise } from '$lib/types/pt';
 
   // Player state
@@ -63,6 +64,7 @@
   let endSessionDelay = 5;
   let restBetweenSets = 30;
   let enableAutoAdvance = true;
+  let autoAdvanceSets = true;
   let pauseBetweenExercises = 10;
   let resumeFromPausePoint = true;
   let startingSide: 'left' | 'right' = 'left';
@@ -88,6 +90,9 @@
 
   // Fullscreen state
   let isFullscreen = false;
+
+  // Confirmation dialog state
+  let showRepeatSessionConfirm = false;
 
   // Scroll active exercise into view when index changes
   $: if (currentExerciseIndex >= 0 && exerciseElements[currentExerciseIndex] && exerciseListContainer) {
@@ -279,29 +284,66 @@
       pauseBetweenExercises = $ptState.settings.pauseBetweenExercises;
       resumeFromPausePoint = $ptState.settings.resumeFromPausePoint;
       startingSide = $ptState.settings.startingSide || 'left';
+      // Initialize with global default
+      autoAdvanceSets = $ptState.settings.autoAdvanceSets ?? true; 
     }
 
     // Determine auto-advance setting: session-specific or app default
     const sessionAutoAdvance = sessionDefinition.autoAdvance ?? enableAutoAdvance;
     autoAdvanceActive = sessionAutoAdvance;
 
-    // Check for existing in-progress session for today
-    const existingSession = await ptService.getTodaySessionInstance();
-    console.log('Checking for existing session:', existingSession);
+    // Apply session override for Auto-Start Sets if defined
+    if (sessionDefinition.autoAdvanceSets !== undefined) {
+      autoAdvanceSets = sessionDefinition.autoAdvanceSets;
+    }
+
+    // CHECK FOR SPECIFIC INSTANCE ID FIRST (from Resume button)
+    const instanceIdStr = localStorage.getItem('pt-active-session-instance-id');
+    let existingSession: SessionInstance | null = null;
+
+    if (instanceIdStr) {
+      // User clicked "Resume Session" - load the SPECIFIC instance they selected
+      const instanceId = parseInt(instanceIdStr, 10);
+      existingSession = await ptService.getSessionInstance(instanceId);
+
+      // Clear the instance ID from localStorage after reading
+      localStorage.removeItem('pt-active-session-instance-id');
+
+      console.log('Loading specific instance ID:', instanceId, existingSession);
+    } else {
+      // No specific instance - check for any session for today
+      existingSession = await ptService.getTodaySessionInstance(sessionId);
+      console.log('Checking for existing session:', existingSession);
+    }
 
     if (existingSession) {
       console.log('Existing session status:', existingSession.status);
       console.log('Existing session definition ID:', existingSession.sessionDefinitionId);
       console.log('Current session ID:', sessionId);
-    }
 
-    if (existingSession && existingSession.status === 'in-progress' &&
-        existingSession.sessionDefinitionId === sessionId) {
-      // Resume existing session
-      console.log('Resuming existing session');
-      await resumeSession(existingSession);
+      // Check if it's in-progress
+      if (existingSession.status === 'in-progress') {
+        // Resume in-progress session
+        console.log('Resuming in-progress session');
+        await resumeSession(existingSession);
+      } else if (existingSession.status === 'completed') {
+        // Session already completed today
+        // Check if this session allows multiple completions per day
+        if (sessionDefinition.allowMultiplePerDay) {
+          // Skip confirmation dialog and start new instance
+          console.log('Session allows multiple per day, starting new instance');
+          await createSessionInstance();
+          currentExercise = exercises[0];
+          currentExerciseIndex = 0;
+          timerState = 'paused';
+        } else {
+          // Show confirmation dialog
+          showRepeatSessionConfirm = true;
+          return;
+        }
+      }
     } else {
-      // Create new session instance
+      // No existing session - create new one
       console.log('Creating new session instance');
       await createSessionInstance();
 
@@ -310,6 +352,19 @@
       currentExerciseIndex = 0;
       timerState = 'paused';
     }
+  }
+
+  async function confirmRepeatSession() {
+    showRepeatSessionConfirm = false;
+    await createSessionInstance();
+    currentExercise = exercises[0];
+    currentExerciseIndex = 0;
+    timerState = 'paused';
+  }
+
+  function cancelRepeatSession() {
+    showRepeatSessionConfirm = false;
+    goto('/');
   }
 
   onDestroy(() => {
@@ -326,6 +381,14 @@
 
   async function createSessionInstance() {
     if (!sessionDefinition) return;
+
+    // SAFETY CHECK: Verify no in-progress instance already exists
+    const existing = await ptService.getTodaySessionInstance(sessionDefinition.id);
+    if (existing && existing.status === 'in-progress') {
+      console.warn('In-progress instance already exists, resuming instead');
+      await resumeSession(existing);
+      return;
+    }
 
     const today = ptService.formatDate(new Date());
     const completedExercises: CompletedExercise[] = exercises.map(ex => ({
@@ -592,7 +655,19 @@
 
       // Play end tone when counter shows "1" (last count of rep)
       if (repElapsedSeconds === repDuration - 1 && shouldPlayAudio()) {
-        audioService.onRepEnd();
+        // Check if this is the very last rep of the first side in a unilateral exercise
+        const isLastRepOfFirstSide =
+          sideMode === 'unilateral' &&
+          sidePhase === 'first' &&
+          currentRep === reps;
+
+        if (isLastRepOfFirstSide) {
+          // Play distinctive Gong INSTEAD of standard rep beep
+          audioService.onSwitchSides();
+        } else {
+          // Play standard high beep
+          audioService.onRepEnd();
+        }
       }
 
       exerciseElapsedSeconds++;
@@ -649,11 +724,13 @@
             // Automatically start rest timer if there's a non-zero rest time
             if (restDuration > 0) {
               setTimeout(() => {
-                startRestTimer();
+                // Pass FALSE to skip the standard "Rest Start" beep
+                // because the Gong just played
+                startRestTimer(false);
               }, 300);
             } else {
               // No rest configured, either auto-advance to second side or pause
-              if (autoAdvanceActive) {
+              if (autoAdvanceActive || autoAdvanceSets) {
                 startRepsExercise();
               } else {
                 isAwaitingSetContinuation = true;
@@ -689,7 +766,8 @@
               // Automatically start rest timer if there's a non-zero rest time
               if (restDuration > 0) {
                 setTimeout(() => {
-                  startRestTimer();
+                  // Pass TRUE (default) to play standard rest beep
+                  startRestTimer(true);
                 }, 300);
               } else {
                 // No rest configured, either auto-advance to next set or pause
@@ -758,7 +836,19 @@
 
       // Play end tone when counter shows "1" (last count of rep)
       if (repElapsedSeconds === repDuration - 1 && shouldPlayAudio()) {
-        audioService.onRepEnd();
+        // Check if this is the very last rep of the first side in a unilateral exercise
+        const isLastRepOfFirstSide =
+          sideMode === 'unilateral' &&
+          sidePhase === 'first' &&
+          currentRep === reps;
+
+        if (isLastRepOfFirstSide) {
+          // Play distinctive Gong INSTEAD of standard rep beep
+          audioService.onSwitchSides();
+        } else {
+          // Play standard high beep
+          audioService.onRepEnd();
+        }
       }
 
       exerciseElapsedSeconds++;
@@ -813,11 +903,13 @@
             // Automatically start rest timer if there's a non-zero rest time
             if (restDuration > 0) {
               setTimeout(() => {
-                startRestTimer();
+                // Pass FALSE to skip the standard "Rest Start" beep
+                // because the Gong just played
+                startRestTimer(false);
               }, 300);
             } else {
               // No rest configured, either auto-advance to second side or pause
-              if (autoAdvanceActive) {
+              if (autoAdvanceActive || autoAdvanceSets) {
                 startRepsExercise();
               } else {
                 isAwaitingSetContinuation = true;
@@ -852,11 +944,12 @@
               // Automatically start rest timer if there's a non-zero rest time
               if (restDuration > 0) {
                 setTimeout(() => {
-                  startRestTimer();
+                  // Pass TRUE (default) to play standard rest beep
+                  startRestTimer(true);
                 }, 300);
               } else {
                 // No rest configured, either auto-advance to next set or pause
-                if (autoAdvanceActive) {
+                if (autoAdvanceActive || autoAdvanceSets) {
                   startRepsExercise();
                 } else {
                   isAwaitingSetContinuation = true;
@@ -900,7 +993,7 @@
     }, 1000);
   }
 
-  function startRestTimer() {
+  function startRestTimer(playStartCue: boolean = true) {
     if (!currentExercise) return;
 
     // Get rest duration - use exercise override if available, otherwise global setting
@@ -909,8 +1002,11 @@
     restElapsedSeconds = 0;
     timerState = 'resting';
 
-    // Play rest start tone only if rest cues are enabled
-    if (shouldPlayAudio() && $ptState.settings?.audioRestCuesEnabled) {
+    // Play rest start tone only if:
+    // 1. Audio enabled
+    // 2. Setting enabled
+    // 3. We weren't told to skip it (by the Switch Sides logic)
+    if (shouldPlayAudio() && $ptState.settings?.audioRestCuesEnabled && playStartCue) {
       audioService.onRestStart();
     }
 
@@ -930,7 +1026,7 @@
 
         // If auto-advance is enabled, continue to next set automatically
         // Otherwise pause and wait for user
-        if (autoAdvanceActive) {
+        if (autoAdvanceActive || autoAdvanceSets) {
           timerState = 'active';
 
           // Add delay to prevent overlapping tones between rest end and exercise start
@@ -1268,16 +1364,25 @@
     sessionInstance.endTime = new Date().toISOString();
     sessionInstance.cumulativeElapsedSeconds = totalElapsedSeconds;
 
+    // Clear timers before database operation
+    clearTimers();
+
     try {
+      // Wait for database write to complete
       await ptService.updateSessionInstance(sessionInstance);
+
+      // Only show success toast after DB confirms
       toastStore.show('Session finished', 'success');
+
+      // Then navigate
+      goto('/');
     } catch (error) {
       console.error('Failed to finish session:', error);
       toastStore.show('Failed to finish session', 'error');
-    }
 
-    clearTimers();
-    goto('/');
+      // Still navigate on error, but user knows it failed
+      goto('/');
+    }
   }
 
   async function jumpToExercise(index: number) {
@@ -1721,6 +1826,19 @@
     </div>
   </div>
 </div>
+
+<!-- Repeat Session Confirmation Dialog -->
+{#if showRepeatSessionConfirm}
+  <ConfirmDialog
+    title="Session Previously Completed Today"
+    message="You've already completed this session today. Would you like to do it again?"
+    confirmText="Confirm"
+    cancelText="Cancel"
+    confirmVariant="primary"
+    on:confirm={confirmRepeatSession}
+    on:cancel={cancelRepeatSession}
+  />
+{/if}
 
 <style>
   .player-container {

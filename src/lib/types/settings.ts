@@ -33,6 +33,7 @@ export interface AppSettings {
   endSessionDelay: number; // Delay before session player closes after completion
   restBetweenSets: number; // Rest period between sets
   enableAutoAdvance: boolean; // Enable automatic advance to next exercise
+  autoAdvanceSets: boolean; // Enable automatic advance to next set/side (if global auto-advance is off)
   pauseBetweenExercises: number; // Rest between exercises when auto-advance is enabled (seconds)
   resumeFromPausePoint: boolean; // When resuming from pause, continue from pause point (true) or restart exercise (false)
   startingSide: 'left' | 'right'; // Starting side for unilateral/alternating exercises
