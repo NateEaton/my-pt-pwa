@@ -101,9 +101,21 @@
     }
 
     try {
-      await registration.update(); // triggers update check
+      // Show checking message
+      toastStore.show('Checking for updates...', 'info');
+
+      // Trigger update check
+      await registration.update();
+
+      // Wait a bit for the service worker to process the update
+      // If an update is found, the updatefound event will fire and set updateAvailable = true
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Check if update was found
       if (!updateAvailable) {
         toastStore.show('No update available', 'info');
+      } else {
+        toastStore.show('New version available!', 'success');
       }
     } catch {
       toastStore.show('Failed to check for update', 'error');
@@ -197,6 +209,12 @@
       if (rgb) {
         document.documentElement.style.setProperty('--primary-alpha-10', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`);
         document.documentElement.style.setProperty('--primary-alpha-20', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`);
+      }
+
+      // Update theme-color meta tag for Android system bar
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute('content', colors.primary);
       }
     }
   }
