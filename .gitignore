@@ -30,11 +30,10 @@ client_secret*.json
 !.env.example
 
 # --- IDE / Editor --- Ignore common IDE and editor-specific directories
-.idea/ 
-.vscode/ 
+.idea/
+.vscode/
 *.swp
 .history/
-CLAUDE.md
 .claude
 
 # --- Logs --- Ignore log files
@@ -45,6 +44,7 @@ logs/
 *.txt
 /*.md
 !README.md
+!CLAUDE.md
 npm-debug.log* 
 yarn-debug.log* yarn-error.log*
 *.bak
