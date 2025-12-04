@@ -1040,10 +1040,10 @@
     pointer-events: none;
   }
 
-  .exercise-search-input {
+  .exercise-search-bar .exercise-search-input {
     width: 100%;
     padding: var(--spacing-sm) var(--spacing-md);
-    padding-left: calc(var(--spacing-md) + var(--icon-size-md) + var(--spacing-xs));
+    padding-left: calc(var(--spacing-sm) + var(--icon-size-md) + var(--spacing-sm));
     border: 1px solid var(--divider);
     border-radius: var(--border-radius);
     background: var(--surface);
@@ -1051,7 +1051,7 @@
     font-size: var(--font-size-sm);
   }
 
-  .exercise-search-input:focus {
+  .exercise-search-bar .exercise-search-input:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px var(--primary-alpha-10);
