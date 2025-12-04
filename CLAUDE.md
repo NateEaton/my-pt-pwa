@@ -35,9 +35,12 @@ This is a **privacy-focused Progressive Web App** for tracking physical therapy 
 - 🎯 **Use case:** Local development with Q, code generation only
 
 **How to determine environment:**
-- If you can successfully run `git add` without errors → Environment A
-- If git write operations fail with permission errors → Environment B
-- When in doubt, ask the user: "Which environment am I running in?"
+- Check the working directory path:
+  - If path starts with `/mnt/projects/` → Environment B (Code-Server/NAS)
+  - Otherwise → Environment A (Claude Code Web)
+- Example:
+  - `/mnt/projects/my-pt-pwa` → Environment B (no git/build commands)
+  - `/home/user/my-pt-pwa` → Environment A (full git/build access)
 
 ---
 
