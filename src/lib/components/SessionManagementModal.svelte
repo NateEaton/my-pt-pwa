@@ -70,6 +70,9 @@
   let sortField: 'name' | 'dateCreated' = sortPrefs.field;
   let sortAsc = sortPrefs.asc;
 
+  // Exercise search in session form
+  let exerciseSearchQuery = '';
+
   // Session form data
   let sessionFormData = {
     name: '',
@@ -548,16 +551,47 @@
 
       <div class="form-group">
         <h4 class="form-label">Available Exercises</h4>
+
+        <!-- Exercise Search -->
+        <div class="exercise-search-bar">
+          <span class="material-icons search-icon">search</span>
+          <input
+            type="text"
+            placeholder="Search exercises..."
+            bind:value={exerciseSearchQuery}
+            class="exercise-search-input"
+          />
+          {#if exerciseSearchQuery}
+            <button
+              class="clear-exercise-search"
+              on:click={() => (exerciseSearchQuery = '')}
+              aria-label="Clear search"
+            >
+              <span class="material-icons">close</span>
+            </button>
+          {/if}
+        </div>
+
         <div class="exercise-selector">
           {#if $ptState.exercises.length === 0}
             <p class="empty-hint">No exercises available. Add exercises first.</p>
           {:else}
-            {@const availableExercises = $ptState.exercises.filter(e => !sessionFormData.selectedExercises.includes(e.id))}
+            {@const availableExercises = $ptState.exercises
+              .filter(e => !sessionFormData.selectedExercises.includes(e.id))
+              .filter(e => !exerciseSearchQuery.trim() || e.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase()))
+            }
             {#if availableExercises.length === 0}
-              <p class="empty-hint" style="text-align: center; color: var(--success-color);">
-                <span class="material-icons" style="vertical-align: middle; font-size: 1.2rem;">check_circle</span>
-                All exercises have been added to this session
-              </p>
+              {#if exerciseSearchQuery.trim()}
+                <p class="empty-hint" style="text-align: center;">
+                  <span class="material-icons" style="vertical-align: middle; font-size: 1.2rem;">search_off</span>
+                  No exercises match your search
+                </p>
+              {:else}
+                <p class="empty-hint" style="text-align: center; color: var(--success-color);">
+                  <span class="material-icons" style="vertical-align: middle; font-size: 1.2rem;">check_circle</span>
+                  All exercises have been added to this session
+                </p>
+              {/if}
             {:else}
               {#each availableExercises as exercise (exercise.id)}
                 <label class="exercise-checkbox">
@@ -987,6 +1021,62 @@
   }
 
   .order-btn .material-icons {
+    font-size: var(--icon-size-sm);
+  }
+
+  /* Exercise Search Bar */
+  .exercise-search-bar {
+    position: relative;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .exercise-search-bar .search-icon {
+    position: absolute;
+    left: var(--spacing-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-hint);
+    font-size: var(--icon-size-md);
+    pointer-events: none;
+  }
+
+  .exercise-search-input {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    padding-left: calc(var(--spacing-md) + var(--icon-size-md) + var(--spacing-sm));
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius);
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+  }
+
+  .exercise-search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-alpha-10);
+  }
+
+  .clear-exercise-search {
+    position: absolute;
+    right: var(--spacing-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-hint);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .clear-exercise-search:hover {
+    color: var(--text-secondary);
+  }
+
+  .clear-exercise-search .material-icons {
     font-size: var(--icon-size-sm);
   }
 

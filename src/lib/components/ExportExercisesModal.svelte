@@ -344,7 +344,7 @@
   .input-wrapper {
     display: flex;
     align-items: center;
-    background: #ffffff;
+    background: var(--surface);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 0 0.75rem;

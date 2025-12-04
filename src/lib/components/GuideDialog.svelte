@@ -284,13 +284,20 @@
           </li>
           <li>
             <strong>Select Exercises:</strong> Pick exercises from your library.
-            Check the boxes to add them to the session.
+            Check the boxes to add them to the session. Use the search bar to
+            quickly find specific exercises.
           </li>
           <li>
             <strong>Order Exercises:</strong> Use the
             <span class="material-icons inline-icon">arrow_upward</span> and
             <span class="material-icons inline-icon">arrow_downward</span> arrows
             to arrange exercises in the order you want to perform them.
+          </li>
+          <li>
+            <strong>Multiple Per Day (Optional):</strong> Check "Allow Multiple Per Day"
+            if you plan to perform this session more than once daily (e.g., stretching
+            routines, morning and evening exercises). This prevents the app from marking
+            the session as "already completed today."
           </li>
           <li>
             <strong>Save:</strong> Tap "Create Session" to save your workout routine.
@@ -300,7 +307,7 @@
         <h4>Editing Sessions</h4>
         <p>
           Tap any session card to edit it. You can add/remove exercises, reorder them,
-          or rename the session.
+          rename the session, or adjust the "Allow Multiple Per Day" setting.
         </p>
       </div>
     </details>
@@ -367,10 +374,11 @@
 
         <h4>App Updates</h4>
         <p>
-          The app updates automatically in the background. When a new version is
-          available, it downloads and installs silently. You'll see a brief
-          notification when the update is complete. No action needed - your data
-          is always preserved during updates.
+          You can check for new versions in <strong>Settings > Support >
+          Check for App Update</strong>. When an update is available, the card
+          changes to "Install Update" - tap it to install the new version and
+          reload the app. You may also receive a notification when an update
+          becomes available. Your data is always preserved during updates.
         </p>
       </div>
     </details>

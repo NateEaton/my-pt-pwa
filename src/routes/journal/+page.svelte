@@ -34,7 +34,7 @@
 
   // Date navigation
   let selectedDate: string = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  let viewMode: 'all' | 'day' = 'all';
+  let viewMode: 'all' | 'day' = 'day';
 
   // Statistics
   let totalSessions = 0;
@@ -292,19 +292,19 @@
         <div class="view-toggle">
           <button
             class="view-btn"
-            class:active={viewMode === 'all'}
-            on:click={showAllEntries}
-          >
-            <span class="material-icons">view_list</span>
-            All Entries
-          </button>
-          <button
-            class="view-btn"
             class:active={viewMode === 'day'}
             on:click={goToToday}
           >
             <span class="material-icons">today</span>
             By Date
+          </button>
+          <button
+            class="view-btn"
+            class:active={viewMode === 'all'}
+            on:click={showAllEntries}
+          >
+            <span class="material-icons">view_list</span>
+            All Entries
           </button>
         </div>
 
