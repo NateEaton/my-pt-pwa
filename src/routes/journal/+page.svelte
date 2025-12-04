@@ -32,8 +32,17 @@
   let loading = true;
   let sessionsLoadAttempted = false;
 
+  // Helper function to get today's date in local timezone
+  function getTodayLocalDate(): string {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   // Date navigation
-  let selectedDate: string = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  let selectedDate: string = getTodayLocalDate(); // YYYY-MM-DD in local timezone
   let viewMode: 'all' | 'day' = 'day';
 
   // Statistics
@@ -87,7 +96,7 @@
   }
 
   function goToToday() {
-    selectedDate = new Date().toISOString().split('T')[0];
+    selectedDate = getTodayLocalDate();
     viewMode = 'day';
     filterSessions();
   }
@@ -317,12 +326,12 @@
               type="date"
               class="date-input"
               bind:value={selectedDate}
-              max={new Date().toISOString().split('T')[0]}
+              max={getTodayLocalDate()}
             />
             <button
               class="nav-btn"
               on:click={() => changeDate(1)}
-              disabled={selectedDate >= new Date().toISOString().split('T')[0]}
+              disabled={selectedDate >= getTodayLocalDate()}
               aria-label="Next day"
             >
               <span class="material-icons">chevron_right</span>

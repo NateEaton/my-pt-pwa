@@ -1043,7 +1043,7 @@
   .exercise-search-input {
     width: 100%;
     padding: var(--spacing-sm) var(--spacing-md);
-    padding-left: calc(var(--spacing-md) + var(--icon-size-md) + var(--spacing-sm));
+    padding-left: calc(var(--spacing-sm) + var(--icon-size-md) + var(--spacing-sm));
     border: 1px solid var(--divider);
     border-radius: var(--border-radius);
     background: var(--surface);
