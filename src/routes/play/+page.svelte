@@ -2084,8 +2084,10 @@
     /* Progressive fill background based on progress */
     background: linear-gradient(
       to right,
+      var(--primary-color) 0%,
       var(--primary-color) var(--progress-percent, 0%),
-      #1e3a5f var(--progress-percent, 0%)
+      #1e3a5f var(--progress-percent, 0%),
+      #1e3a5f 100%
     );
     box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3);
   }
@@ -2151,7 +2153,7 @@
   .exercise-item-name {
     flex: 1;
     font-size: var(--font-size-base);
-    font-weight: 600;
+    font-weight: 400;
   }
 
   .exercise-item.active .exercise-item-name {
