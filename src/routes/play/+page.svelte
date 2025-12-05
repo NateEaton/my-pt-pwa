@@ -59,6 +59,7 @@
   let exerciseStartTimeMs = 0; // Timestamp when current exercise started (milliseconds)
   let progressUpdateInterval: number | undefined; // High-frequency interval for smooth progress updates
   let progressTicker = 0; // Increments to force reactive recalculation (for smooth progress)
+  let pausedProgressPercent = 0; // Progress percentage at time of pause (to freeze overlay)
 
   // Intervals
   let totalTimerInterval: number | undefined;
@@ -1332,14 +1333,21 @@
       } else {
         clearInterval(exerciseTimerInterval);
       }
+      // Save current progress and stop updates to freeze overlay
+      pausedProgressPercent = currentExerciseProgress;
+      stopProgressUpdates();
       timerState = 'paused';
     } else if (timerState === 'countdown') {
       // Pause during countdown
       clearInterval(exerciseTimerInterval);
+      pausedProgressPercent = currentExerciseProgress;
+      stopProgressUpdates();
       timerState = 'paused';
     } else if (timerState === 'resting') {
       // Pause rest timer
       clearInterval(exerciseTimerInterval);
+      pausedProgressPercent = currentExerciseProgress;
+      stopProgressUpdates();
       timerState = 'paused';
     }
   }
@@ -1494,6 +1502,10 @@
     restElapsedSeconds = 0;
     isAwaitingSetContinuation = false;
 
+    // Reset progress tracking to prevent overlay from showing until exercise starts
+    exerciseStartTimeMs = 0;
+    pausedProgressPercent = 0;
+
     // Clear any incomplete markers if jumping backward
     if (index < exercises.length && sessionInstance) {
       const completed = sessionInstance.completedExercises.find(
@@ -1551,12 +1563,16 @@
 
   // Reactive: Calculate progress for current exercise (smooth time-based for duration)
   $: currentExerciseProgress = (() => {
-    // Depend on progressTicker to force recalculation every 100ms
-    const _ = progressTicker;
-
     if (!currentExercise || currentExerciseIndex < 0) return 0;
-    // Show progress for active AND paused states (maintains overlay when paused)
-    if (timerState !== 'active' && timerState !== 'paused') return 0;
+
+    // If paused, return the frozen progress value
+    if (timerState === 'paused') return pausedProgressPercent;
+
+    // Only calculate progress for active state
+    if (timerState !== 'active') return 0;
+
+    // Depend on progressTicker to force recalculation every 100ms when active
+    const _ = progressTicker;
 
     const exercise = exercises[currentExerciseIndex];
     let progress = 0;
@@ -1579,7 +1595,6 @@
       }
     }
 
-    console.log(`🔴 Progress: ${progress.toFixed(1)}% (time-based: ${exercise.type === 'duration'}, state: ${timerState})`);
     return progress;
   })();
 
@@ -1599,7 +1614,6 @@
       const total = reps * sets * repDuration;
       progress = Math.min(100, (exerciseElapsedSeconds / total) * 100);
     }
-    console.log(`Progress for exercise ${exerciseIndex}: ${progress}% (elapsed: ${exerciseElapsedSeconds}s)`);
     return progress;
   }
 
@@ -2205,8 +2219,7 @@
     left: 0;
     height: 100%;
     width: var(--progress-percent, 0%);
-    background-color: red;  /* Temporary: bright red for debugging */
-    opacity: 0.8;  /* Temporary: make it very visible */
+    background-color: var(--primary-color);
     transition: width 0.5s ease;
     z-index: 0;
     /* Only round left corners - right edge stays vertical until 100% */
