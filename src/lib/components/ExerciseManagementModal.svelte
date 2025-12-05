@@ -788,16 +788,11 @@
 
   .exercise-type-badge {
     padding: var(--spacing-xs) var(--spacing-sm);
-    background-color: var(--surface-variant);
-    color: var(--text-secondary);
+    background-color: var(--primary-alpha-10);
+    color: var(--primary-color);
     border-radius: calc(var(--border-radius) / 2);
     font-size: var(--font-size-xs);
     font-weight: 500;
-  }
-
-  .exercise-type-badge.is-duration {
-    background-color: var(--primary-alpha-10);
-    color: var(--primary-color);
   }
 
   .mode-badge {

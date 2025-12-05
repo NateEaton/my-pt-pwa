@@ -2235,10 +2235,6 @@
     border-bottom-right-radius: 0;
   }
 
-  .exercise-item.completed {
-    opacity: 0.8;
-  }
-
   /* 100% overlay for completed exercises - uses primary color at reduced opacity */
   .exercise-item.completed::before {
     content: '';
@@ -2248,7 +2244,7 @@
     height: 100%;
     width: 100%;
     background-color: var(--primary-color);
-    opacity: 0.75;
+    opacity: 0.85;
     z-index: 0;
     border-radius: var(--border-radius);
   }
