@@ -2235,10 +2235,11 @@
     border-bottom-right-radius: 0;
   }
 
-  /* Completed exercises styling */
+  /* Completed exercises styling - thick left border for clear visual indicator */
   .exercise-item.completed {
-    background-color: var(--primary-color);
-    opacity: 0.7;
+    border-left: 6px solid var(--primary-color);
+    padding-left: calc(var(--spacing-md) - 6px); /* Adjust padding to account for border */
+    opacity: 0.85;
   }
 
   .exercise-item-content {
