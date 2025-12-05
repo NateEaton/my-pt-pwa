@@ -1761,6 +1761,7 @@
           class="exercise-item"
           class:active={index === currentExerciseIndex}
           class:completed={isExerciseCompleted(index)}
+          style={index === currentExerciseIndex ? `--progress-percent: ${getExerciseProgress(index)}%` : ''}
         >
           <!-- Info icon (left side) - always show, greyed out if no instructions -->
           <button
@@ -2075,10 +2076,17 @@
     display: flex;
     align-items: flex-start;
     gap: var(--spacing-sm);
+    position: relative;
+    overflow: hidden;
   }
 
   .exercise-item.active {
-    background-color: var(--primary-color);
+    /* Progressive fill background based on progress */
+    background: linear-gradient(
+      to right,
+      var(--primary-color) var(--progress-percent, 0%),
+      #1e3a5f var(--progress-percent, 0%)
+    );
     box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3);
   }
 
@@ -2144,6 +2152,10 @@
     flex: 1;
     font-size: var(--font-size-base);
     font-weight: 600;
+  }
+
+  .exercise-item.active .exercise-item-name {
+    font-weight: 700;
   }
 
   .check-icon {
