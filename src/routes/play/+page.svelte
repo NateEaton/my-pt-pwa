@@ -2235,18 +2235,10 @@
     border-bottom-right-radius: 0;
   }
 
-  /* 100% overlay for completed exercises - uses primary color at reduced opacity */
-  .exercise-item.completed::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
+  /* Completed exercises styling */
+  .exercise-item.completed {
     background-color: var(--primary-color);
-    opacity: 0.85;
-    z-index: 0;
-    border-radius: var(--border-radius);
+    opacity: 0.7;
   }
 
   .exercise-item-content {
