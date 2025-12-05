@@ -712,8 +712,11 @@
     isPausingBetweenReps = false;
 
     // Start time-based progress tracking for smooth visual feedback
-    exerciseStartTimeMs = Date.now();
-    startProgressUpdates();
+    // Only set start time if not already set (i.e., first time starting, not resuming from rest)
+    if (exerciseStartTimeMs === 0) {
+      exerciseStartTimeMs = Date.now();
+      startProgressUpdates();
+    }
 
     // Play rep start tone for first rep
     if (shouldPlayAudio()) {
@@ -1148,6 +1151,7 @@
       currentSet = 1;
       currentRep = 1;
       sidePhase = 'first';
+      exerciseStartTimeMs = 0; // Reset for next exercise
 
       // Check if auto-advance is enabled
       if (autoAdvanceActive && pauseBetweenExercises > 0) {
@@ -1365,6 +1369,7 @@
     currentRep = 1;
     sidePhase = 'first';
     isAwaitingSetContinuation = false;
+    exerciseStartTimeMs = 0; // Reset for previous exercise
 
     // Mark current as incomplete if it was marked as completed
     const completedEx = sessionInstance?.completedExercises.find(
@@ -1407,6 +1412,7 @@
       sidePhase = 'first';
       restElapsedSeconds = 0;
       isAwaitingSetContinuation = false;
+      exerciseStartTimeMs = 0; // Reset for next exercise
     } else {
       // Already at last exercise
       toastStore.show('Already at last exercise', 'info');
@@ -1568,10 +1574,10 @@
     // If paused, return the frozen progress value
     if (timerState === 'paused') return pausedProgressPercent;
 
-    // Only calculate progress for active state
-    if (timerState !== 'active') return 0;
+    // Only calculate progress for active and resting states
+    if (timerState !== 'active' && timerState !== 'resting') return 0;
 
-    // Depend on progressTicker to force recalculation every 100ms when active
+    // Depend on progressTicker to force recalculation every 100ms when active or resting
     const _ = progressTicker;
 
     const exercise = exercises[currentExerciseIndex];
@@ -2195,8 +2201,8 @@
   }
 
   .exercise-item {
-    background-color: #1e3a5f;
-    color: white;
+    background-color: var(--surface-variant);
+    color: var(--text-primary);
     border-radius: var(--border-radius);
     padding: var(--spacing-md);
     transition: all 0.3s ease;
@@ -2230,8 +2236,21 @@
   }
 
   .exercise-item.completed {
-    background-color: rgba(76, 175, 80, 0.2);
-    opacity: 0.7;
+    opacity: 0.8;
+  }
+
+  /* 100% overlay for completed exercises */
+  .exercise-item.completed::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-color: var(--success-color);
+    opacity: 0.3;
+    z-index: 0;
+    border-radius: var(--border-radius);
   }
 
   .exercise-item-content {
@@ -2250,7 +2269,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
     transition: all 0.2s ease;
     flex-shrink: 0;
     position: relative;
@@ -2258,8 +2277,8 @@
   }
 
   .icon-button:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
+    background-color: var(--hover-overlay);
+    color: var(--text-primary);
   }
 
   .icon-button:active:not(:disabled) {
@@ -2318,11 +2337,10 @@
   .mode-badge {
     margin-left: var(--spacing-xs);
     padding: 2px var(--spacing-xs);
-    border-radius: calc(var(--border-radius) / 2);
-    background-color: rgba(156, 39, 176, 0.3);
-    color: #e1bee7;
     font-size: var(--font-size-xs);
     font-weight: 500;
+    font-style: italic;
+    color: var(--text-secondary);
   }
 
   .detail-icon {
@@ -2331,22 +2349,22 @@
 
   .progress-bar {
     height: 4px;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--divider);
     border-radius: 2px;
     overflow: hidden;
   }
 
   .progress-fill {
     height: 100%;
-    background-color: white;
+    background-color: var(--primary-color);
     transition: width 0.3s ease;
   }
 
   .instructions-panel {
     margin-top: var(--spacing-md);
     padding: var(--spacing-md);
-    background-color: rgba(0, 0, 0, 0.3);
-    border-left: 3px solid white;
+    background-color: var(--surface);
+    border-left: 3px solid var(--primary-color);
     border-radius: calc(var(--border-radius) / 2);
     font-size: var(--font-size-sm);
     line-height: 1.6;
@@ -2356,7 +2374,7 @@
   /* Markdown formatting styles */
   .instructions-panel :global(strong) {
     font-weight: 600;
-    color: white;
+    color: var(--text-primary);
   }
 
   .instructions-panel :global(em) {
