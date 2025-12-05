@@ -2239,7 +2239,7 @@
     opacity: 0.8;
   }
 
-  /* 100% overlay for completed exercises */
+  /* 100% overlay for completed exercises - uses primary color at reduced opacity */
   .exercise-item.completed::before {
     content: '';
     position: absolute;
@@ -2247,8 +2247,8 @@
     left: 0;
     height: 100%;
     width: 100%;
-    background-color: var(--success-color);
-    opacity: 0.3;
+    background-color: var(--primary-color);
+    opacity: 0.75;
     z-index: 0;
     border-radius: var(--border-radius);
   }
