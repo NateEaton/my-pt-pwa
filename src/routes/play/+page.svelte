@@ -510,6 +510,44 @@
     }
   }
 
+  /**
+   * Calculate total expected duration for rep/set exercise (in seconds)
+   * Accounts for reps, sets, pauses, rest, and side modes
+   */
+  function calculateRepSetTotalDuration(exercise: Exercise): number {
+    const reps = exercise.defaultReps || 10;
+    const sets = exercise.defaultSets || 3;
+    const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
+    const pauseBetweenReps = exercise.pauseBetweenReps ?? $ptState.settings?.defaultPauseBetweenReps ?? 5;
+    const restBetweenSets = exercise.restBetweenSets ?? $ptState.settings?.restBetweenSets ?? 20;
+    const sideMode = exercise.sideMode || 'bilateral';
+
+    let totalDuration = 0;
+
+    if (sideMode === 'bilateral') {
+      // Simple: sets × (reps × repDuration + pauses between reps) + rest between sets
+      const timePerSet = (reps * repDuration) + ((reps - 1) * pauseBetweenReps);
+      const totalRest = (sets - 1) * restBetweenSets;
+      totalDuration = (sets * timePerSet) + totalRest;
+
+    } else if (sideMode === 'unilateral') {
+      // Each set has 2 sides: left full set, rest, right full set, rest (between sets)
+      const timePerSide = (reps * repDuration) + ((reps - 1) * pauseBetweenReps);
+      const timePerSet = timePerSide + restBetweenSets + timePerSide; // Left + rest + Right
+      const totalRest = (sets - 1) * restBetweenSets; // Rest between sets
+      totalDuration = (sets * timePerSet) + totalRest;
+
+    } else if (sideMode === 'alternating') {
+      // Switches sides each rep: total reps is reps × 2 (for both sides)
+      const totalReps = reps * 2;
+      const timePerSet = (totalReps * repDuration) + ((totalReps - 1) * pauseBetweenReps);
+      const totalRest = (sets - 1) * restBetweenSets;
+      totalDuration = (sets * timePerSet) + totalRest;
+    }
+
+    return totalDuration;
+  }
+
   // ==================== Side Mode Helper Functions ====================
 
   /**
@@ -671,6 +709,10 @@
     exerciseElapsedSeconds = 0;
     repElapsedSeconds = 0;
     isPausingBetweenReps = false;
+
+    // Start time-based progress tracking for smooth visual feedback
+    exerciseStartTimeMs = Date.now();
+    startProgressUpdates();
 
     // Play rep start tone for first rep
     if (shouldPlayAudio()) {
@@ -855,6 +897,10 @@
 
     // Don't reset counters - continue from where we paused
     // exerciseElapsedSeconds, currentSet, currentRep, repElapsedSeconds are preserved
+
+    // Adjust start time to account for time already elapsed
+    exerciseStartTimeMs = Date.now() - (exerciseElapsedSeconds * 1000);
+    startProgressUpdates();
 
     isPausingBetweenReps = false;
 
@@ -1509,7 +1555,8 @@
     const _ = progressTicker;
 
     if (!currentExercise || currentExerciseIndex < 0) return 0;
-    if (timerState !== 'active') return 0; // Only show progress when actively exercising
+    // Show progress for active AND paused states (maintains overlay when paused)
+    if (timerState !== 'active' && timerState !== 'paused') return 0;
 
     const exercise = exercises[currentExerciseIndex];
     let progress = 0;
@@ -1523,12 +1570,13 @@
         progress = Math.min(100, (elapsedSeconds / total) * 100);
       }
     } else {
-      // Keep second-based calculation for rep/set exercises (for now)
-      const reps = exercise.defaultReps || 10;
-      const sets = exercise.defaultSets || 3;
-      const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
-      const total = reps * sets * repDuration;
-      progress = Math.min(100, (exerciseElapsedSeconds / total) * 100);
+      // Time-based smooth progress for rep/set exercises
+      if (exerciseStartTimeMs > 0) {
+        const elapsedMs = Date.now() - exerciseStartTimeMs;
+        const elapsedSeconds = elapsedMs / 1000;
+        const total = calculateRepSetTotalDuration(exercise);
+        progress = Math.min(100, (elapsedSeconds / total) * 100);
+      }
     }
 
     console.log(`🔴 Progress: ${progress.toFixed(1)}% (time-based: ${exercise.type === 'duration'}, state: ${timerState})`);
@@ -2161,7 +2209,11 @@
     opacity: 0.8;  /* Temporary: make it very visible */
     transition: width 0.5s ease;
     z-index: 0;
-    border-radius: var(--border-radius);
+    /* Only round left corners - right edge stays vertical until 100% */
+    border-top-left-radius: var(--border-radius);
+    border-bottom-left-radius: var(--border-radius);
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
   }
 
   .exercise-item.completed {
