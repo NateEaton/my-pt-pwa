@@ -2081,15 +2081,21 @@
   }
 
   .exercise-item.active {
-    /* Progressive fill background based on progress */
-    background: linear-gradient(
-      to right,
-      var(--primary-color) 0%,
-      var(--primary-color) var(--progress-percent, 0%),
-      #1e3a5f var(--progress-percent, 0%),
-      #1e3a5f 100%
-    );
-    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3);
+    box-shadow: 0 0 0 3px var(--primary-alpha-20);
+  }
+
+  /* Progressive fill overlay for active exercise */
+  .exercise-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--progress-percent, 0%);
+    background-color: var(--primary-color);
+    transition: width 0.5s ease;
+    z-index: 0;
+    border-radius: var(--border-radius);
   }
 
   .exercise-item.completed {
@@ -2100,6 +2106,8 @@
   .exercise-item-content {
     flex: 1;
     min-width: 0;
+    position: relative;
+    z-index: 1;
   }
 
   .icon-button {
@@ -2114,6 +2122,8 @@
     color: rgba(255, 255, 255, 0.7);
     transition: all 0.2s ease;
     flex-shrink: 0;
+    position: relative;
+    z-index: 1;
   }
 
   .icon-button:hover:not(:disabled) {
