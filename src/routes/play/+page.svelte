@@ -1478,16 +1478,19 @@
     if (exerciseIndex > currentExerciseIndex) return 0;
 
     const exercise = exercises[exerciseIndex];
+    let progress = 0;
     if (exercise.type === 'duration') {
       const total = exercise.defaultDuration || 60;
-      return Math.min(100, (exerciseElapsedSeconds / total) * 100);
+      progress = Math.min(100, (exerciseElapsedSeconds / total) * 100);
     } else {
       const reps = exercise.defaultReps || 10;
       const sets = exercise.defaultSets || 3;
       const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
       const total = reps * sets * repDuration;
-      return Math.min(100, (exerciseElapsedSeconds / total) * 100);
+      progress = Math.min(100, (exerciseElapsedSeconds / total) * 100);
     }
+    console.log(`Progress for exercise ${exerciseIndex}: ${progress}% (elapsed: ${exerciseElapsedSeconds}s)`);
+    return progress;
   }
 
   function isExerciseCompleted(exerciseIndex: number): boolean {
@@ -2092,7 +2095,8 @@
     left: 0;
     height: 100%;
     width: var(--progress-percent, 0%);
-    background-color: var(--primary-color);
+    background-color: red;  /* Temporary: bright red for debugging */
+    opacity: 0.8;  /* Temporary: make it very visible */
     transition: width 0.5s ease;
     z-index: 0;
     border-radius: var(--border-radius);
