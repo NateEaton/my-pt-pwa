@@ -77,7 +77,7 @@
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && registration?.waiting) {
             updateAvailable = true;
-            toastStore.show('New version available. Open Settings to install.', 'info');
+            toastStore.show('New version available. Open Settings to update.', 'info');
           }
         });
       });
@@ -122,11 +122,11 @@
     }
   }
 
-  // User taps "Install Update"
+  // User taps "Update App"
   function installUpdate() {
     if (registration?.waiting) {
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-      toastStore.show('Installing update...', 'success');
+      toastStore.show('Updating app...', 'success');
     }
   }
 
@@ -585,7 +585,7 @@
         </div>
 
         <div class="card-content">
-          <h3>{updateAvailable ? 'Install Update' : 'Check for App Update'}</h3>
+          <h3>{updateAvailable ? 'Update App' : 'Check for App Update'}</h3>
           <p>
             {updateAvailable
               ? 'A new version is ready to install'

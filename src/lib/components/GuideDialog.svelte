@@ -376,8 +376,8 @@
         <p>
           You can check for new versions in <strong>Settings > Support >
           Check for App Update</strong>. When an update is available, the card
-          changes to "Install Update" - tap it to install the new version and
-          reload the app. You may also receive a notification when an update
+          changes to "Update App" - tap it to update the app and
+          reload. You may also receive a notification when an update
           becomes available. Your data is always preserved during updates.
         </p>
       </div>
