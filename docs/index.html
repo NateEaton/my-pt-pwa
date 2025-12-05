@@ -69,6 +69,32 @@
       color: #333;
     }
 
+    /* Info Box (for helpful tips) */
+    .info-box {
+      background: #dbeafe;
+      border-left: 4px solid #3b82f6;
+      padding: 1rem 1.5rem;
+      margin: 2rem 0;
+      border-radius: 4px;
+      color: #333;
+      font-size: 0.95rem;
+    }
+    .info-box h3 {
+      margin-top: 0;
+      color: #1e40af;
+      font-size: 1.1rem;
+    }
+    .info-box strong {
+      color: #1e40af;
+    }
+    .info-box ul {
+      margin: 0.5rem 0;
+      padding-left: 1.5rem;
+    }
+    .info-box li {
+      margin: 0.5rem 0;
+    }
+
     /* CTA Button */
     .cta-button {
       display: inline-block;
@@ -230,7 +256,23 @@
     <a class="cta-button" href="https://my-pt-pwa.vercel.app/" target="_blank">Try It Now</a>
   </div>
 
-  <p class="device-note">Works on any device with a modern web browser. For the best experience, use the "Add to Home Screen" option on your device to install it like a regular app.</p>
+  <div class="info-box">
+    <h3>📱 Install to Home Screen</h3>
+    <p><strong>Android (Chrome/Edge):</strong></p>
+    <ul>
+      <li>Tap the menu (⋮) → <strong>Add to Home screen</strong> or <strong>Install app</strong></li>
+      <li>Confirm to add the app icon to your home screen</li>
+    </ul>
+    <p><strong>iOS (Safari):</strong></p>
+    <ul>
+      <li>Tap the Share button <strong>⎋</strong> (bottom center)</li>
+      <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
+      <li>Tap <strong>Add</strong> to confirm</li>
+    </ul>
+    <p style="margin-top: 0.75rem; font-size: 0.9rem; font-style: italic;">
+      Once installed, the app works offline and opens like a native app with no browser UI.
+    </p>
+  </div>
 </header>
 
 <section>
