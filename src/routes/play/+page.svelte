@@ -1473,6 +1473,26 @@
   // Side label for display
   $: sideLabel = currentSide ? (currentSide === 'left' ? 'Left' : 'Right') : '';
 
+  // Reactive: Calculate progress for current exercise
+  $: currentExerciseProgress = (() => {
+    if (!currentExercise || currentExerciseIndex < 0) return 0;
+
+    const exercise = exercises[currentExerciseIndex];
+    let progress = 0;
+    if (exercise.type === 'duration') {
+      const total = exercise.defaultDuration || 60;
+      progress = Math.min(100, (exerciseElapsedSeconds / total) * 100);
+    } else {
+      const reps = exercise.defaultReps || 10;
+      const sets = exercise.defaultSets || 3;
+      const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
+      const total = reps * sets * repDuration;
+      progress = Math.min(100, (exerciseElapsedSeconds / total) * 100);
+    }
+    console.log(`🔴 Current exercise progress: ${progress}% (elapsed: ${exerciseElapsedSeconds}s, index: ${currentExerciseIndex})`);
+    return progress;
+  })();
+
   function getExerciseProgress(exerciseIndex: number): number {
     if (exerciseIndex < currentExerciseIndex) return 100;
     if (exerciseIndex > currentExerciseIndex) return 0;
@@ -1764,7 +1784,7 @@
           class="exercise-item"
           class:active={index === currentExerciseIndex}
           class:completed={isExerciseCompleted(index)}
-          style={index === currentExerciseIndex ? `--progress-percent: ${getExerciseProgress(index)}%` : ''}
+          style={index === currentExerciseIndex ? `--progress-percent: ${currentExerciseProgress}%` : ''}
         >
           <!-- Info icon (left side) - always show, greyed out if no instructions -->
           <button
