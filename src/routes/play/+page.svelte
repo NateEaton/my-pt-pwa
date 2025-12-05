@@ -55,6 +55,11 @@
   let preparingInterval: number | undefined;
   let pauseInterval: number | undefined;
 
+  // Time-based progress tracking for smooth visual feedback
+  let exerciseStartTimeMs = 0; // Timestamp when current exercise started (milliseconds)
+  let progressUpdateInterval: number | undefined; // High-frequency interval for smooth progress updates
+  let progressTicker = 0; // Increments to force reactive recalculation (for smooth progress)
+
   // Intervals
   let totalTimerInterval: number | undefined;
   let exerciseTimerInterval: number | undefined;
@@ -486,6 +491,23 @@
     if (exerciseTimerInterval) clearInterval(exerciseTimerInterval);
     if (preparingInterval) clearInterval(preparingInterval);
     if (pauseInterval) clearInterval(pauseInterval);
+    stopProgressUpdates();
+  }
+
+  // Start high-frequency progress updates for smooth visual feedback
+  function startProgressUpdates() {
+    stopProgressUpdates(); // Clear any existing interval
+    progressUpdateInterval = window.setInterval(() => {
+      progressTicker++; // Increment to trigger reactive recalculation
+    }, 100); // Update every 100ms (10 times per second)
+  }
+
+  // Stop progress updates
+  function stopProgressUpdates() {
+    if (progressUpdateInterval) {
+      clearInterval(progressUpdateInterval);
+      progressUpdateInterval = undefined;
+    }
   }
 
   // ==================== Side Mode Helper Functions ====================
@@ -569,6 +591,10 @@
     // Reset elapsed time when starting fresh
     exerciseElapsedSeconds = 0;
 
+    // Start time-based progress tracking for smooth visual feedback
+    exerciseStartTimeMs = Date.now();
+    startProgressUpdates();
+
     // Play duration exercise start tone
     if (shouldPlayAudio()) {
       audioService.onDurationStart();
@@ -604,6 +630,10 @@
     const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
 
     // Don't reset exerciseElapsedSeconds - continue from where we paused
+
+    // Adjust start time to account for time already elapsed
+    exerciseStartTimeMs = Date.now() - (exerciseElapsedSeconds * 1000);
+    startProgressUpdates();
 
     exerciseTimerInterval = window.setInterval(() => {
       exerciseElapsedSeconds++;
@@ -1473,23 +1503,35 @@
   // Side label for display
   $: sideLabel = currentSide ? (currentSide === 'left' ? 'Left' : 'Right') : '';
 
-  // Reactive: Calculate progress for current exercise
+  // Reactive: Calculate progress for current exercise (smooth time-based for duration)
   $: currentExerciseProgress = (() => {
+    // Depend on progressTicker to force recalculation every 100ms
+    const _ = progressTicker;
+
     if (!currentExercise || currentExerciseIndex < 0) return 0;
+    if (timerState !== 'active') return 0; // Only show progress when actively exercising
 
     const exercise = exercises[currentExerciseIndex];
     let progress = 0;
+
     if (exercise.type === 'duration') {
-      const total = exercise.defaultDuration || 60;
-      progress = Math.min(100, (exerciseElapsedSeconds / total) * 100);
+      // Time-based smooth progress for duration exercises
+      if (exerciseStartTimeMs > 0) {
+        const elapsedMs = Date.now() - exerciseStartTimeMs;
+        const elapsedSeconds = elapsedMs / 1000;
+        const total = exercise.defaultDuration || 60;
+        progress = Math.min(100, (elapsedSeconds / total) * 100);
+      }
     } else {
+      // Keep second-based calculation for rep/set exercises (for now)
       const reps = exercise.defaultReps || 10;
       const sets = exercise.defaultSets || 3;
       const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
       const total = reps * sets * repDuration;
       progress = Math.min(100, (exerciseElapsedSeconds / total) * 100);
     }
-    console.log(`🔴 Current exercise progress: ${progress}% (elapsed: ${exerciseElapsedSeconds}s, index: ${currentExerciseIndex})`);
+
+    console.log(`🔴 Progress: ${progress.toFixed(1)}% (time-based: ${exercise.type === 'duration'}, state: ${timerState})`);
     return progress;
   })();
 
