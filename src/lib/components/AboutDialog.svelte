@@ -97,7 +97,7 @@
           <div class="card-content">
             <h5>Local-First</h5>
             <p>
-              All your data is stored locally on your device using IndexedDB.
+              All your data is stored locally on your device.
               Nothing is sent to any servers.
             </p>
           </div>
