@@ -36,6 +36,11 @@
   let currentExerciseIndex = 0;
   let currentExercise: Exercise | null = null;
 
+  // Reactive: Track which exercise indices are completed
+  $: completedExerciseIndices = new Set(
+    Array.from({ length: currentExerciseIndex }, (_, i) => i)
+  );
+
   // Timer state
   let timerState: 'paused' | 'countdown' | 'active' | 'resting' | 'completed' | 'preparing' = 'paused';
   let totalElapsedSeconds = 0;
@@ -1893,8 +1898,8 @@
           bind:this={exerciseElements[index]}
           class="exercise-item"
           class:active={index === currentExerciseIndex}
-          class:completed={isExerciseCompleted(index)}
-          style={index === currentExerciseIndex ? `--progress-percent: ${currentExerciseProgress}%` : ''}
+          class:completed={completedExerciseIndices.has(index)}
+          style:--progress-percent={index === currentExerciseIndex ? `${currentExerciseProgress}%` : null}
         >
           <!-- Info icon (left side) - always show, greyed out if no instructions -->
           <button
@@ -2228,6 +2233,7 @@
     background-color: var(--primary-color);
     transition: width 0.5s ease;
     z-index: 0;
+    mix-blend-mode: darken; /* Blend mode to improve text readability */
     /* Only round left corners - right edge stays vertical until 100% */
     border-top-left-radius: var(--border-radius);
     border-bottom-left-radius: var(--border-radius);
@@ -2235,11 +2241,22 @@
     border-bottom-right-radius: 0;
   }
 
-  /* Completed exercises styling - thick left border for clear visual indicator */
+  /* Completed exercises styling - primary color overlay at 60% opacity */
   .exercise-item.completed {
-    border-left: 6px solid var(--primary-color);
-    padding-left: calc(var(--spacing-md) - 6px); /* Adjust padding to account for border */
-    opacity: 0.85;
+    color: white; /* White text for readability on light theme */
+  }
+
+  .exercise-item.completed::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-color: var(--primary-color);
+    opacity: 0.6;
+    z-index: 0;
+    border-radius: var(--border-radius);
   }
 
   .exercise-item-content {
