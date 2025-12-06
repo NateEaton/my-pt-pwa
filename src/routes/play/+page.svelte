@@ -36,6 +36,11 @@
   let currentExerciseIndex = 0;
   let currentExercise: Exercise | null = null;
 
+  // Reactive: Track which exercise indices are completed
+  $: completedExerciseIndices = new Set(
+    Array.from({ length: currentExerciseIndex }, (_, i) => i)
+  );
+
   // Timer state
   let timerState: 'paused' | 'countdown' | 'active' | 'resting' | 'completed' | 'preparing' = 'paused';
   let totalElapsedSeconds = 0;
@@ -54,6 +59,12 @@
   let preparingSeconds = 0; // Countdown for preparing/transition between exercises
   let preparingInterval: number | undefined;
   let pauseInterval: number | undefined;
+
+  // Time-based progress tracking for smooth visual feedback
+  let exerciseStartTimeMs = 0; // Timestamp when current exercise started (milliseconds)
+  let progressUpdateInterval: number | undefined; // High-frequency interval for smooth progress updates
+  let progressTicker = 0; // Increments to force reactive recalculation (for smooth progress)
+  let pausedProgressPercent = 0; // Progress percentage at time of pause (to freeze overlay)
 
   // Intervals
   let totalTimerInterval: number | undefined;
@@ -486,6 +497,61 @@
     if (exerciseTimerInterval) clearInterval(exerciseTimerInterval);
     if (preparingInterval) clearInterval(preparingInterval);
     if (pauseInterval) clearInterval(pauseInterval);
+    stopProgressUpdates();
+  }
+
+  // Start high-frequency progress updates for smooth visual feedback
+  function startProgressUpdates() {
+    stopProgressUpdates(); // Clear any existing interval
+    progressUpdateInterval = window.setInterval(() => {
+      progressTicker++; // Increment to trigger reactive recalculation
+    }, 100); // Update every 100ms (10 times per second)
+  }
+
+  // Stop progress updates
+  function stopProgressUpdates() {
+    if (progressUpdateInterval) {
+      clearInterval(progressUpdateInterval);
+      progressUpdateInterval = undefined;
+    }
+  }
+
+  /**
+   * Calculate total expected duration for rep/set exercise (in seconds)
+   * Accounts for reps, sets, pauses, rest, and side modes
+   */
+  function calculateRepSetTotalDuration(exercise: Exercise): number {
+    const reps = exercise.defaultReps || 10;
+    const sets = exercise.defaultSets || 3;
+    const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
+    const pauseBetweenReps = exercise.pauseBetweenReps ?? $ptState.settings?.defaultPauseBetweenReps ?? 5;
+    const restBetweenSets = exercise.restBetweenSets ?? $ptState.settings?.restBetweenSets ?? 20;
+    const sideMode = exercise.sideMode || 'bilateral';
+
+    let totalDuration = 0;
+
+    if (sideMode === 'bilateral') {
+      // Simple: sets × (reps × repDuration + pauses between reps) + rest between sets
+      const timePerSet = (reps * repDuration) + ((reps - 1) * pauseBetweenReps);
+      const totalRest = (sets - 1) * restBetweenSets;
+      totalDuration = (sets * timePerSet) + totalRest;
+
+    } else if (sideMode === 'unilateral') {
+      // Each set has 2 sides: left full set, rest, right full set, rest (between sets)
+      const timePerSide = (reps * repDuration) + ((reps - 1) * pauseBetweenReps);
+      const timePerSet = timePerSide + restBetweenSets + timePerSide; // Left + rest + Right
+      const totalRest = (sets - 1) * restBetweenSets; // Rest between sets
+      totalDuration = (sets * timePerSet) + totalRest;
+
+    } else if (sideMode === 'alternating') {
+      // Switches sides each rep: total reps is reps × 2 (for both sides)
+      const totalReps = reps * 2;
+      const timePerSet = (totalReps * repDuration) + ((totalReps - 1) * pauseBetweenReps);
+      const totalRest = (sets - 1) * restBetweenSets;
+      totalDuration = (sets * timePerSet) + totalRest;
+    }
+
+    return totalDuration;
   }
 
   // ==================== Side Mode Helper Functions ====================
@@ -569,6 +635,10 @@
     // Reset elapsed time when starting fresh
     exerciseElapsedSeconds = 0;
 
+    // Start time-based progress tracking for smooth visual feedback
+    exerciseStartTimeMs = Date.now();
+    startProgressUpdates();
+
     // Play duration exercise start tone
     if (shouldPlayAudio()) {
       audioService.onDurationStart();
@@ -604,6 +674,10 @@
     const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
 
     // Don't reset exerciseElapsedSeconds - continue from where we paused
+
+    // Adjust start time to account for time already elapsed
+    exerciseStartTimeMs = Date.now() - (exerciseElapsedSeconds * 1000);
+    startProgressUpdates();
 
     exerciseTimerInterval = window.setInterval(() => {
       exerciseElapsedSeconds++;
@@ -641,6 +715,13 @@
     exerciseElapsedSeconds = 0;
     repElapsedSeconds = 0;
     isPausingBetweenReps = false;
+
+    // Start time-based progress tracking for smooth visual feedback
+    // Only set start time if not already set (i.e., first time starting, not resuming from rest)
+    if (exerciseStartTimeMs === 0) {
+      exerciseStartTimeMs = Date.now();
+      startProgressUpdates();
+    }
 
     // Play rep start tone for first rep
     if (shouldPlayAudio()) {
@@ -825,6 +906,10 @@
 
     // Don't reset counters - continue from where we paused
     // exerciseElapsedSeconds, currentSet, currentRep, repElapsedSeconds are preserved
+
+    // Adjust start time to account for time already elapsed
+    exerciseStartTimeMs = Date.now() - (exerciseElapsedSeconds * 1000);
+    startProgressUpdates();
 
     isPausingBetweenReps = false;
 
@@ -1071,6 +1156,7 @@
       currentSet = 1;
       currentRep = 1;
       sidePhase = 'first';
+      exerciseStartTimeMs = 0; // Reset for next exercise
 
       // Check if auto-advance is enabled
       if (autoAdvanceActive && pauseBetweenExercises > 0) {
@@ -1256,14 +1342,21 @@
       } else {
         clearInterval(exerciseTimerInterval);
       }
+      // Save current progress and stop updates to freeze overlay
+      pausedProgressPercent = currentExerciseProgress;
+      stopProgressUpdates();
       timerState = 'paused';
     } else if (timerState === 'countdown') {
       // Pause during countdown
       clearInterval(exerciseTimerInterval);
+      pausedProgressPercent = currentExerciseProgress;
+      stopProgressUpdates();
       timerState = 'paused';
     } else if (timerState === 'resting') {
       // Pause rest timer
       clearInterval(exerciseTimerInterval);
+      pausedProgressPercent = currentExerciseProgress;
+      stopProgressUpdates();
       timerState = 'paused';
     }
   }
@@ -1281,6 +1374,7 @@
     currentRep = 1;
     sidePhase = 'first';
     isAwaitingSetContinuation = false;
+    exerciseStartTimeMs = 0; // Reset for previous exercise
 
     // Mark current as incomplete if it was marked as completed
     const completedEx = sessionInstance?.completedExercises.find(
@@ -1323,6 +1417,7 @@
       sidePhase = 'first';
       restElapsedSeconds = 0;
       isAwaitingSetContinuation = false;
+      exerciseStartTimeMs = 0; // Reset for next exercise
     } else {
       // Already at last exercise
       toastStore.show('Already at last exercise', 'info');
@@ -1418,6 +1513,10 @@
     restElapsedSeconds = 0;
     isAwaitingSetContinuation = false;
 
+    // Reset progress tracking to prevent overlay from showing until exercise starts
+    exerciseStartTimeMs = 0;
+    pausedProgressPercent = 0;
+
     // Clear any incomplete markers if jumping backward
     if (index < exercises.length && sessionInstance) {
       const completed = sessionInstance.completedExercises.find(
@@ -1473,21 +1572,60 @@
   // Side label for display
   $: sideLabel = currentSide ? (currentSide === 'left' ? 'Left' : 'Right') : '';
 
+  // Reactive: Calculate progress for current exercise (smooth time-based for duration)
+  $: currentExerciseProgress = (() => {
+    if (!currentExercise || currentExerciseIndex < 0) return 0;
+
+    // If paused, return the frozen progress value
+    if (timerState === 'paused') return pausedProgressPercent;
+
+    // Only calculate progress for active and resting states
+    if (timerState !== 'active' && timerState !== 'resting') return 0;
+
+    // Depend on progressTicker to force recalculation every 100ms when active or resting
+    const _ = progressTicker;
+
+    const exercise = exercises[currentExerciseIndex];
+    let progress = 0;
+
+    if (exercise.type === 'duration') {
+      // Time-based smooth progress for duration exercises
+      if (exerciseStartTimeMs > 0) {
+        const elapsedMs = Date.now() - exerciseStartTimeMs;
+        const elapsedSeconds = elapsedMs / 1000;
+        const total = exercise.defaultDuration || 60;
+        progress = Math.min(100, (elapsedSeconds / total) * 100);
+      }
+    } else {
+      // Time-based smooth progress for rep/set exercises
+      if (exerciseStartTimeMs > 0) {
+        const elapsedMs = Date.now() - exerciseStartTimeMs;
+        const elapsedSeconds = elapsedMs / 1000;
+        const total = calculateRepSetTotalDuration(exercise);
+        progress = Math.min(100, (elapsedSeconds / total) * 100);
+      }
+    }
+
+    return progress;
+  })();
+
   function getExerciseProgress(exerciseIndex: number): number {
     if (exerciseIndex < currentExerciseIndex) return 100;
     if (exerciseIndex > currentExerciseIndex) return 0;
 
     const exercise = exercises[exerciseIndex];
+    let progress = 0;
     if (exercise.type === 'duration') {
       const total = exercise.defaultDuration || 60;
-      return Math.min(100, (exerciseElapsedSeconds / total) * 100);
+      progress = Math.min(100, (exerciseElapsedSeconds / total) * 100);
     } else {
       const reps = exercise.defaultReps || 10;
       const sets = exercise.defaultSets || 3;
       const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
       const total = reps * sets * repDuration;
-      return Math.min(100, (exerciseElapsedSeconds / total) * 100);
+      progress = Math.min(100, (exerciseElapsedSeconds / total) * 100);
     }
+    return progress;
   }
 
   function isExerciseCompleted(exerciseIndex: number): boolean {
@@ -1760,7 +1898,8 @@
           bind:this={exerciseElements[index]}
           class="exercise-item"
           class:active={index === currentExerciseIndex}
-          class:completed={isExerciseCompleted(index)}
+          class:completed={completedExerciseIndices.has(index)}
+          style:--progress-percent={index === currentExerciseIndex ? `${currentExerciseProgress}%` : null}
         >
           <!-- Info icon (left side) - always show, greyed out if no instructions -->
           <button
@@ -2067,29 +2206,64 @@
   }
 
   .exercise-item {
-    background-color: #1e3a5f;
-    color: white;
+    background-color: var(--surface-variant);
+    color: var(--text-primary);
     border-radius: var(--border-radius);
     padding: var(--spacing-md);
     transition: all 0.3s ease;
     display: flex;
     align-items: flex-start;
     gap: var(--spacing-sm);
+    position: relative;
+    overflow: hidden;
   }
 
   .exercise-item.active {
-    background-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3);
+    box-shadow: 0 0 0 3px var(--primary-alpha-20);
   }
 
+  /* Progressive fill overlay for active exercise */
+  .exercise-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--progress-percent, 0%);
+    background-color: var(--primary-color);
+    transition: width 0.5s ease;
+    z-index: 0;
+    mix-blend-mode: darken; /* Blend mode to improve text readability */
+    /* Only round left corners - right edge stays vertical until 100% */
+    border-top-left-radius: var(--border-radius);
+    border-bottom-left-radius: var(--border-radius);
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  /* Completed exercises styling - primary color overlay at 60% opacity */
   .exercise-item.completed {
-    background-color: rgba(76, 175, 80, 0.2);
-    opacity: 0.7;
+    color: white; /* White text for readability on light theme */
+  }
+
+  .exercise-item.completed::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-color: var(--primary-color);
+    opacity: 0.6;
+    z-index: 0;
+    border-radius: var(--border-radius);
   }
 
   .exercise-item-content {
     flex: 1;
     min-width: 0;
+    position: relative;
+    z-index: 1;
   }
 
   .icon-button {
@@ -2101,14 +2275,16 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
     transition: all 0.2s ease;
     flex-shrink: 0;
+    position: relative;
+    z-index: 1;
   }
 
   .icon-button:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
+    background-color: var(--hover-overlay);
+    color: var(--text-primary);
   }
 
   .icon-button:active:not(:disabled) {
@@ -2143,7 +2319,11 @@
   .exercise-item-name {
     flex: 1;
     font-size: var(--font-size-base);
-    font-weight: 600;
+    font-weight: 400;
+  }
+
+  .exercise-item.active .exercise-item-name {
+    font-weight: 700;
   }
 
   .check-icon {
@@ -2163,11 +2343,10 @@
   .mode-badge {
     margin-left: var(--spacing-xs);
     padding: 2px var(--spacing-xs);
-    border-radius: calc(var(--border-radius) / 2);
-    background-color: rgba(156, 39, 176, 0.3);
-    color: #e1bee7;
     font-size: var(--font-size-xs);
     font-weight: 500;
+    font-style: italic;
+    color: var(--text-secondary);
   }
 
   .detail-icon {
@@ -2176,22 +2355,22 @@
 
   .progress-bar {
     height: 4px;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--divider);
     border-radius: 2px;
     overflow: hidden;
   }
 
   .progress-fill {
     height: 100%;
-    background-color: white;
+    background-color: var(--primary-color);
     transition: width 0.3s ease;
   }
 
   .instructions-panel {
     margin-top: var(--spacing-md);
     padding: var(--spacing-md);
-    background-color: rgba(0, 0, 0, 0.3);
-    border-left: 3px solid white;
+    background-color: var(--surface);
+    border-left: 3px solid var(--primary-color);
     border-radius: calc(var(--border-radius) / 2);
     font-size: var(--font-size-sm);
     line-height: 1.6;
@@ -2201,7 +2380,7 @@
   /* Markdown formatting styles */
   .instructions-panel :global(strong) {
     font-weight: 600;
-    color: white;
+    color: var(--text-primary);
   }
 
   .instructions-panel :global(em) {

@@ -1113,11 +1113,10 @@
   .mode-badge {
     margin-left: var(--spacing-xs);
     padding: 2px var(--spacing-xs);
-    border-radius: calc(var(--border-radius) / 2);
-    background-color: rgba(156, 39, 176, 0.1);
-    color: #9c27b0;
     font-size: var(--font-size-xs);
     font-weight: 500;
+    font-style: italic;
+    color: var(--text-secondary);
   }
 
   .exercise-target {

@@ -788,26 +788,20 @@
 
   .exercise-type-badge {
     padding: var(--spacing-xs) var(--spacing-sm);
-    background-color: var(--surface-variant);
-    color: var(--text-secondary);
+    background-color: var(--primary-alpha-10);
+    color: var(--primary-color);
     border-radius: calc(var(--border-radius) / 2);
     font-size: var(--font-size-xs);
     font-weight: 500;
-  }
-
-  .exercise-type-badge.is-duration {
-    background-color: var(--primary-alpha-10);
-    color: var(--primary-color);
   }
 
   .mode-badge {
     margin-left: var(--spacing-xs);
     padding: 2px var(--spacing-xs);
-    border-radius: calc(var(--border-radius) / 2);
-    background-color: rgba(156, 39, 176, 0.1);
-    color: #9c27b0;
     font-size: var(--font-size-xs);
     font-weight: 500;
+    font-style: italic;
+    color: var(--text-secondary);
   }
 
   .exercise-details {
