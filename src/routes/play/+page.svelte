@@ -1854,7 +1854,7 @@
 
     <!-- VCR-style control bar -->
     <div class="vcr-controls">
-      <button class="vcr-btn vcr-exit" on:click={exitSession} title="Exit (save progress)">
+      <button class="vcr-btn vcr-exit" on:click={exitSession} disabled={timerState !== 'paused'} title="Exit (save progress)">
         <span class="material-icons">exit_to_app</span>
         <span class="vcr-label">Exit</span>
       </button>
@@ -1883,7 +1883,7 @@
         <span class="material-icons">skip_next</span>
       </button>
 
-      <button class="vcr-btn vcr-finish" on:click={finishSession} title="Finish session">
+      <button class="vcr-btn vcr-finish" on:click={finishSession} disabled={timerState !== 'paused'} title="Finish session">
         <span class="material-icons">check_circle</span>
         <span class="vcr-label">Finish</span>
       </button>
