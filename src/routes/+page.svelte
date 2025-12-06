@@ -51,9 +51,6 @@
   type SessionState = 'not-started' | 'in-progress' | 'completed';
   let sessionState: SessionState = 'not-started';
 
-  // Exercise preview expansion state
-  let showAllExercises = false;
-
   // Instruction expansion state (accordion pattern)
   let expandedExerciseId: number | null = null;
 
@@ -319,6 +316,18 @@
     return completedEx?.completed || false;
   }
 
+  function isExerciseInProgress(exerciseId: number): boolean {
+    // Only show in-progress state if the session is in-progress or completed
+    if (!todaySessionInstance || sessionState === 'not-started') return false;
+
+    const completedEx = todaySessionInstance.completedExercises.find(
+      ex => ex.exerciseId === exerciseId
+    );
+
+    // Exercise is in-progress if it exists in completedExercises but is not marked as completed
+    return completedEx !== undefined && !completedEx.completed;
+  }
+
   function handlePlaySession() {
     if (!selectedSession) {
       toastStore.show('No session selected', 'error');
@@ -454,10 +463,6 @@
 
     // Start a new session even though one was completed today
     handlePlaySession();
-  }
-
-  function toggleShowAllExercises() {
-    showAllExercises = !showAllExercises;
   }
 
   function openSessionSelect() {
@@ -614,11 +619,12 @@
           <div class="exercise-preview">
             <h3 class="preview-title">Exercises ({sessionExercises.length})</h3>
             <div class="exercise-list-preview">
-              {#each (showAllExercises ? sessionExercises : sessionExercises.slice(0, 3)) as exercise (exercise.id)}
-                <div class="exercise-preview-item" class:completed={isExerciseCompleted(exercise.id)}>
-                  {#if isExerciseCompleted(exercise.id)}
-                    <span class="exercise-check-icon material-icons">check_circle</span>
-                  {/if}
+              {#each sessionExercises as exercise (exercise.id)}
+                <div
+                  class="exercise-preview-item"
+                  class:completed={isExerciseCompleted(exercise.id)}
+                  class:in-progress={isExerciseInProgress(exercise.id)}
+                >
                   <div class="exercise-card-wrapper">
                     <ExerciseCard
                       {exercise}
@@ -629,12 +635,6 @@
                   </div>
                 </div>
               {/each}
-              {#if sessionExercises.length > 3}
-                <button class="show-more-btn" on:click={toggleShowAllExercises}>
-                  <span class="material-icons">{showAllExercises ? 'expand_less' : 'expand_more'}</span>
-                  {showAllExercises ? 'Show less' : `Show ${sessionExercises.length - 3} more exercises`}
-                </button>
-              {/if}
             </div>
           </div>
         {/if}
@@ -986,53 +986,31 @@
   .exercise-preview-item {
     position: relative;
     display: flex;
-    gap: var(--spacing-sm);
+    gap: 0;
     align-items: flex-start;
   }
 
-  .exercise-preview-item.completed {
-    opacity: 0.7;
+  /* Completed exercises get a success (green) left border */
+  .exercise-preview-item.completed .exercise-card-wrapper {
+    border-left: 4px solid var(--success-color);
+    border-top-left-radius: var(--border-radius);
+    border-bottom-left-radius: var(--border-radius);
   }
 
-  .exercise-check-icon {
-    flex-shrink: 0;
-    color: #4caf50;
-    font-size: var(--icon-size-lg);
-    margin-top: var(--spacing-xs);
+  /* In-progress exercises (started but not completed) get a caution (yellow/orange) left border */
+  .exercise-preview-item.in-progress .exercise-card-wrapper {
+    border-left: 4px solid var(--warning-color);
+    border-top-left-radius: var(--border-radius);
+    border-bottom-left-radius: var(--border-radius);
   }
 
-  @media (prefers-color-scheme: dark) {
-    .exercise-check-icon {
-      color: #81c784;
-    }
+  /* Default state - no visible border */
+  .exercise-preview-item:not(.completed):not(.in-progress) .exercise-card-wrapper {
+    border-left: 4px solid transparent;
   }
 
   .exercise-card-wrapper {
     flex: 1;
-  }
-
-  .show-more-btn {
-    background-color: var(--surface-variant);
-    border: 1px dashed var(--divider);
-    border-radius: var(--border-radius);
-    padding: var(--spacing-md);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-xs);
-    color: var(--text-secondary);
-    font-size: var(--font-size-sm);
-    transition: all 0.2s ease;
-  }
-
-  .show-more-btn:hover {
-    background-color: var(--divider);
-    color: var(--text-primary);
-  }
-
-  .show-more-btn .material-icons {
-    font-size: var(--icon-size-md);
   }
 
   /* Session Selection Modal */

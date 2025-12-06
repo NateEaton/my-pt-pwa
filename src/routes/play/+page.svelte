@@ -2243,7 +2243,22 @@
 
   /* Completed exercises styling - primary color overlay at 60% opacity */
   .exercise-item.completed {
-    color: white; /* White text for readability on light theme */
+    /* In dark theme, use white text for readability */
+    /* In light theme, use primary color for better contrast on instructions */
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .exercise-item.completed {
+      color: white;
+    }
+  }
+
+  [data-theme="dark"] .exercise-item.completed {
+    color: white;
+  }
+
+  [data-theme="light"] .exercise-item.completed {
+    color: var(--primary-color);
   }
 
   .exercise-item.completed::after {
