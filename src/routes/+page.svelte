@@ -308,25 +308,17 @@
     return todaySessionInstance.completedExercises.filter(ex => ex.completed).length;
   }
 
-  function isExerciseCompleted(exerciseId: number): boolean {
-    if (!todaySessionInstance) return false;
-    const completedEx = todaySessionInstance.completedExercises.find(
-      ex => ex.exerciseId === exerciseId
-    );
-    return completedEx?.completed || false;
-  }
+  // Reactive: Track which exercises are completed
+  $: completedExerciseIds = todaySessionInstance?.completedExercises
+    .filter(ex => ex.completed)
+    .map(ex => ex.exerciseId) ?? [];
 
-  function isExerciseInProgress(exerciseId: number): boolean {
-    // Only show in-progress state if the session is in-progress or completed
-    if (!todaySessionInstance || sessionState === 'not-started') return false;
-
-    const completedEx = todaySessionInstance.completedExercises.find(
-      ex => ex.exerciseId === exerciseId
-    );
-
-    // Exercise is in-progress if it exists in completedExercises but is not marked as completed
-    return completedEx !== undefined && !completedEx.completed;
-  }
+  // Reactive: Track which exercises are in-progress (started but not completed)
+  $: inProgressExerciseIds = (sessionState === 'not-started' || !todaySessionInstance)
+    ? []
+    : todaySessionInstance.completedExercises
+      .filter(ex => !ex.completed)
+      .map(ex => ex.exerciseId);
 
   function handlePlaySession() {
     if (!selectedSession) {
@@ -622,8 +614,8 @@
               {#each sessionExercises as exercise (exercise.id)}
                 <div
                   class="exercise-preview-item"
-                  class:completed={isExerciseCompleted(exercise.id)}
-                  class:in-progress={isExerciseInProgress(exercise.id)}
+                  class:completed={completedExerciseIds.includes(exercise.id)}
+                  class:in-progress={inProgressExerciseIds.includes(exercise.id)}
                 >
                   <div class="exercise-card-wrapper">
                     <ExerciseCard
