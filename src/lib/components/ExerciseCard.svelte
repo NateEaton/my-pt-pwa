@@ -41,8 +41,8 @@
       return formatDuration(exercise.defaultDuration ?? 0);
     } else {
       // For reps: calculate total time based on reps, sets, and rep duration
-      const reps = exercise.defaultReps ?? 1;
-      const sets = exercise.defaultSets ?? 1;
+      const reps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10;
+      const sets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3;
       const repDuration = exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 30;
       const totalSeconds = reps * sets * repDuration;
       return formatDuration(totalSeconds);
@@ -84,7 +84,7 @@
       {:else}
         <span class="detail-item">
           <span class="material-icons detail-icon">repeat</span>
-          {exercise.defaultSets ?? 1} {(exercise.defaultSets ?? 1) === 1 ? 'set' : 'sets'} × {exercise.defaultReps ?? 1} reps
+          {exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3} {(exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3) === 1 ? 'set' : 'sets'} × {exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10} reps
           {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
             <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>
           {/if}

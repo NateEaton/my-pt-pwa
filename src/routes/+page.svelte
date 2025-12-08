@@ -372,7 +372,7 @@
         completed: true,
         actualDuration: exercise.type === 'duration'
           ? exercise.defaultDuration
-          : (exercise.defaultReps || 0) * (exercise.defaultSets || 0) * (exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30),
+          : (exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10) * (exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3) * (exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 30),
         skipped: false,
         completedAt: now.toISOString()
       }));

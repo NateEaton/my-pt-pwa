@@ -29,12 +29,14 @@
   // Form state
   let defaultDuration = 60;
   let defaultRepDuration = 30;
+  let defaultReps = 10;
+  let defaultSets = 3;
   let defaultPauseBetweenReps = 5;
   let startCountdownDuration = 3;
   let endSessionDelay = 5;
   let restBetweenSets = 20;
   let enableAutoAdvance = true;
-  let autoAdvanceSets = true; 
+  let autoAdvanceSets = true;
   let pauseBetweenExercises = 20;
   let startingSide: 'left' | 'right' = 'left';
 
@@ -43,6 +45,8 @@
     if ($ptState.settings) {
       defaultDuration = $ptState.settings.defaultDuration;
       defaultRepDuration = $ptState.settings.defaultRepDuration;
+      defaultReps = $ptState.settings.defaultReps;
+      defaultSets = $ptState.settings.defaultSets;
       defaultPauseBetweenReps = $ptState.settings.defaultPauseBetweenReps;
       startCountdownDuration = $ptState.settings.startCountdownDuration;
       endSessionDelay = $ptState.settings.endSessionDelay;
@@ -65,6 +69,8 @@
       ...$ptState.settings,
       defaultDuration,
       defaultRepDuration,
+      defaultReps,
+      defaultSets,
       defaultPauseBetweenReps,
       startCountdownDuration,
       endSessionDelay,
@@ -125,6 +131,38 @@
             min={1}
             max={120}
             placeholder="MM:SS or seconds"
+          />
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Default Reps</span>
+          <span class="setting-description">Default number of repetitions for reps-based exercises</span>
+        </div>
+        <div class="setting-control">
+          <input
+            type="number"
+            bind:value={defaultReps}
+            min="1"
+            max="100"
+            class="number-input"
+          />
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-label">Default Sets</span>
+          <span class="setting-description">Default number of sets for reps-based exercises</span>
+        </div>
+        <div class="setting-control">
+          <input
+            type="number"
+            bind:value={defaultSets}
+            min="1"
+            max="20"
+            class="number-input"
           />
         </div>
       </div>
