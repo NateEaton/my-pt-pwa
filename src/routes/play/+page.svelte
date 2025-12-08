@@ -521,9 +521,9 @@
    * Accounts for reps, sets, pauses, rest, and side modes
    */
   function calculateRepSetTotalDuration(exercise: Exercise): number {
-    const reps = exercise.defaultReps || 10;
-    const sets = exercise.defaultSets || 3;
-    const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
+    const reps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10;
+    const sets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3;
+    const repDuration = exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 30;
     const pauseBetweenReps = exercise.pauseBetweenReps ?? $ptState.settings?.defaultPauseBetweenReps ?? 5;
     const restBetweenSets = exercise.restBetweenSets ?? $ptState.settings?.restBetweenSets ?? 20;
     const sideMode = exercise.sideMode || 'bilateral';
@@ -706,9 +706,9 @@
     if (!currentExercise) return;
 
     const exercise = currentExercise; // Store in local const to satisfy TypeScript null checks
-    const reps = exercise.defaultReps || 10;
-    const sets = exercise.defaultSets || 3;
-    const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 2;
+    const reps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10;
+    const sets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3;
+    const repDuration = exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 2;
     const sideMode = exercise.sideMode || 'bilateral';
 
     // Reset counters when starting fresh
@@ -899,9 +899,9 @@
   function resumeRepsExercise() {
     if (!currentExercise) return;
 
-    const reps = currentExercise.defaultReps || 10;
-    const sets = currentExercise.defaultSets || 3;
-    const repDuration = currentExercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 2;
+    const reps = currentExercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10;
+    const sets = currentExercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3;
+    const repDuration = currentExercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 2;
     const sideMode = currentExercise.sideMode || 'bilateral';
 
     // Don't reset counters - continue from where we paused
@@ -1552,8 +1552,8 @@
         return formatTime(repRemaining);
       } else {
         // Otherwise show total remaining time
-        const reps = currentExercise.defaultReps || 10;
-        const sets = currentExercise.defaultSets || 3;
+        const reps = currentExercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10;
+        const sets = currentExercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3;
         const total = reps * sets * repDuration;
         const remaining = Math.max(0, total - exerciseElapsedSeconds);
         return formatTime(remaining);
@@ -1619,9 +1619,9 @@
       const total = exercise.defaultDuration || 60;
       progress = Math.min(100, (exerciseElapsedSeconds / total) * 100);
     } else {
-      const reps = exercise.defaultReps || 10;
-      const sets = exercise.defaultSets || 3;
-      const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
+      const reps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10;
+      const sets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3;
+      const repDuration = exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 30;
       const total = reps * sets * repDuration;
       progress = Math.min(100, (exerciseElapsedSeconds / total) * 100);
     }
@@ -1738,7 +1738,7 @@
         {#if currentExercise.type === 'duration'}
           Duration: {formatDuration(currentExercise.defaultDuration || 0)}
         {:else}
-          Set {currentSet} of {currentExercise.defaultSets || 3} · {currentExercise.defaultReps || 10} reps
+          Set {currentSet} of {currentExercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3} · {currentExercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10} reps
         {/if}
       </DisplayRow>
     {:else if timerState === 'resting' && currentExercise}
@@ -1843,7 +1843,7 @@
               {/if}
             </div>
             <DisplayRow size="small">
-              Set {currentSet} of {currentExercise.defaultSets || 3} · Rep {currentRep} of {currentExercise.defaultReps || 10}
+              Set {currentSet} of {currentExercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3} · Rep {currentRep} of {currentExercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10}
             </DisplayRow>
           {/if}
         {/if}
@@ -1926,8 +1926,10 @@
                 <span class="material-icons detail-icon">timer</span>
                 <span>{formatDuration(exercise.defaultDuration || 0)}</span>
               {:else}
+                {@const displaySets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3}
+                {@const displayReps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10}
                 <span class="material-icons detail-icon">repeat</span>
-                <span>{exercise.defaultSets} {exercise.defaultSets === 1 ? 'set' : 'sets'} × {exercise.defaultReps} reps</span>
+                <span>{displaySets} {displaySets === 1 ? 'set' : 'sets'} × {displayReps} reps</span>
                 {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
                   <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>
                 {/if}

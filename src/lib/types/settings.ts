@@ -38,6 +38,10 @@ export interface AppSettings {
   resumeFromPausePoint: boolean; // When resuming from pause, continue from pause point (true) or restart exercise (false)
   startingSide: 'left' | 'right'; // Starting side for unilateral/alternating exercises
 
+  // Reps/Sets defaults (for exercises without explicit values)
+  defaultReps: number; // Default number of reps for reps-based exercises
+  defaultSets: number; // Default number of sets for reps-based exercises
+
   // UI preferences
   theme: 'light' | 'dark' | 'auto';
   colorScheme: 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'teal';
