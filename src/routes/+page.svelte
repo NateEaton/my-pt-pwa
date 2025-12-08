@@ -226,8 +226,8 @@
       if (exercise.type === 'duration') {
         totalSeconds += exercise.defaultDuration || 0;
       } else {
-        const reps = exercise.defaultReps || 0;
-        const sets = exercise.defaultSets || 0;
+        const reps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10;
+        const sets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3;
         const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
         const pauseBetweenReps = exercise.pauseBetweenReps || $ptState.settings?.defaultPauseBetweenReps || 5;
         const restBetweenSets = exercise.restBetweenSets || $ptState.settings?.restBetweenSets || 20;

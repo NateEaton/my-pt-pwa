@@ -498,6 +498,8 @@
             {#each sessionFormData.selectedExercises as exerciseId, index (exerciseId)}
               {@const exercise = getExerciseById(exerciseId)}
               {#if exercise}
+                {@const displaySets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3}
+                {@const displayReps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10}
                 <div class="selected-exercise-item">
                   <div class="exercise-order-number">{index + 1}</div>
                   <div class="exercise-order-info">
@@ -505,7 +507,7 @@
                     <div class="exercise-order-meta">
                       {exercise.type === 'duration'
                         ? formatDuration(exercise.defaultDuration || 0)
-                        : `${exercise.defaultSets} ${exercise.defaultSets === 1 ? 'set' : 'sets'} × ${exercise.defaultReps} reps`
+                        : `${displaySets} ${displaySets === 1 ? 'set' : 'sets'} × ${displayReps} reps`
                       }
                       {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
                         <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>
@@ -594,6 +596,8 @@
               {/if}
             {:else}
               {#each availableExercises as exercise (exercise.id)}
+                {@const displaySets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3}
+                {@const displayReps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10}
                 <label class="exercise-checkbox">
                   <input
                     type="checkbox"
@@ -605,7 +609,7 @@
                     <span class="exercise-checkbox-meta">
                       {exercise.type === 'duration'
                         ? formatDuration(exercise.defaultDuration || 0)
-                        : `${exercise.defaultSets} ${exercise.defaultSets === 1 ? 'set' : 'sets'} × ${exercise.defaultReps} reps`
+                        : `${displaySets} ${displaySets === 1 ? 'set' : 'sets'} × ${displayReps} reps`
                       }
                       {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
                         <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>

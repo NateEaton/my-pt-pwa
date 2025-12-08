@@ -442,9 +442,11 @@
                     {formatDuration(exercise.defaultDuration || 0)}
                   </span>
                 {:else}
+                  {@const displaySets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3}
+                  {@const displayReps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10}
                   <span class="detail-item">
                     <span class="material-icons detail-icon">repeat</span>
-                    {exercise.defaultSets} {exercise.defaultSets === 1 ? 'set' : 'sets'} × {exercise.defaultReps} reps
+                    {displaySets} {displaySets === 1 ? 'set' : 'sets'} × {displayReps} reps
                     {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
                       <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>
                     {/if}

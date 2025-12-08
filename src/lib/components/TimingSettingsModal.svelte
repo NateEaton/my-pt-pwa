@@ -371,6 +371,30 @@
     box-shadow: 0 0 0 2px var(--primary-alpha-10);
   }
 
+  .number-input {
+      width: 5rem;
+      padding: var(--spacing-sm) var(--spacing-md); /* match DurationInput */
+      font-size: 1rem;                              /* match DurationInput */
+      border: 1px solid var(--border-color, #ccc);  /* same variable & fallback */
+      border-radius: var(--border-radius);          /* match */
+      background: var(--surface);                   /* match */
+      color: var(--text-primary);                   /* match */
+      font-variant-numeric: tabular-nums;           /* match */
+      transition: border-color 0.2s;                /* match */
+      text-align: center;
+      box-sizing: border-box;
+  }
+
+  .number-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+  }
+
+  .number-input:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+  }
+
   .modal-actions {
     display: flex;
     gap: var(--spacing-md);
