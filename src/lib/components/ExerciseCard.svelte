@@ -50,8 +50,26 @@
   }
 
   // Reactive variables for display (ensures proper Svelte reactivity)
-  $: displaySets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3;
-  $: displayReps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10;
+  // Check for null/undefined explicitly to handle exercises without values
+  $: {
+    // Debug log to help diagnose settings loading
+    if (exercise.defaultSets == null && $ptState.settings) {
+      console.log('ExerciseCard Debug:', {
+        exerciseName: exercise.name,
+        exerciseDefaultSets: exercise.defaultSets,
+        settingsDefaultSets: $ptState.settings.defaultSets,
+        settingsObject: $ptState.settings
+      });
+    }
+  }
+
+  $: displaySets = exercise.defaultSets != null
+    ? exercise.defaultSets
+    : ($ptState.settings?.defaultSets != null ? $ptState.settings.defaultSets : 3);
+
+  $: displayReps = exercise.defaultReps != null
+    ? exercise.defaultReps
+    : ($ptState.settings?.defaultReps != null ? $ptState.settings.defaultReps : 10);
 
 </script>
 
