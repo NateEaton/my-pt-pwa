@@ -59,20 +59,6 @@
     ? exercise.defaultReps
     : ($ptState.settings?.defaultReps != null ? $ptState.settings.defaultReps : 10);
 
-  $: {
-    // Debug: Log ALL exercises to see what defaultSets actually is
-    console.log('ExerciseCard ALL:', {
-      exerciseName: exercise.name,
-      exerciseDefaultSets: exercise.defaultSets,
-      defaultSetsType: typeof exercise.defaultSets,
-      isNull: exercise.defaultSets === null,
-      isUndefined: exercise.defaultSets === undefined,
-      isStringUndefined: exercise.defaultSets === 'undefined',
-      settingsDefaultSets: $ptState.settings?.defaultSets,
-      displaySets: displaySets
-    });
-  }
-
 </script>
 
 <div class="exercise-card" class:compact>
