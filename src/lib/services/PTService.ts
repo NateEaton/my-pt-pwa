@@ -60,6 +60,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   pauseBetweenExercises: 20, // 20 seconds rest between exercises when auto-advance is enabled
   resumeFromPausePoint: true, // Continue from pause point by default (vs restarting exercise)
   startingSide: 'left', // Start with left side for unilateral/alternating exercises
+  defaultReps: 10, // 10 reps default for reps-based exercises
+  defaultSets: 3, // 3 sets default for reps-based exercises
   theme: 'auto',
   colorScheme: 'blue', // Default color scheme (Material Blue)
   exerciseSortOrder: 'alphabetical',

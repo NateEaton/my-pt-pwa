@@ -21,7 +21,7 @@
  * Follows RFC 4180 CSV standard with UTF-8 BOM support
  */
 
-import type { Exercise } from '$lib/types/pt';
+import type { Exercise } from '$lib/types';
 
 // --- HELPER: Parse CSV correctly, ignoring newlines inside quotes ---
 function parseCSV(text: string): string[][] {
@@ -167,7 +167,7 @@ export function importExercisesFromCSV(content: string): {
 
       const exercise: any = {
         name: nameVal,
-        type: 'rep',
+        type: 'reps',
         instructions: ''
       };
 
@@ -187,8 +187,8 @@ export function importExercisesFromCSV(content: string): {
         }
       }
 
-      if (exercise.type !== 'rep' && exercise.type !== 'duration') {
-        exercise.type = 'rep';
+      if (exercise.type !== 'reps' && exercise.type !== 'duration') {
+        exercise.type = 'reps';
       }
 
       exercises.push(exercise);

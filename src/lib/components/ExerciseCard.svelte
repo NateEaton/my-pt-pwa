@@ -17,7 +17,7 @@
 -->
 
 <script lang="ts">
-  import type { Exercise } from '$lib/types/pt';
+  import type { Exercise } from '$lib/types';
   import { parseMarkdown } from '$lib/utils/markdown';
   import { ptState } from '$lib/stores/pt';
 
@@ -38,16 +38,27 @@
 
   function calculateTotalDuration(): string {
     if (exercise.type === 'duration') {
-      return formatDuration(exercise.defaultDuration || 0);
+      return formatDuration(exercise.defaultDuration ?? 0);
     } else {
       // For reps: calculate total time based on reps, sets, and rep duration
-      const reps = exercise.defaultReps || 0;
-      const sets = exercise.defaultSets || 0;
-      const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
+      const reps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10;
+      const sets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3;
+      const repDuration = exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 30;
       const totalSeconds = reps * sets * repDuration;
       return formatDuration(totalSeconds);
     }
   }
+
+  // Reactive variables for display (ensures proper Svelte reactivity)
+  // Check for null/undefined explicitly to handle exercises without values
+  $: displaySets = exercise.defaultSets != null
+    ? exercise.defaultSets
+    : ($ptState.settings?.defaultSets != null ? $ptState.settings.defaultSets : 3);
+
+  $: displayReps = exercise.defaultReps != null
+    ? exercise.defaultReps
+    : ($ptState.settings?.defaultReps != null ? $ptState.settings.defaultReps : 10);
+
 </script>
 
 <div class="exercise-card" class:compact>
@@ -84,7 +95,7 @@
       {:else}
         <span class="detail-item">
           <span class="material-icons detail-icon">repeat</span>
-          {exercise.defaultSets} {exercise.defaultSets === 1 ? 'set' : 'sets'} × {exercise.defaultReps} reps
+          {displaySets} {displaySets === 1 ? 'set' : 'sets'} × {displayReps} reps
           {#if exercise.sideMode && exercise.sideMode !== 'bilateral'}
             <span class="mode-badge">{exercise.sideMode === 'unilateral' ? 'Unilateral' : 'Alternating'}</span>
           {/if}
