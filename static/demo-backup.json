@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "exportDate": "2025-12-08T23:56:49.825Z",
+  "data": {
+    "exercises": [
+      {
+        "name": "3. Clamshell with Resistance",
+        "type": "reps",
+        "instructions": "*Modified for demo*\n\n### Setup\nBegin by lying on your side with your knees bent 90 degrees, hips and shoulders stacked, and a resistance loop secured around your legs.\n\n### Movement\nRaise your top knee away from the bottom one, then slowly return to the starting position.\n\n### Tip\nMake sure not to roll your hips forward or backward during the exercise.",
+        "defaultReps": 3,
+        "defaultSets": 1,
+        "defaultRepDuration": 5,
+        "pauseBetweenReps": 5,
+        "restBetweenSets": 5,
+        "sideMode": "unilateral",
+        "dateAdded": "2025-12-08T03:18:02.996Z",
+        "id": 55
+      },
+      {
+        "name": "Supine Figure 4 Piriformis Stretch",
+        "type": "rep",
+        "instructions": "*Sample exercise with typical timings*\n### Setup\nBegin lying on your back with both legs bent and your feet on the ground.\n\n### Movement\nLift one leg and place that ankle on your opposite knee, then apply a gentle pressure to your bent knee with your hand. You should feel a stretch in your buttocks.\n\n### Tip\nMake sure to keep your low back flat on the floor during the stretch.",
+        "dateAdded": "2025-12-08T03:18:02.998Z",
+        "id": 57
+      },
+      {
+        "name": "4. Dead Bug",
+        "type": "reps",
+        "instructions": "*Modified for demo*\n\n### Setup\nBegin lying on your back with your legs bent.\n\n### Movement\nLift your legs and arms off the ground, keeping your knees bent. Lower one arm to the ground and lower your opposite leg at the same time. Repeat with your opposite arm and leg, then continue this movement.\n\n### Tip\nMake sure to keep your abdominals stiff as you lower your arm and leg, and do not let your low back arch off the ground.",
+        "defaultReps": 3,
+        "defaultSets": 1,
+        "defaultRepDuration": 5,
+        "pauseBetweenReps": 5,
+        "restBetweenSets": 5,
+        "sideMode": "alternating",
+        "dateAdded": "2025-12-08T03:18:03.007Z",
+        "id": 62
+      },
+      {
+        "name": "1. Supine Abdominal Brace (Posterior Pelvic Tilt)",
+        "type": "duration",
+        "instructions": "*Modified for demo*\n\n1. Lie on back with knees bent\n2. Tighten abdominal muscles, squeeze buttock muscles.\n3. Hold 10 seconds\n4. 2 minutes, 1 times per day",
+        "defaultDuration": 20,
+        "dateAdded": "2025-12-08T03:18:03.029Z",
+        "id": 77
+      },
+      {
+        "name": "Standing Rows with Tubing",
+        "type": "duration",
+        "instructions": "*Sample exercise with typical timings*\n\n1. Anchor rubber tubing to a solid object\n2. Hold rubber tubing in both hands, elbows bent \n3. Pull backwards and squeeze shoulder blades together \n4. Hold 2 seconds \n5. 2 minutes, 1 times per day",
+        "defaultDuration": 120,
+        "dateAdded": "2025-12-08T03:18:03.030Z",
+        "id": 78
+      },
+      {
+        "name": "2. Childs Pose Stretch",
+        "type": "reps",
+        "instructions": "*Modified for demo*\n\n1. Assume a hands and knees position\n2. Now sink back onto your heels as shown\n3. Hold 10-20 seconds\n4. 5-10 repetitions, 2-3 times per day",
+        "defaultReps": 3,
+        "defaultSets": 2,
+        "defaultRepDuration": 5,
+        "pauseBetweenReps": 5,
+        "restBetweenSets": 5,
+        "sideMode": "bilateral",
+        "dateAdded": "2025-12-08T03:18:03.032Z",
+        "id": 80
+      },
+      {
+        "name": "Hip Abduction Side-Lying with Tubing",
+        "type": "rep",
+        "instructions": "*Sample exercise with typical timings*\n\nSide-lying, tubing around ankles, raise top leg, keeping knee straight.\nRepeat 20 times per set. Repeat with other leg.\nDo 1 sets per session. Do ___ sessions per week.",
+        "dateAdded": "2025-12-08T03:18:03.038Z",
+        "id": 84
+      },
+      {
+        "name": "Wall Slide",
+        "type": "rep",
+        "instructions": "*Sample exercise with typical timings*\n\nKeep head, shoulders, and back against wall, with feet out in front and slightly wider than shoulder width. Slowly lower buttocks by sliding down wall until thighs are parallel to floor. Keep back flat.\n\nHold 10 seconds\nRepeat 10 times.",
+        "dateAdded": "2025-12-08T03:18:03.044Z",
+        "id": 89
+      },
+      {
+        "name": "Hamstring Stretch Active",
+        "type": "rep",
+        "instructions": "*Sample exercise with typical timings*\n\nSupport behind right knee. Starting with knee bent, attempt to straighten knee until a comfortable stretch is felt in back of thigh. Hold 20 seconds.\n\nRepeat 3 times per set. Do 1 sets per session.\nDo 1-2 sessions per day.",
+        "dateAdded": "2025-12-08T03:18:03.059Z",
+        "id": 101
+      }
+    ],
+    "sessionDefinitions": [
+      {
+        "name": "Demo Session",
+        "exercises": [
+          {
+            "exerciseId": 77
+          },
+          {
+            "exerciseId": 80
+          },
+          {
+            "exerciseId": 55
+          },
+          {
+            "exerciseId": 62
+          }
+        ],
+        "isDefault": false,
+        "pauseBetweenExercises": 5,
+        "allowMultiplePerDay": true,
+        "dateCreated": "2025-12-08T03:31:47.985Z",
+        "id": 1
+      },
+      {
+        "name": "Sample Session",
+        "exercises": [
+          {
+            "exerciseId": 84
+          },
+          {
+            "exerciseId": 101
+          },
+          {
+            "exerciseId": 57
+          },
+          {
+            "exerciseId": 89
+          },
+          {
+            "exerciseId": 78
+          }
+        ],
+        "isDefault": false,
+        "autoAdvance": false,
+        "dateCreated": "2025-12-08T23:47:09.348Z",
+        "id": 3
+      }
+    ],
+    "sessionInstances": [],
+    "settings": {
+      "defaultDuration": 60,
+      "defaultRepDuration": 10,
+      "defaultPauseBetweenReps": 5,
+      "startCountdownDuration": 3,
+      "endSessionDelay": 5,
+      "restBetweenSets": 10,
+      "enableAutoAdvance": true,
+      "autoAdvanceSets": true,
+      "pauseBetweenExercises": 15,
+      "resumeFromPausePoint": true,
+      "startingSide": "left",
+      "defaultReps": 10,
+      "defaultSets": 3,
+      "theme": "auto",
+      "colorScheme": "red",
+      "exerciseSortOrder": "alphabetical",
+      "fullscreenEnabled": false,
+      "soundEnabled": true,
+      "soundVolume": 0.7,
+      "hapticsEnabled": true,
+      "audioLeadInEnabled": true,
+      "audioExerciseAboutToEndEnabled": true,
+      "audioRestCuesEnabled": false,
+      "enableNotifications": false,
+      "key": "appSettings"
+    },
+    "metadata": {
+      "key": "dbMetadata",
+      "version": 1,
+      "installDate": "2025-12-08T02:05:10.802Z"
+    }
+  }
+}
