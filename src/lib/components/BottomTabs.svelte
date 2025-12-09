@@ -18,6 +18,8 @@
 
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
+  import { isDemoMode } from '$lib/utils/demoMode';
 
   export let currentTab: 'today' | 'journal' | 'settings' = 'today';
 
@@ -25,17 +27,24 @@
     id: 'today' | 'journal' | 'settings';
     label: string;
     icon: string;
-    path: string;
+    route: string; // Base route without demo prefix
   }
 
   const tabs: Tab[] = [
-    { id: 'today', label: 'Today', icon: 'today', path: '/' },
-    { id: 'journal', label: 'Journal', icon: 'book', path: '/journal' },
-    { id: 'settings', label: 'Settings', icon: 'settings', path: '/settings' }
+    { id: 'today', label: 'Today', icon: 'today', route: '/' },
+    { id: 'journal', label: 'Journal', icon: 'book', route: '/journal' },
+    { id: 'settings', label: 'Settings', icon: 'settings', route: '/settings' }
   ];
 
   function handleTabClick(tab: Tab) {
-    goto(tab.path);
+    // Determine if we're in demo mode
+    const inDemo = isDemoMode();
+
+    // Construct path: base + demo prefix (if in demo) + route
+    const demoPrefix = inDemo ? '/demo' : '';
+    const fullPath = `${base}${demoPrefix}${tab.route}`;
+
+    goto(fullPath);
   }
 </script>
 
