@@ -153,7 +153,7 @@
       "theme": "auto",
       "colorScheme": "red",
       "exerciseSortOrder": "alphabetical",
-      "fullscreenEnabled": true,
+      "fullscreenEnabled": false,
       "soundEnabled": true,
       "soundVolume": 0.7,
       "hapticsEnabled": true,
