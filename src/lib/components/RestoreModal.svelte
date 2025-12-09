@@ -19,16 +19,15 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import Modal from './Modal.svelte';
-  import { ptService, ptState } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
-  import type { SessionExercise, CompletedExercise } from '$lib/types/pt';
+  import { restoreBackupData, type BackupData } from '$lib/utils/restore';
 
   const dispatch = createEventDispatcher();
 
   let fileInput: HTMLInputElement;
   let isRestoring = false;
   let showPreview = false;
-  let backupData: any = null;
+  let backupData: BackupData | null = null;
   let restoreError = '';
   let previewStats = '';
 
@@ -60,7 +59,7 @@
     }, 100);
   }
 
-  function calculateStats(data: any): string {
+  function calculateStats(data: BackupData): string {
     const exercisesCount = data.data.exercises?.length || 0;
     const sessionsCount = data.data.sessionDefinitions?.length || 0;
     const journalEntriesCount = data.data.sessionInstances?.length || 0;
@@ -128,86 +127,8 @@
     restoreError = '';
 
     try {
-      // Clear all existing data
-      await ptService.clearAllData();
-
-      // Create ID mapping for exercises (old ID -> new ID)
-      const exerciseIdMap = new Map<number, number>();
-
-      // Restore exercises and build mapping
-      for (const exercise of backupData.data.exercises) {
-        const oldId = exercise.id;
-        const { id, ...exerciseData } = exercise;
-        const newId = await ptService.addExercise(exerciseData);
-        exerciseIdMap.set(oldId, newId);
-      }
-
-      // Create ID mapping for session definitions (old ID -> new ID)
-      const sessionDefIdMap = new Map<number, number>();
-
-      // Restore session definitions with remapped exercise IDs
-      for (const session of backupData.data.sessionDefinitions) {
-        const oldId = session.id;
-        const { id, ...sessionData } = session;
-
-        // Remap exercise IDs in the exercises array
-        const remappedExercises = sessionData.exercises.map((se: SessionExercise) => ({
-          ...se,
-          exerciseId: exerciseIdMap.get(se.exerciseId) ?? se.exerciseId
-        }));
-
-        const newId = await ptService.addSessionDefinition({
-          ...sessionData,
-          exercises: remappedExercises
-        });
-        sessionDefIdMap.set(oldId, newId);
-      }
-
-      // Restore session instances with remapped IDs
-      for (const instance of backupData.data.sessionInstances) {
-        const { id, ...instanceData } = instance;
-
-        // Remap session definition ID
-        const remappedSessionDefId = sessionDefIdMap.get(instanceData.sessionDefinitionId) ?? instanceData.sessionDefinitionId;
-
-        // Remap exercise IDs in completed exercises
-        const remappedCompletedExercises = instanceData.completedExercises.map((ce: CompletedExercise) => ({
-          ...ce,
-          exerciseId: exerciseIdMap.get(ce.exerciseId) ?? ce.exerciseId
-        }));
-
-        await ptService.addSessionInstance({
-          ...instanceData,
-          sessionDefinitionId: remappedSessionDefId,
-          completedExercises: remappedCompletedExercises
-        });
-      }
-
-      // Restore settings
-      if (backupData.data.settings) {
-        await ptService.saveSettings(backupData.data.settings);
-      }
-
-      // Restore metadata
-      if (backupData.data.metadata) {
-        await ptService.saveMetadata(backupData.data.metadata);
-      }
-
-      // Reload all data into state
-      const exercises = await ptService.getExercises();
-      const sessionDefinitions = await ptService.getSessionDefinitions();
-      const sessionInstances = await ptService.getSessionInstances();
-      const settings = await ptService.getSettings();
-      const metadata = await ptService.getMetadata();
-
-      ptState.update((state) => ({
-        ...state,
-        exercises,
-        sessionDefinitions,
-        sessionInstances,
-        settings,
-        metadata
-      }));
+      // Use shared restore utility
+      await restoreBackupData(backupData);
 
       toastStore.show('Data restored successfully', 'success');
       isRestoring = false;

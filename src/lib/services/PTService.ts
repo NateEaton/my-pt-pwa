@@ -34,8 +34,8 @@ import type {
   AppSettings,
   DBMetadata
 } from '$lib/types/pt';
+import { getDbName } from '$lib/utils/demoMode';
 
-const DB_NAME = 'MyPT';
 const DB_VERSION = 1;
 
 // Object store names
@@ -114,7 +114,8 @@ export class PTService {
    */
   private openDatabase(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      const dbName = getDbName();
+      const request = indexedDB.open(dbName, DB_VERSION);
 
       request.onerror = () => {
         reject(new Error('Failed to open database'));
