@@ -19,6 +19,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
+  import { isDemoMode } from '$lib/utils/demoMode';
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import { audioService } from '$lib/services/AudioService';
@@ -29,6 +31,15 @@
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import DemoWatermark from '$lib/components/DemoWatermark.svelte';
   import type { Exercise, SessionDefinition, SessionInstance, CompletedExercise } from '$lib/types/pt';
+
+  // Demo mode detection
+  const inDemoMode = isDemoMode();
+
+  // Helper function to navigate back to Today page (respecting demo mode)
+  function goToTodayPage() {
+    const demoPrefix = inDemoMode ? '/demo' : '';
+    goto(`${base}${demoPrefix}/`);
+  }
 
   // Player state
   let sessionDefinition: SessionDefinition | null = null;
@@ -263,7 +274,7 @@
     const sessionIdStr = localStorage.getItem('pt-active-session-id');
     if (!sessionIdStr) {
       toastStore.show('No session selected', 'error');
-      goto('/');
+      goToTodayPage();
       return;
     }
 
@@ -272,7 +283,7 @@
 
     if (!sessionDefinition) {
       toastStore.show('Session not found', 'error');
-      goto('/');
+      goToTodayPage();
       return;
     }
 
@@ -283,7 +294,7 @@
 
     if (exercises.length === 0) {
       toastStore.show('Session has no exercises', 'error');
-      goto('/');
+      goToTodayPage();
       return;
     }
 
@@ -376,7 +387,7 @@
 
   function cancelRepeatSession() {
     showRepeatSessionConfirm = false;
-    goto('/');
+    goToTodayPage();
   }
 
   onDestroy(() => {
@@ -1229,7 +1240,7 @@
 
     toastStore.show('Session completed!', 'success');
     setTimeout(() => {
-      goto('/');
+      goToTodayPage();
     }, endSessionDelay * 1000);
   }
 
@@ -1429,7 +1440,7 @@
     // Exit with in-progress status
     if (!sessionInstance) {
       clearTimers();
-      goto('/');
+      goToTodayPage();
       return;
     }
 
@@ -1445,14 +1456,14 @@
     }
 
     clearTimers();
-    goto('/');
+    goToTodayPage();
   }
 
   async function finishSession() {
     // Mark session as completed with only actual progress
     if (!sessionInstance) {
       clearTimers();
-      goto('/');
+      goToTodayPage();
       return;
     }
 
@@ -1471,13 +1482,13 @@
       toastStore.show('Session finished', 'success');
 
       // Then navigate
-      goto('/');
+      goToTodayPage();
     } catch (error) {
       console.error('Failed to finish session:', error);
       toastStore.show('Failed to finish session', 'error');
 
       // Still navigate on error, but user knows it failed
-      goto('/');
+      goToTodayPage();
     }
   }
 
