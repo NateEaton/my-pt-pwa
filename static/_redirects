@@ -1,0 +1,6 @@
+# Cloudflare Pages / Netlify SPA routing configuration
+# This file enables client-side routing for demo mode and all SvelteKit routes
+
+# Serve index.html for all routes (SPA fallback)
+# This ensures /demo, /demo/journal, etc. work correctly
+/*    /index.html   200
