@@ -52,7 +52,7 @@ export default defineConfig(({ mode }) => {
         registerType: "prompt",
         workbox: {
           cleanupOutdatedCaches: true,
-          globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+          globPatterns: ["**/*.{js,css,html,ico,png,svg,json}"],
           runtimeCaching: [
             // HTML navigation: must be network-first
             {

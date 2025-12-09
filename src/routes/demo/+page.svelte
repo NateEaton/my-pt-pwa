@@ -1,0 +1,1126 @@
+<!--
+ * My PT - Physical Therapy Tracker PWA
+ * Copyright (C) 2025 Nathan A. Eaton Jr.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+-->
+
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { goto, afterNavigate } from '$app/navigation';
+  import { ptState, ptService } from '$lib/stores/pt';
+  import { toastStore } from '$lib/stores/toast';
+  import BottomTabs from '$lib/components/BottomTabs.svelte';
+  import ExerciseCard from '$lib/components/ExerciseCard.svelte';
+  import Modal from '$lib/components/Modal.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import type { Exercise, SessionDefinition, SessionInstance, CompletedExercise } from '$lib/types/pt';
+
+  // Format today's date
+  const today = new Date();
+  const dateFormatter = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+  const formattedDate = dateFormatter.format(today);
+
+  // Modal states
+  let showSessionSelectModal = false;
+  let showManualLogConfirm = false;
+
+  // Selected session for today (defaults to default session)
+  let selectedSession: SessionDefinition | null = null;
+  let sessionExercises: Exercise[] = [];
+  let initialized = false;
+
+  // Today's session instance (if exists)
+  let todaySessionInstance: SessionInstance | null = null;
+  type SessionState = 'not-started' | 'in-progress' | 'completed';
+  let sessionState: SessionState = 'not-started';
+
+  // Instruction expansion state (accordion pattern)
+  let expandedExerciseId: number | null = null;
+
+  function toggleInstructions(exerciseId: number) {
+    expandedExerciseId = expandedExerciseId === exerciseId ? null : exerciseId;
+  }
+
+  // Load persisted session selection from localStorage
+  const STORAGE_KEY = 'pt-today-session-id';
+
+  function loadPersistedSessionId(): number | null {
+    if (typeof window === 'undefined') return null;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? parseInt(stored, 10) : null;
+  }
+
+  function persistSessionId(id: number | null) {
+    if (typeof window === 'undefined') return;
+    if (id === null) {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, id.toString());
+    }
+  }
+
+  // Load the selected session (previously selected or first available)
+  function loadSelectedSession() {
+    if (!$ptState.initialized || $ptState.sessionDefinitions.length === 0) {
+      selectedSession = null;
+      return;
+    }
+
+    // Try to restore previously selected session
+    const persistedId = loadPersistedSessionId();
+    if (persistedId !== null) {
+      const persisted = $ptState.sessionDefinitions.find(s => s.id === persistedId);
+      if (persisted) {
+        selectedSession = persisted;
+        return;
+      }
+    }
+
+    // Fall back to first available session
+    if ($ptState.sessionDefinitions.length > 0) {
+      selectedSession = $ptState.sessionDefinitions[0];
+    }
+  }
+
+  // Load exercises for the selected session
+  function loadSessionExercises() {
+    if (!selectedSession) {
+      sessionExercises = [];
+      return;
+    }
+
+    // Map through session exercises in order to preserve session-defined order
+    sessionExercises = selectedSession.exercises
+      .map(se => $ptState.exercises.find(e => e.id === se.exerciseId))
+      .filter((e): e is Exercise => e !== undefined);
+  }
+
+  // Load today's session instance and determine state
+  async function loadTodaySessionInstance() {
+    if (!selectedSession) {
+      todaySessionInstance = null;
+      sessionState = 'not-started';
+      return;
+    }
+
+    try {
+      // Get today's date in YYYY-MM-DD format
+      const today = ptService.formatDate(new Date());
+      const instances = await ptService.getSessionInstancesByDate(today);
+
+      // Filter instances for the selected session
+      const sessionInstances = instances.filter(
+        inst => inst.sessionDefinitionId === selectedSession!.id
+      );
+
+      // Find the most relevant instance: prioritize in-progress, then most recent
+      if (sessionInstances.length === 0) {
+        todaySessionInstance = null;
+      } else {
+        // First look for an in-progress session
+        const inProgress = sessionInstances.find(inst => inst.status === 'in-progress');
+        if (inProgress) {
+          todaySessionInstance = inProgress;
+        } else {
+          // Otherwise use the most recent (last) instance
+          todaySessionInstance = sessionInstances[sessionInstances.length - 1];
+        }
+      }
+
+      // Determine state based on instance status
+      if (!todaySessionInstance) {
+        sessionState = 'not-started';
+      } else if (todaySessionInstance.status === 'in-progress') {
+        sessionState = 'in-progress';
+      } else if (todaySessionInstance.status === 'completed' || todaySessionInstance.status === 'logged') {
+        sessionState = 'completed';
+      } else {
+        sessionState = 'not-started';
+      }
+    } catch (error) {
+      console.error('Error loading today session instance:', error);
+      todaySessionInstance = null;
+      sessionState = 'not-started';
+    }
+  }
+
+  // Reactive: Load session when store is initialized or session definitions change
+  $: if ($ptState.initialized && !initialized) {
+    loadSelectedSession();
+    initialized = true;
+  }
+
+  // Reactive: Update session if it was modified in settings
+  $: if ($ptState.sessionDefinitions.length > 0 && selectedSession) {
+    const updated = $ptState.sessionDefinitions.find(s => s.id === selectedSession?.id);
+    if (updated && JSON.stringify(updated) !== JSON.stringify(selectedSession)) {
+      selectedSession = updated;
+    }
+  }
+
+  // Reactive: Reload exercises when selected session changes
+  $: if (selectedSession) {
+    loadSessionExercises();
+    loadTodaySessionInstance();
+  }
+
+  // Reactive: Calculate total duration whenever sessionExercises changes
+  $: totalDuration = (sessionExercises, calculateTotalDuration());
+
+  // Reload state when navigating to this page (e.g., returning from player)
+  afterNavigate(() => {
+    if (selectedSession) {
+      loadTodaySessionInstance();
+    }
+  });
+
+  // Also reload when tab becomes visible (for external navigation)
+  onMount(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && selectedSession) {
+        loadTodaySessionInstance();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  });
+
+  function calculateTotalDurationSeconds(): number {
+    if (sessionExercises.length === 0) return 0;
+
+    // Get settings for countdown and rest durations
+    const settings = $ptState.settings;
+    const startCountdown = settings?.startCountdownDuration || 3;
+    const pauseBetweenExercises = settings?.pauseBetweenExercises || 20;
+    const endSessionDelay = settings?.endSessionDelay || 5;
+
+    let totalSeconds = 0;
+
+    // Calculate exercise durations and add countdowns/pauses
+    sessionExercises.forEach((exercise, index) => {
+      // Start countdown before each exercise
+      totalSeconds += startCountdown;
+
+      // Exercise duration
+      if (exercise.type === 'duration') {
+        totalSeconds += exercise.defaultDuration || 0;
+      } else {
+        const reps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10;
+        const sets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3;
+        const repDuration = exercise.defaultRepDuration || $ptState.settings?.defaultRepDuration || 30;
+        const pauseBetweenReps = exercise.pauseBetweenReps || $ptState.settings?.defaultPauseBetweenReps || 5;
+        const restBetweenSets = exercise.restBetweenSets || $ptState.settings?.restBetweenSets || 20;
+
+        // Total rep time = (reps × repDuration) per set
+        totalSeconds += reps * sets * repDuration;
+
+        // Pause between reps = (reps - 1) pauses per set × sets
+        totalSeconds += (reps - 1) * sets * pauseBetweenReps;
+
+        // Rest between sets = (sets - 1) rest periods
+        totalSeconds += (sets - 1) * restBetweenSets;
+      }
+
+      // Pause before next exercise (not after the last exercise)
+      if (index < sessionExercises.length - 1) {
+        totalSeconds += pauseBetweenExercises;
+      }
+    });
+
+    // Add end session delay
+    totalSeconds += endSessionDelay;
+
+    return totalSeconds;
+  }
+
+  function calculateTotalDuration(): string {
+    const totalSeconds = calculateTotalDurationSeconds();
+
+    if (totalSeconds < 60) return `${totalSeconds}s`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  }
+
+  function calculateActualDuration(): string {
+    if (!todaySessionInstance || !todaySessionInstance.startTime) {
+      return '0m';
+    }
+
+    // For in-progress sessions, use cumulative elapsed time instead of wall clock time
+    let totalSeconds: number;
+    if (todaySessionInstance.status === 'in-progress' && todaySessionInstance.cumulativeElapsedSeconds !== undefined) {
+      totalSeconds = todaySessionInstance.cumulativeElapsedSeconds;
+    } else {
+      // For completed sessions, calculate based on start and end time
+      const startTime = new Date(todaySessionInstance.startTime);
+      const endTime = todaySessionInstance.endTime
+        ? new Date(todaySessionInstance.endTime)
+        : new Date();
+
+      const durationMs = endTime.getTime() - startTime.getTime();
+      totalSeconds = Math.floor(durationMs / 1000);
+    }
+
+    if (totalSeconds < 60) return `${totalSeconds}s`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  }
+
+  function formatCompletionTime(): string {
+    if (!todaySessionInstance || !todaySessionInstance.endTime) {
+      return '';
+    }
+
+    const endTime = new Date(todaySessionInstance.endTime);
+    const timeFormatter = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    return timeFormatter.format(endTime);
+  }
+
+  function getCompletedExerciseCount(): number {
+    if (!todaySessionInstance) return 0;
+    return todaySessionInstance.completedExercises.filter(ex => ex.completed).length;
+  }
+
+  // Reactive: Track which exercises are completed
+  $: completedExerciseIds = todaySessionInstance?.completedExercises
+    .filter(ex => ex.completed)
+    .map(ex => ex.exerciseId) ?? [];
+
+  // Reactive: Track which exercises are in-progress (started but not completed)
+  $: inProgressExerciseIds = (sessionState === 'not-started' || !todaySessionInstance)
+    ? []
+    : todaySessionInstance.completedExercises
+      .filter(ex => !ex.completed)
+      .map(ex => ex.exerciseId);
+
+  function handlePlaySession() {
+    if (!selectedSession) {
+      toastStore.show('No session selected', 'error');
+      return;
+    }
+
+    // Store session ID in localStorage for player to read
+    localStorage.setItem('pt-active-session-id', selectedSession.id.toString());
+
+    // Navigate to player
+    goto('/play');
+  }
+
+  function handleLogSession() {
+    if (!selectedSession) {
+      toastStore.show('No session selected', 'error');
+      return;
+    }
+    showManualLogConfirm = true;
+  }
+
+  async function confirmManualLog() {
+    showManualLogConfirm = false;
+
+    if (!selectedSession) return;
+
+    try {
+      const now = new Date();
+      const totalDurationSeconds = calculateTotalDurationSeconds();
+
+      // Calculate start time by subtracting the total duration from now
+      const startTime = new Date(now.getTime() - totalDurationSeconds * 1000);
+      const endTime = now;
+
+      // Create completed exercises array with all exercises marked as completed
+      const completedExercises: CompletedExercise[] = sessionExercises.map((exercise) => ({
+        exerciseId: exercise.id,
+
+        // Snapshot data for historical preservation
+        exerciseName: exercise.name,
+        exerciseType: exercise.type,
+
+        // Target values (what was planned)
+        targetDuration: exercise.type === 'duration' ? exercise.defaultDuration : undefined,
+        targetReps: exercise.type === 'reps' ? exercise.defaultReps : undefined,
+        targetSets: exercise.type === 'reps' ? exercise.defaultSets : undefined,
+        targetRepDuration: exercise.type === 'reps' ? exercise.defaultRepDuration : undefined,
+
+        // Completion tracking
+        completed: true,
+        actualDuration: exercise.type === 'duration'
+          ? exercise.defaultDuration
+          : (exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10) * (exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3) * (exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 30),
+        skipped: false,
+        completedAt: now.toISOString()
+      }));
+
+      // Create the session instance
+      const sessionInstance = {
+        date: ptService.formatDate(now),
+        sessionDefinitionId: selectedSession.id,
+        sessionName: selectedSession.name,
+        status: 'completed' as const,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        completedExercises,
+        customized: false,
+        manuallyLogged: true
+      };
+
+      // Save to database
+      await ptService.addSessionInstance(sessionInstance);
+
+      // Reload today's session state to update UI
+      await loadTodaySessionInstance();
+
+      toastStore.show('Workout logged successfully!', 'success');
+    } catch (error) {
+      console.error('Error logging workout:', error);
+      toastStore.show('Failed to log workout', 'error');
+    }
+  }
+
+  function cancelManualLog() {
+    showManualLogConfirm = false;
+  }
+
+  function handleResumeSession() {
+    if (!selectedSession || !todaySessionInstance) {
+      toastStore.show('No in-progress session found', 'error');
+      return;
+    }
+
+    // Store BOTH the session definition ID and instance ID for player to resume
+    localStorage.setItem('pt-active-session-id', selectedSession.id.toString());
+    localStorage.setItem('pt-active-session-instance-id', todaySessionInstance.id.toString());
+
+    // Navigate to player
+    goto('/play');
+  }
+
+  async function handleStartOver() {
+    if (!selectedSession || !todaySessionInstance) {
+      toastStore.show('No session selected', 'error');
+      return;
+    }
+
+    try {
+      // Delete the existing in-progress session to start fresh
+      await ptService.deleteSessionInstance(todaySessionInstance.id);
+
+      // Clear any cached session instance ID
+      localStorage.removeItem('pt-active-session-instance-id');
+
+      // Start fresh session
+      handlePlaySession();
+    } catch (error) {
+      console.error('Error restarting session:', error);
+      toastStore.show('Failed to restart session', 'error');
+    }
+  }
+
+  function handleViewDetails() {
+    // Navigate to journal page which will show today's entry
+    goto('/journal');
+  }
+
+  function handleRepeatSession() {
+    if (!selectedSession) {
+      toastStore.show('No session selected', 'error');
+      return;
+    }
+
+    // Start a new session even though one was completed today
+    handlePlaySession();
+  }
+
+  function openSessionSelect() {
+    showSessionSelectModal = true;
+  }
+
+  function selectSession(session: SessionDefinition) {
+    selectedSession = session;
+    persistSessionId(session.id);
+    showSessionSelectModal = false;
+    toastStore.show(`Switched to "${session.name}"`, 'success');
+  }
+</script>
+
+<div class="page-container">
+  <main class="content">
+    <!-- Header with current date -->
+    <header class="page-header">
+      <h1 class="date-display">{formattedDate}</h1>
+    </header>
+
+    <!-- Session overview section -->
+    <section class="session-section">
+      {#if $ptState.initialized}
+        {#if sessionExercises.length === 0}
+          <!-- Empty state -->
+          <div class="empty-state">
+            <div class="empty-icon">
+              <span class="material-icons">self_improvement</span>
+            </div>
+            <h2>No Session Available</h2>
+            {#if $ptState.sessionDefinitions.length === 0}
+              <p class="empty-text">
+                Create a session definition in Settings to get started.
+              </p>
+              <p class="empty-hint">
+                Sessions let you organize which exercises to do each day.
+              </p>
+            {:else}
+              <p class="empty-text">
+                The selected session has no exercises.
+              </p>
+              <button class="btn btn-primary" on:click={openSessionSelect}>
+                <span class="material-icons">playlist_play</span>
+                Choose Different Session
+              </button>
+            {/if}
+          </div>
+        {:else}
+          <!-- Session overview card -->
+          <div class="session-card">
+            <div class="session-header">
+              <div class="session-title">
+                <h2>{selectedSession?.name || 'Session'}</h2>
+                {#if sessionState === 'completed'}
+                  <span class="status-badge status-completed">
+                    <span class="material-icons">check_circle</span>
+                    Completed
+                  </span>
+                {:else if sessionState === 'in-progress'}
+                  <span class="status-badge status-in-progress">
+                    <span class="material-icons">pending</span>
+                    In Progress
+                  </span>
+                {/if}
+              </div>
+              <div class="session-header-actions">
+                <button
+                  class="icon-button"
+                  on:click={openSessionSelect}
+                  aria-label="Change session"
+                  title="Change session"
+                >
+                  <span class="material-icons">swap_horiz</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="session-stats">
+              <div class="stat-item">
+                <span class="material-icons stat-icon">fitness_center</span>
+                <div class="stat-content">
+                  {#if sessionState === 'in-progress'}
+                    <span class="stat-value">
+                      {getCompletedExerciseCount()}/{sessionExercises.length}
+                    </span>
+                    <span class="stat-label">Completed</span>
+                  {:else if sessionState === 'completed'}
+                    <span class="stat-value">{sessionExercises.length}</span>
+                    <span class="stat-label">
+                      {sessionExercises.length === 1 ? 'Exercise' : 'Exercises'}
+                    </span>
+                  {:else}
+                    <span class="stat-value">{sessionExercises.length}</span>
+                    <span class="stat-label">
+                      {sessionExercises.length === 1 ? 'Exercise' : 'Exercises'}
+                    </span>
+                  {/if}
+                </div>
+              </div>
+
+              <div class="stat-item">
+                <span class="material-icons stat-icon">schedule</span>
+                <div class="stat-content">
+                  {#if sessionState === 'completed'}
+                    <span class="stat-value">{calculateActualDuration()}</span>
+                    <span class="stat-label">
+                      Completed at {formatCompletionTime()}
+                    </span>
+                  {:else if sessionState === 'in-progress'}
+                    <span class="stat-value">{calculateActualDuration()}</span>
+                    <span class="stat-label">Elapsed</span>
+                  {:else}
+                    <span class="stat-value">{totalDuration}</span>
+                    <span class="stat-label">Estimated</span>
+                  {/if}
+                </div>
+              </div>
+            </div>
+
+            <div class="session-actions">
+              {#if sessionState === 'not-started'}
+                <button class="btn btn-primary btn-large" on:click={handlePlaySession}>
+                  <span class="material-icons">play_arrow</span>
+                  Play Session
+                </button>
+                <button class="btn btn-secondary btn-large" on:click={handleLogSession}>
+                  <span class="material-icons">check</span>
+                  Log as Done
+                </button>
+              {:else if sessionState === 'in-progress'}
+                <button class="btn btn-primary btn-large" on:click={handleResumeSession}>
+                  <span class="material-icons">play_arrow</span>
+                  Resume Session
+                </button>
+                <button class="btn btn-secondary btn-large" on:click={handleStartOver}>
+                  <span class="material-icons">refresh</span>
+                  Start Over
+                </button>
+              {:else if sessionState === 'completed'}
+                <button class="btn btn-primary btn-large" on:click={handleViewDetails}>
+                  <span class="material-icons">visibility</span>
+                  View Details
+                </button>
+                <button class="btn btn-secondary btn-large" on:click={handleRepeatSession}>
+                  <span class="material-icons">replay</span>
+                  Repeat Session
+                </button>
+              {/if}
+            </div>
+          </div>
+
+          <!-- Quick preview of exercises -->
+          <div class="exercise-preview">
+            <h3 class="preview-title">Exercises ({sessionExercises.length})</h3>
+            <div class="exercise-list-preview">
+              {#each sessionExercises as exercise (exercise.id)}
+                <div
+                  class="exercise-preview-item"
+                  class:completed={completedExerciseIds.includes(exercise.id)}
+                  class:in-progress={inProgressExerciseIds.includes(exercise.id)}
+                >
+                  <div class="exercise-card-wrapper">
+                    <ExerciseCard
+                      {exercise}
+                      compact={false}
+                      showInstructions={expandedExerciseId === exercise.id}
+                      onToggleInstructions={() => toggleInstructions(exercise.id)}
+                    />
+                  </div>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      {:else}
+        <div class="loading-indicator">
+          <span class="material-icons spinning">refresh</span>
+          <p>Loading...</p>
+        </div>
+      {/if}
+    </section>
+  </main>
+
+  <BottomTabs currentTab="today" />
+</div>
+
+<!-- Manual Log Confirmation Dialog -->
+{#if showManualLogConfirm}
+  <ConfirmDialog
+    title="Log Workout"
+    message="This will log your workout as completed for today. Are you sure you want to continue?"
+    confirmText="Log Workout"
+    cancelText="Cancel"
+    confirmVariant="primary"
+    on:confirm={confirmManualLog}
+    on:cancel={cancelManualLog}
+  />
+{/if}
+
+<!-- Session Selection Modal -->
+{#if showSessionSelectModal}
+  <Modal
+    title="Select Session"
+    iosStyle={true}
+    on:close={() => (showSessionSelectModal = false)}
+  >
+    {#if $ptState.sessionDefinitions.length === 0}
+      <div class="modal-empty-state">
+        <p>No session definitions available.</p>
+        <p class="empty-hint">Create a session in Settings first.</p>
+      </div>
+    {:else}
+      <div class="session-select-list">
+        {#each $ptState.sessionDefinitions as session (session.id)}
+          <button
+            class="session-select-item"
+            class:selected={selectedSession?.id === session.id}
+            on:click={() => selectSession(session)}
+          >
+            <div class="session-select-info">
+              <div class="session-select-header">
+                <span class="session-select-name">{session.name}</span>
+              </div>
+              <div class="session-select-meta">
+                <span class="material-icons meta-icon">fitness_center</span>
+                {session.exercises.length} {session.exercises.length === 1 ? 'exercise' : 'exercises'}
+              </div>
+            </div>
+            {#if selectedSession?.id === session.id}
+              <span class="material-icons selected-icon">check</span>
+            {/if}
+          </button>
+        {/each}
+      </div>
+    {/if}
+
+    <div slot="footer" class="modal-actions">
+      <button
+        class="btn btn-secondary"
+        on:click={() => (showSessionSelectModal = false)}
+        type="button"
+      >
+        Cancel
+      </button>
+    </div>
+  </Modal>
+{/if}
+<style>
+  .page-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: var(--surface);
+  }
+
+  .content {
+    flex: 1;
+    padding-bottom: var(--bottom-tabs-height);
+    overflow-y: auto;
+  }
+
+  /* Add safe area padding on iOS devices */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .content {
+      padding-bottom: calc(var(--bottom-tabs-height) + env(safe-area-inset-bottom));
+    }
+  }
+
+  .page-header {
+    padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg);
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--divider);
+  }
+
+  .date-display {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .session-section {
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: var(--spacing-2xl);
+  }
+
+  .empty-icon {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .empty-icon .material-icons {
+    font-size: 5rem;
+    color: var(--text-secondary);
+    opacity: 0.5;
+  }
+
+  .empty-state h2 {
+    margin: 0 0 var(--spacing-md) 0;
+    font-size: var(--font-size-2xl);
+    color: var(--text-primary);
+  }
+
+  .empty-text {
+    margin: 0 0 var(--spacing-lg) 0;
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+
+  .empty-hint {
+    margin: 0 0 var(--spacing-lg) 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* Session Card */
+  .session-card {
+    background-color: var(--surface-variant);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-xl);
+    box-shadow: var(--shadow-lg);
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .session-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .session-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+  }
+
+  .session-title h2 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+  }
+
+  .status-badge .material-icons {
+    font-size: var(--icon-size-sm);
+  }
+
+  .status-completed {
+    background-color: rgba(46, 125, 50, 0.1);
+    color: #4caf50;
+  }
+
+  .status-in-progress {
+    background-color: rgba(245, 124, 0, 0.1);
+    color: #ff9800;
+  }
+
+  /* Dark mode adjustments */
+  @media (prefers-color-scheme: dark) {
+    .status-completed {
+      background-color: rgba(76, 175, 80, 0.2);
+      color: #81c784;
+    }
+
+    .status-in-progress {
+      background-color: rgba(255, 152, 0, 0.2);
+      color: #ffb74d;
+    }
+  }
+
+  .session-header-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+  }
+
+  .icon-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    transition: all 0.2s ease;
+  }
+
+  .icon-button:hover {
+    background-color: var(--hover-overlay);
+    color: var(--text-primary);
+  }
+
+  .session-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background-color: var(--surface);
+    border-radius: var(--border-radius);
+  }
+
+  .stat-icon {
+    font-size: 2rem;
+    color: var(--primary-color);
+  }
+
+  .stat-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat-value {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+  }
+
+  .session-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+  }
+
+  .btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    transition: all 0.2s ease;
+    min-height: var(--touch-target-min);
+  }
+
+  .btn-large {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-size-lg);
+  }
+
+  .btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--primary-color-dark);
+  }
+
+  .btn-secondary {
+    background-color: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--divider);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--divider);
+  }
+
+  .btn .material-icons {
+    font-size: var(--icon-size-lg);
+  }
+
+  /* Exercise Preview */
+  .exercise-preview {
+    margin-top: var(--spacing-xl);
+  }
+
+  .preview-title {
+    margin: 0 0 var(--spacing-md) 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .exercise-list-preview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .exercise-preview-item {
+    position: relative;
+    display: flex;
+    gap: 0;
+    align-items: flex-start;
+  }
+
+  /* Completed exercises get a success (green) left border */
+  .exercise-preview-item.completed .exercise-card-wrapper {
+    border-left: 4px solid var(--success-color);
+    border-top-left-radius: var(--border-radius);
+    border-bottom-left-radius: var(--border-radius);
+  }
+
+  /* In-progress exercises (started but not completed) get a caution (yellow/orange) left border */
+  .exercise-preview-item.in-progress .exercise-card-wrapper {
+    border-left: 4px solid var(--warning-color);
+    border-top-left-radius: var(--border-radius);
+    border-bottom-left-radius: var(--border-radius);
+  }
+
+  /* Default state - no visible border */
+  .exercise-preview-item:not(.completed):not(.in-progress) .exercise-card-wrapper {
+    border-left: 4px solid transparent;
+  }
+
+  .exercise-card-wrapper {
+    flex: 1;
+  }
+
+  /* Session Selection Modal */
+  .modal-empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+  }
+
+  .session-select-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .session-select-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    background-color: var(--surface-variant);
+    border: 2px solid transparent;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+  }
+
+  .session-select-item:hover {
+    background-color: var(--divider);
+  }
+
+  .session-select-item.selected {
+    border-color: var(--primary-color);
+    background-color: var(--primary-alpha-10);
+  }
+
+  .session-select-info {
+    flex: 1;
+  }
+
+  .session-select-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .session-select-name {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .session-select-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  .meta-icon {
+    font-size: var(--icon-size-sm);
+  }
+
+  .selected-icon {
+    color: var(--primary-color);
+    font-size: var(--icon-size-lg);
+  }
+  .modal-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-2xl);
+    color: var(--text-secondary);
+  }
+
+  .loading-indicator .material-icons {
+    font-size: 3rem;
+  }
+
+  @media (max-width: 480px) {
+    .page-header {
+      padding: var(--spacing-lg);
+    }
+
+    .date-display {
+      font-size: var(--font-size-lg);
+    }
+
+    .session-section {
+      padding: var(--spacing-lg);
+    }
+
+    .session-card {
+      padding: var(--spacing-lg);
+    }
+
+    .session-title h2 {
+      font-size: var(--font-size-lg);
+    }
+
+    .session-actions {
+      grid-template-columns: 1fr;
+    }
+
+    .session-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
