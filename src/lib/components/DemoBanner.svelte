@@ -17,12 +17,12 @@
 -->
 
 <script lang="ts">
-  import { goto } from '$app/navigation';
   import { base } from '$app/paths';
 
   /**
    * Handle exit demo button click
    * Navigates to corresponding normal route (removes /demo prefix)
+   * Forces a full page reload to switch database contexts
    */
   function exitDemo() {
     const currentPath = window.location.pathname;
@@ -39,7 +39,8 @@
     // Reconstruct full path with base
     const normalPath = `${base}${normalRoute}`;
 
-    goto(normalPath);
+    // Force full page reload to re-initialize database connection
+    window.location.href = normalPath;
   }
 </script>
 
