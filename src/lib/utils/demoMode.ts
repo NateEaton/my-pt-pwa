@@ -51,8 +51,11 @@ export function isDemoMode(): boolean {
   // SSR safety check
   if (typeof window === 'undefined') return false;
 
-  // Demo mode is active when path starts with /demo
-  return window.location.pathname.startsWith('/demo');
+  const pathname = window.location.pathname;
+
+  // Demo mode is active when path contains /demo as a route segment
+  // This handles both root deployment (/demo) and sub-path deployment (/my-pt-pwa-dev/demo)
+  return pathname.endsWith('/demo') || pathname.includes('/demo/');
 }
 
 /**
