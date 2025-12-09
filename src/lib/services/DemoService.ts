@@ -35,14 +35,17 @@ import { restoreBackupData, type BackupData } from '$lib/utils/restore';
  * 3. Restores data if version mismatch or first load
  * 4. Updates version in localStorage
  *
+ * @param basePath - SvelteKit base path (from $app/paths)
  * @throws Error if demo backup cannot be fetched or restored
  */
-export async function initializeDemoData(): Promise<void> {
+export async function initializeDemoData(basePath: string = ''): Promise<void> {
   console.log('🎭 Initializing demo mode...');
 
   try {
-    // Fetch demo backup file
-    const response = await fetch(DEMO_BACKUP_URL);
+    // Fetch demo backup file (respect base path)
+    const backupUrl = `${basePath}${DEMO_BACKUP_URL}`;
+    console.log('🎭 Fetching demo backup from:', backupUrl);
+    const response = await fetch(backupUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch demo backup: ${response.statusText}`);
     }

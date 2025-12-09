@@ -18,6 +18,7 @@
 
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
 
   /**
    * Handle exit demo button click
@@ -25,7 +26,19 @@
    */
   function exitDemo() {
     const currentPath = window.location.pathname;
-    const normalPath = currentPath.replace(/^\/demo/, '') || '/';
+
+    // Remove base path if present to get the route
+    let route = currentPath;
+    if (base && currentPath.startsWith(base)) {
+      route = currentPath.substring(base.length);
+    }
+
+    // Remove /demo prefix from route
+    const normalRoute = route.replace(/^\/demo/, '') || '/';
+
+    // Reconstruct full path with base
+    const normalPath = `${base}${normalRoute}`;
+
     goto(normalPath);
   }
 </script>

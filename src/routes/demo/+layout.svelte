@@ -19,6 +19,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { ptState } from '$lib/stores/pt';
   import { initializeDemoData } from '$lib/services/DemoService';
@@ -43,14 +44,15 @@
         });
       }
 
-      await initializeDemoData();
+      // Pass base path to demo service
+      await initializeDemoData(base);
     } catch (error) {
       console.error('Failed to initialize demo mode:', error);
       toastStore.show('Demo mode unavailable. Redirecting to main app...', 'error');
 
-      // Redirect to normal mode on failure
+      // Redirect to normal mode on failure (respect base path)
       setTimeout(() => {
-        goto('/');
+        goto(`${base}/`);
       }, 2000);
     }
   });
