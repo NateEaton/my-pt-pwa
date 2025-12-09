@@ -19,6 +19,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto, afterNavigate } from '$app/navigation';
+  import { base } from '$app/paths';
   import { ptState, ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
@@ -329,8 +330,8 @@
     // Store session ID in localStorage for player to read
     localStorage.setItem('pt-active-session-id', selectedSession.id.toString());
 
-    // Navigate to player
-    goto('/play');
+    // Navigate to player (with demo prefix and base path)
+    goto(`${base}/demo/play`);
   }
 
   function handleLogSession() {
@@ -417,8 +418,8 @@
     localStorage.setItem('pt-active-session-id', selectedSession.id.toString());
     localStorage.setItem('pt-active-session-instance-id', todaySessionInstance.id.toString());
 
-    // Navigate to player
-    goto('/play');
+    // Navigate to player (with demo prefix and base path)
+    goto(`${base}/demo/play`);
   }
 
   async function handleStartOver() {
