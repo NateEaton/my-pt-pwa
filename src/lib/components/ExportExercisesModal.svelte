@@ -37,10 +37,12 @@
 
   // Selection state - track which exercises are selected for export
   let selectedExerciseIds = new Set<number>();
+  let hasInitializedSelection = false;
 
-  // Initialize selection with all exercises when exercises change
-  $: if ($ptState.exercises.length > 0 && selectedExerciseIds.size === 0) {
+  // Initialize selection with all exercises only on first load
+  $: if ($ptState.exercises.length > 0 && !hasInitializedSelection) {
     selectedExerciseIds = new Set($ptState.exercises.map(ex => ex.id));
+    hasInitializedSelection = true;
   }
 
   $: exercisesCount = $ptState.exercises.length;
