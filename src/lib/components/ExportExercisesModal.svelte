@@ -35,6 +35,10 @@
   // Your existing state for format selection
   let selectedFormat: 'csv' | 'json' = 'csv';
 
+  // Selection mode: 'manual' or 'session'
+  let selectionMode: 'manual' | 'session' = 'manual';
+  let selectedSessionId: number | null = null;
+
   // Selection state - track which exercises are selected for export
   let selectedExerciseIds = new Set<number>();
   let hasInitializedSelection = false;
@@ -43,6 +47,14 @@
   $: if ($ptState.exercises.length > 0 && !hasInitializedSelection) {
     selectedExerciseIds = new Set($ptState.exercises.map(ex => ex.id));
     hasInitializedSelection = true;
+  }
+
+  // When session mode is selected and a session is chosen, select its exercises
+  $: if (selectionMode === 'session' && selectedSessionId !== null) {
+    const session = $ptState.sessionDefinitions.find(s => s.id === selectedSessionId);
+    if (session) {
+      selectedExerciseIds = new Set(session.exercises.map(ex => ex.exerciseId));
+    }
   }
 
   $: exercisesCount = $ptState.exercises.length;
@@ -81,7 +93,10 @@
       }
 
       if (selectedCount === 0) {
-        toastStore.show('Please select at least one exercise to export', 'error');
+        const message = selectionMode === 'session'
+          ? 'Please select a session with exercises'
+          : 'Please select at least one exercise to export';
+        toastStore.show(message, 'error');
         return;
       }
 
@@ -144,24 +159,70 @@
     <!-- Exercise Selection Section -->
     {#if exercisesCount > 0}
       <div class="selection-section">
-        <div class="selection-header">
-          <h3>Select Exercises to Export</h3>
-          <button
-            class="btn-text"
-            on:click={toggleAllSelection}
-            type="button"
-          >
-            {allSelected ? 'Deselect All' : 'Select All'}
-          </button>
+        <h3>Select Exercises to Export</h3>
+
+        <!-- Selection Mode Toggle -->
+        <div class="selection-mode">
+          <label class="mode-option" class:selected={selectionMode === 'manual'}>
+            <input
+              type="radio"
+              name="selectionMode"
+              value="manual"
+              bind:group={selectionMode}
+            />
+            <span class="material-icons">checklist</span>
+            <span>Manual Selection</span>
+          </label>
+
+          <label class="mode-option" class:selected={selectionMode === 'session'}>
+            <input
+              type="radio"
+              name="selectionMode"
+              value="session"
+              bind:group={selectionMode}
+            />
+            <span class="material-icons">view_list</span>
+            <span>From Session</span>
+          </label>
         </div>
 
+        <!-- Session Selector (shown when session mode is active) -->
+        {#if selectionMode === 'session'}
+          <div class="session-selector">
+            <label for="session-select">Choose a session:</label>
+            <select id="session-select" bind:value={selectedSessionId}>
+              <option value={null}>-- Select a session --</option>
+              {#each $ptState.sessionDefinitions as session (session.id)}
+                <option value={session.id}>
+                  {session.name} ({session.exercises.length} {session.exercises.length === 1 ? 'exercise' : 'exercises'})
+                </option>
+              {/each}
+            </select>
+          </div>
+        {/if}
+
+        <!-- Manual Selection Controls -->
+        {#if selectionMode === 'manual'}
+          <div class="selection-header">
+            <button
+              class="btn-text"
+              on:click={toggleAllSelection}
+              type="button"
+            >
+              {allSelected ? 'Deselect All' : 'Select All'}
+            </button>
+          </div>
+        {/if}
+
+        <!-- Exercise List (shown for both modes) -->
         <div class="exercise-list">
           {#each $ptState.exercises as exercise (exercise.id)}
-            <label class="exercise-item">
+            <label class="exercise-item" class:disabled={selectionMode === 'session'}>
               <input
                 type="checkbox"
                 checked={selectedExerciseIds.has(exercise.id)}
                 on:change={() => toggleExercise(exercise.id)}
+                disabled={selectionMode === 'session'}
               />
               <div class="exercise-info">
                 <span class="exercise-name">{exercise.name}</span>
@@ -466,17 +527,100 @@
     margin: 1.5rem 0;
   }
 
+  .selection-section > h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* Selection Mode Toggle */
+  .selection-mode {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .mode-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+  }
+
+  .mode-option:hover {
+    border-color: var(--primary-color);
+    background: var(--surface-variant);
+  }
+
+  .mode-option.selected {
+    border-color: var(--primary-color);
+    background: var(--primary-alpha-10);
+  }
+
+  .mode-option input[type='radio'] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .mode-option .material-icons {
+    font-size: 24px;
+    color: var(--primary-color);
+  }
+
+  .mode-option span:not(.material-icons) {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* Session Selector */
+  .session-selector {
+    margin-bottom: 1rem;
+  }
+
+  .session-selector label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .session-selector select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .session-selector select:hover {
+    border-color: var(--primary-color);
+  }
+
+  .session-selector select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-alpha-10);
+  }
+
   .selection-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     margin-bottom: 0.75rem;
-  }
-
-  .selection-header h3 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
   }
 
   .btn-text {
@@ -526,12 +670,25 @@
     background: var(--surface-variant);
   }
 
+  .exercise-item.disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .exercise-item.disabled:hover {
+    background: var(--surface);
+  }
+
   .exercise-item input[type='checkbox'] {
     width: 20px;
     height: 20px;
     cursor: pointer;
     flex-shrink: 0;
     accent-color: var(--primary-color);
+  }
+
+  .exercise-item input[type='checkbox']:disabled {
+    cursor: not-allowed;
   }
 
   .exercise-info {
