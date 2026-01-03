@@ -22,7 +22,7 @@
   import { ptState } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import { exportExercisesToCSV } from '$lib/utils/csvExercises';
-  import type { Exercise } from '$lib/types/pt';
+  import type { Exercise } from '$lib/types';
 
   const dispatch = createEventDispatcher();
 
@@ -31,14 +31,44 @@
   // 1. Define the timestamp and default filename
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
   let fileName = `my-pt-exercises-${timestamp}`;
-  
+
   // Your existing state for format selection
   let selectedFormat: 'csv' | 'json' = 'csv';
 
+  // Selection state - track which exercises are selected for export
+  let selectedExerciseIds = new Set<number>();
+
+  // Initialize selection with all exercises when exercises change
+  $: if ($ptState.exercises.length > 0 && selectedExerciseIds.size === 0) {
+    selectedExerciseIds = new Set($ptState.exercises.map(ex => ex.id));
+  }
+
   $: exercisesCount = $ptState.exercises.length;
+  $: selectedCount = selectedExerciseIds.size;
+  $: allSelected = selectedCount === exercisesCount && exercisesCount > 0;
 
   function handleClose() {
     dispatch('close');
+  }
+
+  function toggleAllSelection() {
+    if (allSelected) {
+      // Deselect all
+      selectedExerciseIds = new Set();
+    } else {
+      // Select all
+      selectedExerciseIds = new Set($ptState.exercises.map(ex => ex.id));
+    }
+  }
+
+  function toggleExercise(exerciseId: number) {
+    const newSet = new Set(selectedExerciseIds);
+    if (newSet.has(exerciseId)) {
+      newSet.delete(exerciseId);
+    } else {
+      newSet.add(exerciseId);
+    }
+    selectedExerciseIds = newSet;
   }
 
   async function handleExport() {
@@ -48,7 +78,13 @@
         return;
       }
 
-      const exercises = $ptState.exercises;
+      if (selectedCount === 0) {
+        toastStore.show('Please select at least one exercise to export', 'error');
+        return;
+      }
+
+      // Filter to only selected exercises
+      const exercises = $ptState.exercises.filter(ex => selectedExerciseIds.has(ex.id));
       let blob: Blob;
 
       // 2. Use 'fileName' (from the input) and 'selectedFormat' (from the radio buttons)
@@ -80,7 +116,7 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toastStore.show(`Exported ${exercisesCount} exercises`, 'success');
+      toastStore.show(`Exported ${selectedCount} ${selectedCount === 1 ? 'exercise' : 'exercises'}`, 'success');
       handleClose();
     } catch (error) {
       console.error('Failed to export exercises:', error);
@@ -98,10 +134,44 @@
     <div class="stats-card">
       <span class="material-icons">fitness_center</span>
       <div class="stats-info">
-        <span class="stats-value">{exercisesCount}</span>
-        <span class="stats-label">{exercisesCount === 1 ? 'exercise' : 'exercises'}</span>
+        <span class="stats-value">{selectedCount} of {exercisesCount}</span>
+        <span class="stats-label">{selectedCount === 1 ? 'exercise' : 'exercises'} selected</span>
       </div>
     </div>
+
+    <!-- Exercise Selection Section -->
+    {#if exercisesCount > 0}
+      <div class="selection-section">
+        <div class="selection-header">
+          <h3>Select Exercises to Export</h3>
+          <button
+            class="btn-text"
+            on:click={toggleAllSelection}
+            type="button"
+          >
+            {allSelected ? 'Deselect All' : 'Select All'}
+          </button>
+        </div>
+
+        <div class="exercise-list">
+          {#each $ptState.exercises as exercise (exercise.id)}
+            <label class="exercise-item">
+              <input
+                type="checkbox"
+                checked={selectedExerciseIds.has(exercise.id)}
+                on:change={() => toggleExercise(exercise.id)}
+              />
+              <div class="exercise-info">
+                <span class="exercise-name">{exercise.name}</span>
+                <span class="exercise-type-badge" class:duration={exercise.type === 'duration'}>
+                  {exercise.type}
+                </span>
+              </div>
+            </label>
+          {/each}
+        </div>
+      </div>
+    {/if}
 
     <!-- File Name Input Section -->
     <div class="input-section">
@@ -150,9 +220,13 @@
   
   <div slot="footer" class="modal-actions">
     <button class="btn btn-secondary" on:click={handleClose}>Cancel</button>
-    <button class="btn btn-primary" on:click={handleExport}>
+    <button
+      class="btn btn-primary"
+      on:click={handleExport}
+      disabled={selectedCount === 0}
+    >
       <span class="material-icons">file_download</span>
-      Export
+      Export {selectedCount > 0 ? `(${selectedCount})` : ''}
     </button>
   </div>
 </Modal>
@@ -383,6 +457,145 @@
     font-size: 0.75rem;
     color: var(--text-secondary);
     line-height: 1.4;
+  }
+
+  /* Exercise Selection Section */
+  .selection-section {
+    margin: 1.5rem 0;
+  }
+
+  .selection-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+
+  .selection-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .btn-text {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .btn-text:hover {
+    background: var(--primary-alpha-10);
+  }
+
+  .btn-text:active {
+    background: var(--primary-alpha-20);
+  }
+
+  .exercise-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  .exercise-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.15s;
+    min-height: 44px; /* Ensure minimum touch target */
+  }
+
+  .exercise-item:last-child {
+    border-bottom: none;
+  }
+
+  .exercise-item:hover {
+    background: var(--surface-variant);
+  }
+
+  .exercise-item input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+    accent-color: var(--primary-color);
+  }
+
+  .exercise-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0; /* Allow text to truncate */
+  }
+
+  .exercise-name {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+
+  .exercise-type-badge {
+    background: var(--primary-alpha-10);
+    color: var(--primary-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .exercise-type-badge.duration {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
+  }
+
+  .stats-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--surface-variant);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .stats-card .material-icons {
+    font-size: 32px;
+    color: var(--primary-color);
+  }
+
+  .stats-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stats-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+
+  .stats-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
   }
 
 </style>
