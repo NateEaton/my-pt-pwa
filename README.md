@@ -235,6 +235,16 @@ my-pt-pwa/
 
 While this is primarily a personal project, suggestions and feedback are welcome. Please open an issue for bugs or feature ideas.
 
+### Repository Branch Structure
+
+The repository uses the following branch structure:
+
+- **`main`**: Contains the latest version of the app with all new features and fixes that have been merged via pull request. This is the primary development branch.
+- **`stable`**: Production-ready release branch that is updated periodically from `main` when recent updates have been well-tested and proven stable. The demo version of the app is built from this branch.
+- **Other branches**: Active feature development branches or historical snapshots. These are typically prefixed with `claude/` for AI-assisted development or represent specific feature work.
+
+When using the app, it's recommended to deploy from the `stable` branch for production use, or from `main` if you want the latest features and are comfortable with more frequent updates.
+
 ---
 
 ## Acknowledgments
