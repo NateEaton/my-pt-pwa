@@ -361,9 +361,8 @@
   }
 
   .format-option input[type='radio'] {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
+    margin: 0;
+    cursor: pointer;
   }
 
   .format-details {
@@ -573,9 +572,8 @@
   }
 
   .mode-option input[type='radio'] {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
+    margin: 0;
+    cursor: pointer;
   }
 
   .mode-option .material-icons {
