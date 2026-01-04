@@ -528,7 +528,7 @@
   function calculateRepSetTotalDuration(exercise: Exercise): number {
     const reps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10;
     const sets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3;
-    const setupTime = exercise.defaultSetupTime ?? 0;
+    const setupTime = exercise.repHold ? (exercise.defaultSetupTime ?? 3) : 0;
     const repDuration = exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 30;
     const pauseBetweenReps = exercise.pauseBetweenReps ?? $ptState.settings?.defaultPauseBetweenReps ?? 5;
     const restBetweenSets = exercise.restBetweenSets ?? $ptState.settings?.restBetweenSets ?? 20;
@@ -537,20 +537,20 @@
     let totalDuration = 0;
 
     if (sideMode === 'bilateral') {
-      // Setup happens before each rep: sets × (reps × (setup + repDuration) + pauses between reps) + rest between sets
+      // If repHold, setup happens before each rep: sets × (reps × (setup + repDuration) + pauses between reps) + rest between sets
       const timePerSet = (reps * (setupTime + repDuration)) + ((reps - 1) * pauseBetweenReps);
       const totalRest = (sets - 1) * restBetweenSets;
       totalDuration = (sets * timePerSet) + totalRest;
 
     } else if (sideMode === 'unilateral') {
-      // Each set has 2 sides, setup happens before each rep on each side
+      // Each set has 2 sides, if repHold setup happens before each rep on each side
       const timePerSide = (reps * (setupTime + repDuration)) + ((reps - 1) * pauseBetweenReps);
       const timePerSet = timePerSide + restBetweenSets + timePerSide; // Left + rest + Right
       const totalRest = (sets - 1) * restBetweenSets; // Rest between sets
       totalDuration = (sets * timePerSet) + totalRest;
 
     } else if (sideMode === 'alternating') {
-      // Switches sides each rep, setup happens before each rep
+      // Switches sides each rep, if repHold setup happens before each rep
       // Total reps is reps × 2 (for both sides)
       const totalReps = reps * 2;
       const timePerSet = (totalReps * (setupTime + repDuration)) + ((totalReps - 1) * pauseBetweenReps);
@@ -712,12 +712,14 @@
   function startSetupPhase() {
     if (!currentExercise) return;
 
-    const setupTime = currentExercise.defaultSetupTime ?? 0;
-    if (setupTime <= 0) {
-      // No setup time, go directly to rep
+    // Only use setup phase if exercise is marked as "with hold"
+    if (!currentExercise.repHold) {
+      // No setup phase, go directly to rep
       startSingleRep();
       return;
     }
+
+    const setupTime = currentExercise.defaultSetupTime ?? 3;
 
     isInSetupPhase = true;
     setupRemainingSeconds = setupTime;

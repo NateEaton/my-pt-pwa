@@ -83,7 +83,8 @@
     defaultDuration: $ptState.settings?.defaultDuration || 60,
     defaultReps: $ptState.settings?.defaultReps || 10,
     defaultSets: $ptState.settings?.defaultSets || 3,
-    defaultSetupTime: 0, // Optional setup time (default 0 = no setup time)
+    repHold: false, // Whether exercise involves holding position
+    defaultSetupTime: 3, // Setup time in seconds (only used if repHold is true)
     defaultRepDuration: $ptState.settings?.defaultRepDuration || 30,
     pauseBetweenReps: $ptState.settings?.defaultPauseBetweenReps || 5,
     restBetweenSets: $ptState.settings?.restBetweenSets || 20,
@@ -160,7 +161,8 @@
       defaultDuration: exercise.defaultDuration || $ptState.settings?.defaultDuration || 60,
       defaultReps: exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10,
       defaultSets: exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3,
-      defaultSetupTime: exercise.defaultSetupTime ?? 0,
+      repHold: exercise.repHold ?? false,
+      defaultSetupTime: exercise.defaultSetupTime ?? 3,
       defaultRepDuration: exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 30,
       pauseBetweenReps: exercise.pauseBetweenReps ?? $ptState.settings?.defaultPauseBetweenReps ?? 5,
       restBetweenSets: exercise.restBetweenSets ?? $ptState.settings?.restBetweenSets ?? 20,
@@ -179,7 +181,8 @@
       defaultDuration: settings?.defaultDuration || 60,
       defaultReps: settings?.defaultReps || 10,
       defaultSets: settings?.defaultSets || 3,
-      defaultSetupTime: 0,
+      repHold: false,
+      defaultSetupTime: 3,
       defaultRepDuration: settings?.defaultRepDuration || 30,
       pauseBetweenReps: settings?.defaultPauseBetweenReps || 5,
       restBetweenSets: settings?.restBetweenSets || 20,
@@ -208,7 +211,8 @@
           defaultDuration: exerciseFormData.type === 'duration' ? exerciseFormData.defaultDuration : undefined,
           defaultReps: exerciseFormData.type === 'reps' ? exerciseFormData.defaultReps : undefined,
           defaultSets: exerciseFormData.type === 'reps' ? exerciseFormData.defaultSets : undefined,
-          defaultSetupTime: exerciseFormData.type === 'reps' && exerciseFormData.defaultSetupTime > 0 ? exerciseFormData.defaultSetupTime : undefined,
+          repHold: exerciseFormData.type === 'reps' && exerciseFormData.repHold ? true : undefined,
+          defaultSetupTime: exerciseFormData.type === 'reps' && exerciseFormData.repHold ? exerciseFormData.defaultSetupTime : undefined,
           defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
           pauseBetweenReps: exerciseFormData.type === 'reps' ? exerciseFormData.pauseBetweenReps : undefined,
           restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
@@ -225,7 +229,8 @@
           defaultDuration: exerciseFormData.type === 'duration' ? exerciseFormData.defaultDuration : undefined,
           defaultReps: exerciseFormData.type === 'reps' ? exerciseFormData.defaultReps : undefined,
           defaultSets: exerciseFormData.type === 'reps' ? exerciseFormData.defaultSets : undefined,
-          defaultSetupTime: exerciseFormData.type === 'reps' && exerciseFormData.defaultSetupTime > 0 ? exerciseFormData.defaultSetupTime : undefined,
+          repHold: exerciseFormData.type === 'reps' && exerciseFormData.repHold ? true : undefined,
+          defaultSetupTime: exerciseFormData.type === 'reps' && exerciseFormData.repHold ? exerciseFormData.defaultSetupTime : undefined,
           defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
           pauseBetweenReps: exerciseFormData.type === 'reps' ? exerciseFormData.pauseBetweenReps : undefined,
           restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
@@ -556,17 +561,21 @@
           </p>
         </div>
         <div class="form-group">
-          <label for="setup-time">Setup Time (optional)</label>
+          <label>
+            <input type="checkbox" bind:checked={exerciseFormData.repHold} />
+            With Hold
+          </label>
+        </div>
+        <div class="form-group" style="margin-left: 1.5rem;">
+          <label for="setup-time" class:disabled={!exerciseFormData.repHold}>Setup Time</label>
           <DurationInput
             id="setup-time"
             bind:value={exerciseFormData.defaultSetupTime}
-            min={0}
+            min={1}
             max={30}
             placeholder="MM:SS or seconds"
+            disabled={!exerciseFormData.repHold}
           />
-          <p class="help-text">
-            Time to get into position before each set starts. Useful for exercises with a hold period (e.g., 3 seconds to get into bridge position, then 10 seconds holding). Leave at 0 for no setup time.
-          </p>
         </div>
         <div class="form-group">
           <label for="rep-duration">Duration per Rep</label>
