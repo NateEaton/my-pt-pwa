@@ -1868,7 +1868,7 @@
             {/if}
           </div>
           <DisplayRow size="small">
-            Setup
+            Setup for Hold
           </DisplayRow>
         {:else if isPausingBetweenReps}
           <!-- Pause between reps: Big countdown on top -->

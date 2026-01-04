@@ -566,8 +566,8 @@
             With Hold
           </label>
         </div>
-        <div class="form-group" style="margin-left: 1.5rem;">
-          <label for="setup-time" class:disabled={!exerciseFormData.repHold}>Setup Time</label>
+        <div class="form-group" style="margin-left: 1.5rem;" class:disabled={!exerciseFormData.repHold}>
+          <label for="setup-time">Setup Time</label>
           <DurationInput
             id="setup-time"
             bind:value={exerciseFormData.defaultSetupTime}
@@ -578,7 +578,9 @@
           />
         </div>
         <div class="form-group">
-          <label for="rep-duration">Duration per Rep</label>
+          <label for="rep-duration">
+            {exerciseFormData.repHold ? 'Duration per Rep (Hold Time)' : 'Duration per Rep'}
+          </label>
           <DurationInput
             id="rep-duration"
             bind:value={exerciseFormData.defaultRepDuration}
@@ -980,6 +982,12 @@
     justify-content: flex-end;
     padding: var(--spacing-lg);
     border-top: 1px solid var(--divider);
+  }
+
+  /* Disabled form group style */
+  .form-group.disabled {
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   @media (max-width: 480px) {
