@@ -22,7 +22,7 @@
   import { ptState } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
   import { exportExercisesToCSV } from '$lib/utils/csvExercises';
-  import type { Exercise } from '$lib/types/pt';
+  import type { Exercise } from '$lib/types';
 
   const dispatch = createEventDispatcher();
 
@@ -31,14 +31,58 @@
   // 1. Define the timestamp and default filename
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
   let fileName = `my-pt-exercises-${timestamp}`;
-  
+
   // Your existing state for format selection
   let selectedFormat: 'csv' | 'json' = 'csv';
 
+  // Selection mode: 'manual' or 'session'
+  let selectionMode: 'manual' | 'session' = 'manual';
+  let selectedSessionId: number | null = null;
+
+  // Selection state - track which exercises are selected for export
+  let selectedExerciseIds = new Set<number>();
+  let hasInitializedSelection = false;
+
+  // Initialize selection with all exercises only on first load
+  $: if ($ptState.exercises.length > 0 && !hasInitializedSelection) {
+    selectedExerciseIds = new Set($ptState.exercises.map(ex => ex.id));
+    hasInitializedSelection = true;
+  }
+
+  // When session mode is selected and a session is chosen, select its exercises
+  $: if (selectionMode === 'session' && selectedSessionId !== null) {
+    const session = $ptState.sessionDefinitions.find(s => s.id === selectedSessionId);
+    if (session) {
+      selectedExerciseIds = new Set(session.exercises.map(ex => ex.exerciseId));
+    }
+  }
+
   $: exercisesCount = $ptState.exercises.length;
+  $: selectedCount = selectedExerciseIds.size;
+  $: allSelected = selectedCount === exercisesCount && exercisesCount > 0;
 
   function handleClose() {
     dispatch('close');
+  }
+
+  function toggleAllSelection() {
+    if (allSelected) {
+      // Deselect all
+      selectedExerciseIds = new Set();
+    } else {
+      // Select all
+      selectedExerciseIds = new Set($ptState.exercises.map(ex => ex.id));
+    }
+  }
+
+  function toggleExercise(exerciseId: number) {
+    const newSet = new Set(selectedExerciseIds);
+    if (newSet.has(exerciseId)) {
+      newSet.delete(exerciseId);
+    } else {
+      newSet.add(exerciseId);
+    }
+    selectedExerciseIds = newSet;
   }
 
   async function handleExport() {
@@ -48,7 +92,16 @@
         return;
       }
 
-      const exercises = $ptState.exercises;
+      if (selectedCount === 0) {
+        const message = selectionMode === 'session'
+          ? 'Please select a session with exercises'
+          : 'Please select at least one exercise to export';
+        toastStore.show(message, 'error');
+        return;
+      }
+
+      // Filter to only selected exercises
+      const exercises = $ptState.exercises.filter(ex => selectedExerciseIds.has(ex.id));
       let blob: Blob;
 
       // 2. Use 'fileName' (from the input) and 'selectedFormat' (from the radio buttons)
@@ -80,7 +133,7 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toastStore.show(`Exported ${exercisesCount} exercises`, 'success');
+      toastStore.show(`Exported ${selectedCount} ${selectedCount === 1 ? 'exercise' : 'exercises'}`, 'success');
       handleClose();
     } catch (error) {
       console.error('Failed to export exercises:', error);
@@ -98,10 +151,90 @@
     <div class="stats-card">
       <span class="material-icons">fitness_center</span>
       <div class="stats-info">
-        <span class="stats-value">{exercisesCount}</span>
-        <span class="stats-label">{exercisesCount === 1 ? 'exercise' : 'exercises'}</span>
+        <span class="stats-value">{selectedCount} of {exercisesCount}</span>
+        <span class="stats-label">{selectedCount === 1 ? 'exercise' : 'exercises'} selected</span>
       </div>
     </div>
+
+    <!-- Exercise Selection Section -->
+    {#if exercisesCount > 0}
+      <div class="selection-section">
+        <h3>Select Exercises to Export</h3>
+
+        <!-- Selection Mode Toggle -->
+        <div class="selection-mode">
+          <label class="mode-option" class:selected={selectionMode === 'manual'}>
+            <input
+              type="radio"
+              name="selectionMode"
+              value="manual"
+              bind:group={selectionMode}
+            />
+            <span class="material-icons">checklist</span>
+            <span>Manual Selection</span>
+          </label>
+
+          <label class="mode-option" class:selected={selectionMode === 'session'}>
+            <input
+              type="radio"
+              name="selectionMode"
+              value="session"
+              bind:group={selectionMode}
+            />
+            <span class="material-icons">view_list</span>
+            <span>From Session</span>
+          </label>
+        </div>
+
+        <!-- Session Selector (shown when session mode is active) -->
+        {#if selectionMode === 'session'}
+          <div class="session-selector">
+            <label for="session-select">Choose a session:</label>
+            <select id="session-select" bind:value={selectedSessionId}>
+              <option value={null}>-- Select a session --</option>
+              {#each $ptState.sessionDefinitions as session (session.id)}
+                <option value={session.id}>
+                  {session.name} ({session.exercises.length} {session.exercises.length === 1 ? 'exercise' : 'exercises'})
+                </option>
+              {/each}
+            </select>
+          </div>
+        {/if}
+
+        <!-- Manual Selection Controls -->
+        {#if selectionMode === 'manual'}
+          <div class="selection-header">
+            <button
+              class="btn-text"
+              on:click={toggleAllSelection}
+              type="button"
+            >
+              {allSelected ? 'Deselect All' : 'Select All'}
+            </button>
+          </div>
+        {/if}
+
+        <!-- Exercise List (shown for both modes) -->
+        <div class="exercise-list">
+          {#each $ptState.exercises as exercise (exercise.id)}
+            <label class="exercise-item" class:disabled={selectionMode === 'session'}>
+              <input
+                type="checkbox"
+                checked={selectedExerciseIds.has(exercise.id)}
+                on:change={() => toggleExercise(exercise.id)}
+                disabled={selectionMode === 'session'}
+              />
+              <div class="exercise-info">
+                <span class="exercise-name">{exercise.name}</span>
+                <span class="exercise-type-badge" class:duration={exercise.type === 'duration'}>
+                  {exercise.type}
+                </span>
+              </div>
+            </label>
+          {/each}
+        </div>
+      </div>
+    {/if}
 
     <!-- File Name Input Section -->
     <div class="input-section">
@@ -129,19 +262,23 @@
     <div class="format-options">
       <label class="format-option" class:selected={selectedFormat === 'csv'}>
         <input type="radio" name="format" value="csv" bind:group={selectedFormat} />
-        <span class="material-icons">table_chart</span>
         <div class="format-details">
-          <strong>CSV (Spreadsheet)</strong>
-          <span>Best for editing in Excel or Google Sheets. Easy to review and share.</span>
+          <div class="format-header">
+            <span class="material-icons">table_chart</span>
+            <strong>CSV (Spreadsheet)</strong>
+          </div>
+          <span class="format-description">Best for editing in Excel or Google Sheets. Easy to review and share.</span>
         </div>
       </label>
 
       <label class="format-option" class:selected={selectedFormat === 'json'}>
         <input type="radio" name="format" value="json" bind:group={selectedFormat} />
-        <span class="material-icons">code</span>
         <div class="format-details">
-          <strong>JSON (App Format)</strong>
-          <span>Technical format preserving all data structure. For developers.</span>
+          <div class="format-header">
+            <span class="material-icons">code</span>
+            <strong>JSON (App Format)</strong>
+          </div>
+          <span class="format-description">Technical format preserving all data structure. For developers.</span>
         </div>
       </label>
     </div>
@@ -150,16 +287,21 @@
   
   <div slot="footer" class="modal-actions">
     <button class="btn btn-secondary" on:click={handleClose}>Cancel</button>
-    <button class="btn btn-primary" on:click={handleExport}>
+    <button
+      class="btn btn-primary"
+      on:click={handleExport}
+      disabled={selectedCount === 0}
+    >
       <span class="material-icons">file_download</span>
-      Export
+      Export {selectedCount > 0 ? `(${selectedCount})` : ''}
     </button>
   </div>
 </Modal>
 
 <style>
   .export-content {
-    padding: 0 1rem 1rem;
+    /* No padding needed - Modal's .modal-body already provides padding */
+    /* Let content be its natural height - modal-body handles scrolling */
   }
 
   .modal-description {
@@ -201,7 +343,9 @@
   }
 
   .format-option {
-    display: block;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
     border: 2px solid var(--border-color);
     border-radius: 12px;
     padding: 1rem;
@@ -221,37 +365,38 @@
   }
 
   .format-option input[type='radio'] {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
+    margin-top: 0.125rem;
+    cursor: pointer;
+    flex-shrink: 0;
   }
 
   .format-details {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    flex: 1;
   }
 
   .format-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
 
   .format-header .material-icons {
     color: var(--primary-color);
-    font-size: 24px;
+    font-size: 20px;
   }
 
-  .format-name {
+  .format-header strong {
     font-weight: 600;
     font-size: 1rem;
+    color: var(--text-primary);
   }
 
   .format-description {
     color: var(--text-secondary);
     font-size: 0.875rem;
-    margin: 0;
     line-height: 1.4;
   }
 
@@ -290,8 +435,6 @@
   .modal-actions {
     display: flex;
     gap: 0.75rem;
-    padding: 1rem;
-    border-top: 1px solid var(--border-color);
   }
 
   .btn {
@@ -383,6 +526,241 @@
     font-size: 0.75rem;
     color: var(--text-secondary);
     line-height: 1.4;
+  }
+
+  /* Exercise Selection Section */
+  .selection-section {
+    margin: 1.5rem 0;
+  }
+
+  .selection-section > h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* Selection Mode Toggle */
+  .selection-mode {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .mode-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+  }
+
+  .mode-option:hover {
+    border-color: var(--primary-color);
+    background: var(--surface-variant);
+  }
+
+  .mode-option.selected {
+    border-color: var(--primary-color);
+    background: var(--primary-alpha-10);
+  }
+
+  .mode-option input[type='radio'] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .mode-option .material-icons {
+    font-size: 24px;
+    color: var(--primary-color);
+  }
+
+  .mode-option span:not(.material-icons) {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* Session Selector */
+  .session-selector {
+    margin-bottom: 1rem;
+  }
+
+  .session-selector label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .session-selector select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .session-selector select:hover {
+    border-color: var(--primary-color);
+  }
+
+  .session-selector select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-alpha-10);
+  }
+
+  .selection-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 0.75rem;
+  }
+
+  .btn-text {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .btn-text:hover {
+    background: var(--primary-alpha-10);
+  }
+
+  .btn-text:active {
+    background: var(--primary-alpha-20);
+  }
+
+  .exercise-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  .exercise-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.15s;
+    min-height: 44px; /* Ensure minimum touch target */
+  }
+
+  .exercise-item:last-child {
+    border-bottom: none;
+  }
+
+  .exercise-item:hover {
+    background: var(--surface-variant);
+  }
+
+  .exercise-item.disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .exercise-item.disabled:hover {
+    background: var(--surface);
+  }
+
+  .exercise-item input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+    accent-color: var(--primary-color);
+  }
+
+  .exercise-item input[type='checkbox']:disabled {
+    cursor: not-allowed;
+  }
+
+  .exercise-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0; /* Allow text to truncate */
+  }
+
+  .exercise-name {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+
+  .exercise-type-badge {
+    background: var(--primary-alpha-10);
+    color: var(--primary-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .exercise-type-badge.duration {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
+  }
+
+  .stats-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--surface-variant);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .stats-card .material-icons {
+    font-size: 32px;
+    color: var(--primary-color);
+  }
+
+  .stats-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stats-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+
+  .stats-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
   }
 
 </style>
