@@ -338,7 +338,9 @@
   }
 
   .format-option {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     border: 2px solid var(--border-color);
     border-radius: 12px;
     padding: 1rem;
@@ -367,6 +369,13 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    flex: 1;
+  }
+
+  .format-option .material-icons {
+    color: var(--primary-color);
+    font-size: 24px;
+    flex-shrink: 0;
   }
 
   .format-header {
