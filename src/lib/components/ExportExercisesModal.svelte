@@ -436,6 +436,8 @@
   .modal-actions {
     display: flex;
     gap: 0.75rem;
+    align-items: center;
+    width: 100%;
   }
 
   .btn {
@@ -451,6 +453,8 @@
     justify-content: center;
     gap: 0.5rem;
     transition: all 0.2s;
+    min-height: 44px;
+    max-height: 48px;
   }
 
   .btn-secondary {
