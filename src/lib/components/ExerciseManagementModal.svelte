@@ -83,6 +83,7 @@
     defaultDuration: $ptState.settings?.defaultDuration || 60,
     defaultReps: $ptState.settings?.defaultReps || 10,
     defaultSets: $ptState.settings?.defaultSets || 3,
+    defaultSetupTime: 0, // Optional setup time (default 0 = no setup time)
     defaultRepDuration: $ptState.settings?.defaultRepDuration || 30,
     pauseBetweenReps: $ptState.settings?.defaultPauseBetweenReps || 5,
     restBetweenSets: $ptState.settings?.restBetweenSets || 20,
@@ -159,6 +160,7 @@
       defaultDuration: exercise.defaultDuration || $ptState.settings?.defaultDuration || 60,
       defaultReps: exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10,
       defaultSets: exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3,
+      defaultSetupTime: exercise.defaultSetupTime ?? 0,
       defaultRepDuration: exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 30,
       pauseBetweenReps: exercise.pauseBetweenReps ?? $ptState.settings?.defaultPauseBetweenReps ?? 5,
       restBetweenSets: exercise.restBetweenSets ?? $ptState.settings?.restBetweenSets ?? 20,
@@ -177,6 +179,7 @@
       defaultDuration: settings?.defaultDuration || 60,
       defaultReps: settings?.defaultReps || 10,
       defaultSets: settings?.defaultSets || 3,
+      defaultSetupTime: 0,
       defaultRepDuration: settings?.defaultRepDuration || 30,
       pauseBetweenReps: settings?.defaultPauseBetweenReps || 5,
       restBetweenSets: settings?.restBetweenSets || 20,
@@ -205,6 +208,7 @@
           defaultDuration: exerciseFormData.type === 'duration' ? exerciseFormData.defaultDuration : undefined,
           defaultReps: exerciseFormData.type === 'reps' ? exerciseFormData.defaultReps : undefined,
           defaultSets: exerciseFormData.type === 'reps' ? exerciseFormData.defaultSets : undefined,
+          defaultSetupTime: exerciseFormData.type === 'reps' && exerciseFormData.defaultSetupTime > 0 ? exerciseFormData.defaultSetupTime : undefined,
           defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
           pauseBetweenReps: exerciseFormData.type === 'reps' ? exerciseFormData.pauseBetweenReps : undefined,
           restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
@@ -221,6 +225,7 @@
           defaultDuration: exerciseFormData.type === 'duration' ? exerciseFormData.defaultDuration : undefined,
           defaultReps: exerciseFormData.type === 'reps' ? exerciseFormData.defaultReps : undefined,
           defaultSets: exerciseFormData.type === 'reps' ? exerciseFormData.defaultSets : undefined,
+          defaultSetupTime: exerciseFormData.type === 'reps' && exerciseFormData.defaultSetupTime > 0 ? exerciseFormData.defaultSetupTime : undefined,
           defaultRepDuration: exerciseFormData.type === 'reps' ? exerciseFormData.defaultRepDuration : undefined,
           pauseBetweenReps: exerciseFormData.type === 'reps' ? exerciseFormData.pauseBetweenReps : undefined,
           restBetweenSets: exerciseFormData.type === 'reps' ? exerciseFormData.restBetweenSets : undefined,
@@ -548,6 +553,19 @@
             <strong>Bilateral:</strong> Standard exercise<br>
             <strong>Unilateral:</strong> Perform all reps on one side, then all reps on the other<br>
             <strong>Alternating:</strong> Switch left-right with each rep
+          </p>
+        </div>
+        <div class="form-group">
+          <label for="setup-time">Setup Time (optional)</label>
+          <DurationInput
+            id="setup-time"
+            bind:value={exerciseFormData.defaultSetupTime}
+            min={0}
+            max={30}
+            placeholder="MM:SS or seconds"
+          />
+          <p class="help-text">
+            Time to get into position before each set starts. Useful for exercises with a hold period (e.g., 3 seconds to get into bridge position, then 10 seconds holding). Leave at 0 for no setup time.
           </p>
         </div>
         <div class="form-group">
