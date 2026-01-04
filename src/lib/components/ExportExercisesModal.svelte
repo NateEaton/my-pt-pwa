@@ -262,19 +262,23 @@
     <div class="format-options">
       <label class="format-option" class:selected={selectedFormat === 'csv'}>
         <input type="radio" name="format" value="csv" bind:group={selectedFormat} />
-        <span class="material-icons">table_chart</span>
         <div class="format-details">
-          <strong>CSV (Spreadsheet)</strong>
-          <span>Best for editing in Excel or Google Sheets. Easy to review and share.</span>
+          <div class="format-header">
+            <span class="material-icons">table_chart</span>
+            <strong>CSV (Spreadsheet)</strong>
+          </div>
+          <span class="format-description">Best for editing in Excel or Google Sheets. Easy to review and share.</span>
         </div>
       </label>
 
       <label class="format-option" class:selected={selectedFormat === 'json'}>
         <input type="radio" name="format" value="json" bind:group={selectedFormat} />
-        <span class="material-icons">code</span>
         <div class="format-details">
-          <strong>JSON (App Format)</strong>
-          <span>Technical format preserving all data structure. For developers.</span>
+          <div class="format-header">
+            <span class="material-icons">code</span>
+            <strong>JSON (App Format)</strong>
+          </div>
+          <span class="format-description">Technical format preserving all data structure. For developers.</span>
         </div>
       </label>
     </div>
@@ -340,7 +344,7 @@
 
   .format-option {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.75rem;
     border: 2px solid var(--border-color);
     border-radius: 12px;
@@ -361,8 +365,9 @@
   }
 
   .format-option input[type='radio'] {
-    margin: 0;
+    margin-top: 0.125rem;
     cursor: pointer;
+    flex-shrink: 0;
   }
 
   .format-details {
@@ -372,32 +377,26 @@
     flex: 1;
   }
 
-  .format-option .material-icons {
-    color: var(--primary-color);
-    font-size: 24px;
-    flex-shrink: 0;
-  }
-
   .format-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
 
   .format-header .material-icons {
     color: var(--primary-color);
-    font-size: 24px;
+    font-size: 20px;
   }
 
-  .format-name {
+  .format-header strong {
     font-weight: 600;
     font-size: 1rem;
+    color: var(--text-primary);
   }
 
   .format-description {
     color: var(--text-secondary);
     font-size: 0.875rem;
-    margin: 0;
     line-height: 1.4;
   }
 
@@ -572,8 +571,9 @@
   }
 
   .mode-option input[type='radio'] {
-    margin: 0;
-    cursor: pointer;
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
   }
 
   .mode-option .material-icons {
