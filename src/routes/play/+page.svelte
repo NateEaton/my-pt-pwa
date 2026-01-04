@@ -537,24 +537,23 @@
     let totalDuration = 0;
 
     if (sideMode === 'bilateral') {
-      // Simple: sets × (setup + reps × repDuration + pauses between reps) + rest between sets
-      const timePerSet = setupTime + (reps * repDuration) + ((reps - 1) * pauseBetweenReps);
+      // Setup happens before each rep: sets × (reps × (setup + repDuration) + pauses between reps) + rest between sets
+      const timePerSet = (reps * (setupTime + repDuration)) + ((reps - 1) * pauseBetweenReps);
       const totalRest = (sets - 1) * restBetweenSets;
       totalDuration = (sets * timePerSet) + totalRest;
 
     } else if (sideMode === 'unilateral') {
-      // Each set has: setup, left full set, rest, right full set, rest (between sets)
-      // Setup happens once per set (before first side)
-      const timePerSide = (reps * repDuration) + ((reps - 1) * pauseBetweenReps);
-      const timePerSet = setupTime + timePerSide + restBetweenSets + timePerSide; // Setup + Left + rest + Right
+      // Each set has 2 sides, setup happens before each rep on each side
+      const timePerSide = (reps * (setupTime + repDuration)) + ((reps - 1) * pauseBetweenReps);
+      const timePerSet = timePerSide + restBetweenSets + timePerSide; // Left + rest + Right
       const totalRest = (sets - 1) * restBetweenSets; // Rest between sets
       totalDuration = (sets * timePerSet) + totalRest;
 
     } else if (sideMode === 'alternating') {
-      // Switches sides each rep: total reps is reps × 2 (for both sides)
-      // Setup happens once per set (before first rep)
+      // Switches sides each rep, setup happens before each rep
+      // Total reps is reps × 2 (for both sides)
       const totalReps = reps * 2;
-      const timePerSet = setupTime + (totalReps * repDuration) + ((totalReps - 1) * pauseBetweenReps);
+      const timePerSet = (totalReps * (setupTime + repDuration)) + ((totalReps - 1) * pauseBetweenReps);
       const totalRest = (sets - 1) * restBetweenSets;
       totalDuration = (sets * timePerSet) + totalRest;
     }
@@ -715,8 +714,8 @@
 
     const setupTime = currentExercise.defaultSetupTime ?? 0;
     if (setupTime <= 0) {
-      // No setup time, go directly to reps
-      startRepsExerciseAfterSetup();
+      // No setup time, go directly to rep
+      startSingleRep();
       return;
     }
 
@@ -746,9 +745,9 @@
           audioService.onRestEnd();
         }
 
-        // Small delay before starting first rep
+        // Small delay before starting rep
         setTimeout(() => {
-          startRepsExerciseAfterSetup();
+          startSingleRep();
         }, 300);
       }
     }, 1000);
@@ -757,21 +756,23 @@
   function startRepsExercise() {
     if (!currentExercise) return;
 
-    // Check if we need setup time before first rep of the set
-    const setupTime = currentExercise.defaultSetupTime ?? 0;
-    const isFirstRepOfSet = currentRep === 1 && exerciseElapsedSeconds === 0;
+    // Initialize counters if starting fresh
+    if (exerciseElapsedSeconds === 0) {
+      repElapsedSeconds = 0;
+      isPausingBetweenReps = false;
 
-    if (setupTime > 0 && isFirstRepOfSet) {
-      // Start setup phase first
-      startSetupPhase();
-      return;
+      // Start time-based progress tracking
+      if (exerciseStartTimeMs === 0) {
+        exerciseStartTimeMs = Date.now();
+        startProgressUpdates();
+      }
     }
 
-    // No setup needed, start reps directly
-    startRepsExerciseAfterSetup();
+    // Always start with setup phase before each rep
+    startSetupPhase();
   }
 
-  function startRepsExerciseAfterSetup() {
+  function startSingleRep() {
     if (!currentExercise) return;
 
     const exercise = currentExercise; // Store in local const to satisfy TypeScript null checks
@@ -955,10 +956,9 @@
               isPausingBetweenReps = false;
               repElapsedSeconds = 0;
 
-              // Play start tone for next rep
-              if (shouldPlayAudio()) {
-                audioService.onRepStart();
-              }
+              // Clear timer and start setup phase for next rep
+              clearInterval(exerciseTimerInterval);
+              startSetupPhase();
             }
           }, 1000);
         }
@@ -1137,10 +1137,9 @@
               isPausingBetweenReps = false;
               repElapsedSeconds = 0;
 
-              // Play start tone for next rep
-              if (shouldPlayAudio()) {
-                audioService.onRepStart();
-              }
+              // Clear timer and start setup phase for next rep
+              clearInterval(exerciseTimerInterval);
+              startSetupPhase();
             }
           }, 1000);
         }
@@ -1750,7 +1749,7 @@
 
     <!-- Main display area with fixed height container -->
     <div class="main-display-area">
-    {#key `${timerState}-${currentExerciseIndex}-${currentSet}-${currentRep}-${isPausingBetweenReps}`}
+    {#key `${timerState}-${currentExerciseIndex}-${currentSet}-${currentRep}-${isPausingBetweenReps}-${isInSetupPhase}`}
     {#if timerState === 'preparing'}
       <!-- Preparing: Show countdown and resting label -->
       <div class="display-row-with-indicators">
