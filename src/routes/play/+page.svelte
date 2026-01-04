@@ -723,9 +723,9 @@
     setupRemainingSeconds = setupTime;
     timerState = 'active';
 
-    // Play start tone for setup (same as start of duration tone)
+    // Play duration start tone for setup (distinct from rep start tone)
     if (shouldPlayAudio()) {
-      audioService.onRepStart();
+      audioService.onDurationStart();
     }
 
     // Clear any existing setup interval
