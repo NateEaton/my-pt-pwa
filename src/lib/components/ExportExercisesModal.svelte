@@ -297,6 +297,9 @@
 <style>
   .export-content {
     /* No padding needed - Modal's .modal-body already provides padding */
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
   }
 
   .modal-description {
