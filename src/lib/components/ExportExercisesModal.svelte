@@ -436,8 +436,7 @@
   .modal-actions {
     display: flex;
     gap: 0.75rem;
-    align-items: center;
-    width: 100%;
+    flex: 1;
   }
 
   .btn {
