@@ -723,9 +723,9 @@
     setupRemainingSeconds = setupTime;
     timerState = 'active';
 
-    // Play rest start tone for setup (same audio cue as transition)
-    if (shouldPlayAudio() && $ptState.settings?.audioRestCuesEnabled) {
-      audioService.onRestStart();
+    // Play start tone for setup (same as start of duration tone)
+    if (shouldPlayAudio()) {
+      audioService.onRepStart();
     }
 
     // Clear any existing setup interval
@@ -739,11 +739,6 @@
         clearInterval(setupInterval);
         setupInterval = undefined;
         isInSetupPhase = false;
-
-        // Play setup end tone
-        if (shouldPlayAudio() && $ptState.settings?.audioRestCuesEnabled) {
-          audioService.onRestEnd();
-        }
 
         // Small delay before starting rep
         setTimeout(() => {
