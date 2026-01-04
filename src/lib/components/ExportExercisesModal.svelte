@@ -296,7 +296,7 @@
 
 <style>
   .export-content {
-    padding: 0 1rem 1rem;
+    /* No padding needed - Modal's .modal-body already provides padding */
   }
 
   .modal-description {
@@ -427,8 +427,6 @@
   .modal-actions {
     display: flex;
     gap: 0.75rem;
-    padding: 1rem;
-    border-top: 1px solid var(--border-color);
   }
 
   .btn {
