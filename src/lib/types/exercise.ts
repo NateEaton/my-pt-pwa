@@ -35,6 +35,8 @@ export interface Exercise {
   // Reps/sets-based exercise properties
   defaultReps?: number;
   defaultSets?: number;
+  repHold?: boolean; // true if exercise involves holding position (enables setup time)
+  defaultSetupTime?: number; // seconds to get into position before each rep (only used if repHold is true)
   defaultRepDuration?: number; // seconds per rep for timing calculations
   pauseBetweenReps?: number; // seconds of pause between individual reps (default 0.5)
   restBetweenSets?: number; // seconds of rest between sets (optional override)

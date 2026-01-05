@@ -59,6 +59,9 @@
   let preparingSeconds = 0; // Countdown for preparing/transition between exercises
   let preparingInterval: number | undefined;
   let pauseInterval: number | undefined;
+  let isInSetupPhase = false; // Track if in setup phase (getting into position)
+  let setupRemainingSeconds = 0; // Countdown for setup time
+  let setupInterval: number | undefined;
 
   // Time-based progress tracking for smooth visual feedback
   let exerciseStartTimeMs = 0; // Timestamp when current exercise started (milliseconds)
@@ -382,6 +385,7 @@
     clearTimers();
     if (preparingInterval) clearInterval(preparingInterval);
     if (pauseInterval) clearInterval(pauseInterval);
+    if (setupInterval) clearInterval(setupInterval);
     releaseWakeLock();
     exitFullscreen();
 
@@ -497,6 +501,7 @@
     if (exerciseTimerInterval) clearInterval(exerciseTimerInterval);
     if (preparingInterval) clearInterval(preparingInterval);
     if (pauseInterval) clearInterval(pauseInterval);
+    if (setupInterval) clearInterval(setupInterval);
     stopProgressUpdates();
   }
 
@@ -518,11 +523,12 @@
 
   /**
    * Calculate total expected duration for rep/set exercise (in seconds)
-   * Accounts for reps, sets, pauses, rest, and side modes
+   * Accounts for reps, sets, pauses, rest, side modes, and setup time
    */
   function calculateRepSetTotalDuration(exercise: Exercise): number {
     const reps = exercise.defaultReps ?? $ptState.settings?.defaultReps ?? 10;
     const sets = exercise.defaultSets ?? $ptState.settings?.defaultSets ?? 3;
+    const setupTime = exercise.repHold ? (exercise.defaultSetupTime ?? 3) : 0;
     const repDuration = exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 30;
     const pauseBetweenReps = exercise.pauseBetweenReps ?? $ptState.settings?.defaultPauseBetweenReps ?? 5;
     const restBetweenSets = exercise.restBetweenSets ?? $ptState.settings?.restBetweenSets ?? 20;
@@ -531,22 +537,23 @@
     let totalDuration = 0;
 
     if (sideMode === 'bilateral') {
-      // Simple: sets × (reps × repDuration + pauses between reps) + rest between sets
-      const timePerSet = (reps * repDuration) + ((reps - 1) * pauseBetweenReps);
+      // If repHold, setup happens before each rep: sets × (reps × (setup + repDuration) + pauses between reps) + rest between sets
+      const timePerSet = (reps * (setupTime + repDuration)) + ((reps - 1) * pauseBetweenReps);
       const totalRest = (sets - 1) * restBetweenSets;
       totalDuration = (sets * timePerSet) + totalRest;
 
     } else if (sideMode === 'unilateral') {
-      // Each set has 2 sides: left full set, rest, right full set, rest (between sets)
-      const timePerSide = (reps * repDuration) + ((reps - 1) * pauseBetweenReps);
+      // Each set has 2 sides, if repHold setup happens before each rep on each side
+      const timePerSide = (reps * (setupTime + repDuration)) + ((reps - 1) * pauseBetweenReps);
       const timePerSet = timePerSide + restBetweenSets + timePerSide; // Left + rest + Right
       const totalRest = (sets - 1) * restBetweenSets; // Rest between sets
       totalDuration = (sets * timePerSet) + totalRest;
 
     } else if (sideMode === 'alternating') {
-      // Switches sides each rep: total reps is reps × 2 (for both sides)
+      // Switches sides each rep, if repHold setup happens before each rep
+      // Total reps is reps × 2 (for both sides)
       const totalReps = reps * 2;
-      const timePerSet = (totalReps * repDuration) + ((totalReps - 1) * pauseBetweenReps);
+      const timePerSet = (totalReps * (setupTime + repDuration)) + ((totalReps - 1) * pauseBetweenReps);
       const totalRest = (sets - 1) * restBetweenSets;
       totalDuration = (sets * timePerSet) + totalRest;
     }
@@ -702,7 +709,67 @@
     }, 1000);
   }
 
+  function startSetupPhase() {
+    if (!currentExercise) return;
+
+    // Only use setup phase if exercise is marked as "with hold"
+    if (!currentExercise.repHold) {
+      // No setup phase, go directly to rep
+      startSingleRep();
+      return;
+    }
+
+    const setupTime = currentExercise.defaultSetupTime ?? 3;
+
+    isInSetupPhase = true;
+    setupRemainingSeconds = setupTime;
+    timerState = 'active';
+
+    // Play duration start tone for setup (distinct from rep start tone)
+    if (shouldPlayAudio()) {
+      audioService.onDurationStart();
+    }
+
+    // Clear any existing setup interval
+    if (setupInterval) clearInterval(setupInterval);
+
+    // Countdown interval for setup phase
+    setupInterval = window.setInterval(() => {
+      setupRemainingSeconds--;
+
+      if (setupRemainingSeconds <= 0) {
+        clearInterval(setupInterval);
+        setupInterval = undefined;
+        isInSetupPhase = false;
+
+        // Small delay before starting rep
+        setTimeout(() => {
+          startSingleRep();
+        }, 300);
+      }
+    }, 1000);
+  }
+
   function startRepsExercise() {
+    if (!currentExercise) return;
+
+    // Initialize counters if starting fresh
+    if (exerciseElapsedSeconds === 0) {
+      repElapsedSeconds = 0;
+      isPausingBetweenReps = false;
+
+      // Start time-based progress tracking
+      if (exerciseStartTimeMs === 0) {
+        exerciseStartTimeMs = Date.now();
+        startProgressUpdates();
+      }
+    }
+
+    // Always start with setup phase before each rep
+    startSetupPhase();
+  }
+
+  function startSingleRep() {
     if (!currentExercise) return;
 
     const exercise = currentExercise; // Store in local const to satisfy TypeScript null checks
@@ -711,10 +778,11 @@
     const repDuration = exercise.defaultRepDuration ?? $ptState.settings?.defaultRepDuration ?? 2;
     const sideMode = exercise.sideMode || 'bilateral';
 
-    // Reset counters when starting fresh
-    exerciseElapsedSeconds = 0;
-    repElapsedSeconds = 0;
-    isPausingBetweenReps = false;
+    // Reset counters when starting fresh (only if not already set by setup phase)
+    if (exerciseElapsedSeconds === 0) {
+      repElapsedSeconds = 0;
+      isPausingBetweenReps = false;
+    }
 
     // Start time-based progress tracking for smooth visual feedback
     // Only set start time if not already set (i.e., first time starting, not resuming from rest)
@@ -885,10 +953,9 @@
               isPausingBetweenReps = false;
               repElapsedSeconds = 0;
 
-              // Play start tone for next rep
-              if (shouldPlayAudio()) {
-                audioService.onRepStart();
-              }
+              // Clear timer and start setup phase for next rep
+              clearInterval(exerciseTimerInterval);
+              startSetupPhase();
             }
           }, 1000);
         }
@@ -1067,10 +1134,9 @@
               isPausingBetweenReps = false;
               repElapsedSeconds = 0;
 
-              // Play start tone for next rep
-              if (shouldPlayAudio()) {
-                audioService.onRepStart();
-              }
+              // Clear timer and start setup phase for next rep
+              clearInterval(exerciseTimerInterval);
+              startSetupPhase();
             }
           }, 1000);
         }
@@ -1680,7 +1746,7 @@
 
     <!-- Main display area with fixed height container -->
     <div class="main-display-area">
-    {#key `${timerState}-${currentExerciseIndex}-${currentSet}-${currentRep}-${isPausingBetweenReps}`}
+    {#key `${timerState}-${currentExerciseIndex}-${currentSet}-${currentRep}-${isPausingBetweenReps}-${isInSetupPhase}`}
     {#if timerState === 'preparing'}
       <!-- Preparing: Show countdown and resting label -->
       <div class="display-row-with-indicators">
@@ -1784,7 +1850,27 @@
         </DisplayRow>
       {:else}
         <!-- Active Reps Exercise -->
-        {#if isPausingBetweenReps}
+        {#if isInSetupPhase}
+          <!-- Setup phase: Getting into position - Big countdown on top -->
+          <div class="display-row-with-indicators">
+            {#if currentSide}
+              <div class="side-indicator-left">
+                <SideIndicator side="left" active={currentSide === 'left' && timerState === 'active' && !isInSetupPhase} />
+              </div>
+            {/if}
+            <DisplayRow size="big">
+              {setupRemainingSeconds}
+            </DisplayRow>
+            {#if currentSide}
+              <div class="side-indicator-right">
+                <SideIndicator side="right" active={currentSide === 'right' && timerState === 'active' && !isInSetupPhase} />
+              </div>
+            {/if}
+          </div>
+          <DisplayRow size="small">
+            Setup for Hold
+          </DisplayRow>
+        {:else if isPausingBetweenReps}
           <!-- Pause between reps: Big countdown on top -->
           <div class="display-row-with-indicators">
             {#if currentSide}

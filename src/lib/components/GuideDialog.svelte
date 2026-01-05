@@ -235,6 +235,20 @@
             </ul>
           </li>
           <li>
+            <strong>With Hold:</strong> For exercises that require holding a position
+            (like bridges, planks, or wall sits), check the "With Hold" checkbox. This enables:
+            <ul class="nested-list">
+              <li><strong>Setup Time</strong> - Seconds to get into position before each rep
+              (default: 3 seconds). This gives you time to position yourself properly before
+              the hold timer starts.</li>
+              <li><strong>Duration per Rep (Hold Time)</strong> - How long to hold the position
+              (e.g., 10 seconds for a bridge hold)</li>
+            </ul>
+            During playback, hold exercises follow a <strong>Setup → Hold → Transition</strong>
+            cycle for each rep, with distinct audio cues for setup (duration start tone) and
+            hold phases (rep start tone).
+          </li>
+          <li>
             <strong>Default Settings:</strong> Set the default duration, reps, sets,
             or rep duration based on your therapist's recommendations
           </li>
