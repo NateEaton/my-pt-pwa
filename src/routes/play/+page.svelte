@@ -846,6 +846,10 @@
         if (sideMode === 'unilateral') {
           // For unilateral: end of phase is after one side completes (reps iterations)
           isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
+        } else if (sideMode === 'alternating') {
+          // For alternating: end of phase is after BOTH sides complete all reps
+          // Total reps = reps * 2 (each rep performed on both sides)
+          isEndOfPhase = (exerciseElapsedSeconds % (reps * 2 * repDuration) === 0);
         } else {
           // For bilateral: end of phase is end of set
           isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
@@ -1028,6 +1032,10 @@
         if (sideMode === 'unilateral') {
           // For unilateral: end of phase is after one side completes
           isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
+        } else if (sideMode === 'alternating') {
+          // For alternating: end of phase is after BOTH sides complete all reps
+          // Total reps = reps * 2 (each rep performed on both sides)
+          isEndOfPhase = (exerciseElapsedSeconds % (reps * 2 * repDuration) === 0);
         } else {
           // For bilateral: end of phase is end of set
           isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
