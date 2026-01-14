@@ -741,14 +741,14 @@
   }
 
   .stat-value {
-    font-size: var(--font-size-2xl);
+    font-size: 1.875rem;
     font-weight: 700;
     color: var(--primary-color);
     margin-bottom: var(--spacing-xs);
   }
 
   .stat-label {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
   }
 
@@ -917,7 +917,7 @@
 
   .session-name {
     margin: 0 0 var(--spacing-xs) 0;
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-xl);
     font-weight: 600;
     color: var(--text-primary);
   }
@@ -1197,8 +1197,9 @@
       padding: var(--spacing-lg);
     }
 
+    /* Keep h1 readable on mobile - don't reduce as much */
     .page-header h1 {
-      font-size: var(--font-size-lg);
+      font-size: var(--font-size-xl);
     }
 
     .stats-section {
@@ -1211,8 +1212,9 @@
       padding: var(--spacing-sm);
     }
 
+    /* Keep stat values readable - reduce from 1.875rem to 1.5rem instead of --font-size-xl (1.25rem) */
     .stat-value {
-      font-size: var(--font-size-xl);
+      font-size: var(--font-size-2xl);
     }
 
     .sessions-section {
@@ -1221,6 +1223,11 @@
 
     .details-stats {
       grid-template-columns: 1fr;
+    }
+
+    /* Keep session name readable on mobile */
+    .session-name {
+      font-size: var(--font-size-lg);
     }
   }
 </style>

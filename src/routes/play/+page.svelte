@@ -2549,6 +2549,39 @@
     .exercise-name {
       font-size: var(--font-size-xl);
     }
+
+    /* VCR controls - reduce sizes for smaller screens */
+    .vcr-controls {
+      gap: var(--spacing-sm);
+    }
+
+    .vcr-btn {
+      min-height: 60px;
+      padding: var(--spacing-xs);
+    }
+
+    .vcr-btn .material-icons {
+      font-size: 1.75rem;
+    }
+
+    .vcr-exit,
+    .vcr-finish {
+      min-width: 70px;
+    }
+
+    .vcr-back,
+    .vcr-forward {
+      min-width: 50px;
+    }
+
+    .vcr-play-pause {
+      min-width: 70px;
+      min-height: 70px;
+    }
+
+    .vcr-play-pause .material-icons {
+      font-size: 2.5rem;
+    }
   }
 
   /* Extra small screens - scale down primary content slightly */
@@ -2561,6 +2594,43 @@
     }
 
     .completion-icon {
+      font-size: 2rem;
+    }
+
+    /* VCR controls - compact mode for extra small screens */
+    .vcr-controls {
+      gap: var(--spacing-xs);
+    }
+
+    .vcr-btn {
+      min-height: 50px;
+      border-radius: 8px;
+    }
+
+    .vcr-btn .material-icons {
+      font-size: 1.5rem;
+    }
+
+    .vcr-label {
+      display: none;
+    }
+
+    .vcr-exit,
+    .vcr-finish {
+      min-width: 50px;
+    }
+
+    .vcr-back,
+    .vcr-forward {
+      min-width: 44px;
+    }
+
+    .vcr-play-pause {
+      min-width: 60px;
+      min-height: 60px;
+    }
+
+    .vcr-play-pause .material-icons {
       font-size: 2rem;
     }
   }
