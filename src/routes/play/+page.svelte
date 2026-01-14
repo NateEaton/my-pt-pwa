@@ -2182,10 +2182,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: clamp(0.25rem, 2vw, var(--spacing-md));
+    gap: clamp(0.25rem, 1.5vw, var(--spacing-sm));
     flex-wrap: wrap;
     max-width: 100%;
-    padding: 0 var(--spacing-sm);
+    padding: 0 0.25rem;
   }
 
   .vcr-btn {

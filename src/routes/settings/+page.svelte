@@ -739,17 +739,18 @@
 
   .quick-setting-item {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     padding: var(--spacing-md);
     background-color: var(--surface-variant);
     border-radius: var(--border-radius);
-    gap: var(--spacing-lg);
+    gap: var(--spacing-md);
     flex-wrap: wrap;
+    min-height: 3.5rem;
   }
 
   .setting-info {
-    flex: 1 1 150px;
+    flex: 1 1 140px;
     min-width: 0;
   }
 
