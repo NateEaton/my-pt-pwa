@@ -741,23 +741,22 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
     background-color: var(--surface-variant);
     border-radius: var(--border-radius);
-    gap: var(--spacing-md);
-    flex-wrap: wrap;
-    min-height: 3.5rem;
+    gap: var(--spacing-sm);
+    flex-wrap: nowrap;
   }
 
   .setting-info {
-    flex: 1 1 140px;
+    flex: 1 1 auto;
     min-width: 0;
   }
 
   .setting-label {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
     font-size: var(--font-size-base);
     font-weight: 500;
     color: var(--text-primary);
@@ -766,14 +765,21 @@
   .setting-label .material-icons {
     font-size: var(--icon-size-md);
     color: var(--primary-color);
+    flex-shrink: 0;
   }
 
   .setting-controls {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
     flex: 0 0 auto;
-    min-width: fit-content;
+    flex-shrink: 0;
+  }
+
+  .setting-description {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-top: 0.125rem;
   }
 
   /* Toggle Switch */

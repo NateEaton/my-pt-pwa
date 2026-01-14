@@ -2182,10 +2182,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: clamp(0.25rem, 1.5vw, var(--spacing-sm));
+    gap: clamp(0.25rem, 1vw, var(--spacing-md));
     flex-wrap: wrap;
     max-width: 100%;
-    padding: 0 0.25rem;
+    padding: 0;
   }
 
   .vcr-btn {
@@ -2200,8 +2200,8 @@
     justify-content: center;
     gap: 0.25rem;
     transition: all 0.2s ease;
-    min-height: 70px;
-    padding: var(--spacing-sm);
+    min-height: 60px;
+    padding: 0.375rem;
     flex: 0 1 auto;
   }
 
@@ -2220,35 +2220,35 @@
   }
 
   .vcr-btn .material-icons {
-    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-size: clamp(1.25rem, 3.5vw, 2rem);
   }
 
   .vcr-label {
-    font-size: var(--font-size-xs);
+    font-size: clamp(0.65rem, 1.5vw, 0.75rem);
     opacity: 0.9;
   }
 
   /* Exit and Finish buttons - wider with labels */
   .vcr-exit,
   .vcr-finish {
-    min-width: clamp(60px, 15vw, 80px);
+    min-width: clamp(55px, 13vw, 75px);
   }
 
   /* Back and Forward buttons - square */
   .vcr-back,
   .vcr-forward {
-    min-width: clamp(50px, 12vw, 60px);
+    min-width: clamp(45px, 11vw, 55px);
   }
 
   /* Play/Pause button - largest and most prominent */
   .vcr-play-pause {
-    min-width: clamp(70px, 16vw, 80px);
-    min-height: clamp(70px, 16vw, 80px);
+    min-width: clamp(60px, 14vw, 75px);
+    min-height: clamp(60px, 14vw, 75px);
     background-color: rgba(255, 255, 255, 0.3);
   }
 
   .vcr-play-pause .material-icons {
-    font-size: clamp(2rem, 6vw, 3rem);
+    font-size: clamp(1.75rem, 5vw, 3rem);
   }
 
   .vcr-play-pause:hover {
@@ -2298,13 +2298,13 @@
     flex: 0 0 66.666%;
     background-color: var(--surface);
     overflow-y: auto;
-    padding: var(--spacing-lg) var(--spacing-lg) 0 var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-md) 0 var(--spacing-md);
   }
 
   .exercise-list {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
     padding-bottom: 150px;
   }
 
@@ -2312,11 +2312,11 @@
     background-color: var(--surface-variant);
     color: var(--text-primary);
     border-radius: var(--border-radius);
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
     transition: all 0.3s ease;
     display: flex;
     align-items: flex-start;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
     position: relative;
     overflow: hidden;
   }
