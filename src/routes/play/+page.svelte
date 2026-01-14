@@ -311,6 +311,11 @@
       autoAdvanceSets = sessionDefinition.autoAdvanceSets;
     }
 
+    // Apply session override for Pause Between Exercises if defined
+    if (sessionDefinition.pauseBetweenExercises !== undefined) {
+      pauseBetweenExercises = sessionDefinition.pauseBetweenExercises;
+    }
+
     // CHECK FOR SPECIFIC INSTANCE ID FIRST (from Resume button)
     const instanceIdStr = localStorage.getItem('pt-active-session-instance-id');
     let existingSession: SessionInstance | null = null;
