@@ -903,10 +903,9 @@
               if (sideMode === 'unilateral' && currentSide) {
                 // Reset to starting side for next set
                 currentSide = startingSide;
-              } else if (sideMode === 'alternating' && currentSide && setStartingSide) {
-                // Alternate the starting side for next set
-                currentSide = getOppositeSide(setStartingSide);
-                setStartingSide = currentSide; // Remember this set's starting side
+              } else if (sideMode === 'alternating' && currentSide) {
+                // Reset to starting side for next set (alternating switches within set, not between sets)
+                currentSide = startingSide;
               }
               exerciseElapsedSeconds = 0;
               repElapsedSeconds = 0;
@@ -1088,10 +1087,9 @@
               if (sideMode === 'unilateral' && currentSide) {
                 // Reset to starting side for next set
                 currentSide = startingSide;
-              } else if (sideMode === 'alternating' && currentSide && setStartingSide) {
-                // Alternate the starting side for next set
-                currentSide = getOppositeSide(setStartingSide);
-                setStartingSide = currentSide; // Remember this set's starting side
+              } else if (sideMode === 'alternating' && currentSide) {
+                // Reset to starting side for next set (alternating switches within set, not between sets)
+                currentSide = startingSide;
               }
               exerciseElapsedSeconds = 0;
               repElapsedSeconds = 0;
