@@ -2105,8 +2105,8 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    min-height: 150px;
-    height: 200px;
+    min-height: 100px;
+    height: 120px;
     overflow: hidden;
   }
 
@@ -2182,7 +2182,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: clamp(0.25rem, 1vw, var(--spacing-md));
+    gap: clamp(0.5rem, 1.5vw, var(--spacing-md));
     flex-wrap: wrap;
     max-width: 100%;
     padding: 0;
@@ -2220,7 +2220,7 @@
   }
 
   .vcr-btn .material-icons {
-    font-size: clamp(1.25rem, 3.5vw, 2rem);
+    font-size: clamp(1.5rem, 4vw, 2rem);
   }
 
   .vcr-label {
@@ -2231,19 +2231,19 @@
   /* Exit and Finish buttons - wider with labels */
   .vcr-exit,
   .vcr-finish {
-    min-width: clamp(55px, 13vw, 75px);
+    min-width: clamp(65px, 13vw, 80px);
   }
 
   /* Back and Forward buttons - square */
   .vcr-back,
   .vcr-forward {
-    min-width: clamp(45px, 11vw, 55px);
+    min-width: clamp(55px, 11vw, 65px);
   }
 
   /* Play/Pause button - largest and most prominent */
   .vcr-play-pause {
-    min-width: clamp(60px, 14vw, 75px);
-    min-height: clamp(60px, 14vw, 75px);
+    min-width: clamp(70px, 14vw, 80px);
+    min-height: clamp(70px, 14vw, 80px);
     background-color: rgba(255, 255, 255, 0.3);
   }
 
