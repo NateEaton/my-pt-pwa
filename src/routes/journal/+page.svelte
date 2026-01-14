@@ -617,14 +617,14 @@
 
   .page-header h1 {
     margin: 0 0 var(--spacing-xs) 0;
-    font-size: var(--font-size-xl);
+    font-size: var(--font-size-2xl);
     font-weight: 600;
     color: var(--text-primary);
   }
 
   .header-subtitle {
     margin: 0;
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-base);
     color: var(--text-secondary);
   }
 
@@ -741,15 +741,16 @@
   }
 
   .stat-value {
-    font-size: var(--font-size-2xl);
+    font-size: 1.75rem;
     font-weight: 700;
     color: var(--primary-color);
     margin-bottom: var(--spacing-xs);
   }
 
   .stat-label {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
+    text-align: center;
   }
 
   /* Sessions Section */
@@ -866,13 +867,13 @@
   }
 
   .session-date {
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-lg);
     font-weight: 600;
     color: var(--text-primary);
   }
 
   .session-time {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
   }
 
@@ -917,7 +918,7 @@
 
   .session-name {
     margin: 0 0 var(--spacing-xs) 0;
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-xl);
     font-weight: 600;
     color: var(--text-primary);
   }
@@ -932,12 +933,12 @@
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-base);
     color: var(--text-secondary);
   }
 
   .meta-icon {
-    font-size: 1rem;
+    font-size: 1.125rem;
   }
 
   .progress-bar {
@@ -956,7 +957,7 @@
   }
 
   .progress-text {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
   }
 
@@ -971,13 +972,13 @@
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-base);
     color: var(--primary-color);
     font-weight: 500;
   }
 
   .view-details .material-icons {
-    font-size: 1.25rem;
+    font-size: 1.375rem;
   }
 
   /* Modal Styles */
@@ -991,12 +992,12 @@
 
   .details-header h2 {
     margin: 0 0 var(--spacing-xs) 0;
-    font-size: var(--font-size-xl);
+    font-size: var(--font-size-2xl);
     color: var(--text-primary);
   }
 
   .details-date {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-base);
     color: var(--text-secondary);
   }
 
@@ -1014,13 +1015,13 @@
   }
 
   .detail-stat-label {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
     margin-bottom: 0.25rem;
   }
 
   .detail-stat-value {
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-lg);
     font-weight: 600;
     color: var(--text-primary);
   }
@@ -1031,7 +1032,7 @@
 
   .exercises-section h3 {
     margin: 0 0 var(--spacing-md) 0;
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-xl);
     color: var(--text-primary);
   }
 
@@ -1069,7 +1070,7 @@
     background-color: var(--primary-color);
     color: white;
     border-radius: 50%;
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-base);
     font-weight: 600;
     flex-shrink: 0;
   }
@@ -1079,7 +1080,7 @@
   }
 
   .exercise-name {
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-lg);
     font-weight: 500;
     color: var(--text-primary);
     margin-bottom: 0.25rem;
@@ -1094,10 +1095,14 @@
   }
 
   .exercise-type-badge {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     padding: 2px var(--spacing-xs);
+    background-color: var(--primary-alpha-10);
+    color: var(--primary-color);
     border-radius: calc(var(--border-radius) / 2);
-    font-weight: 500;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
   }
 
   .exercise-type-badge.duration {
@@ -1113,24 +1118,24 @@
   .mode-badge {
     margin-left: var(--spacing-xs);
     padding: 2px var(--spacing-xs);
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     font-weight: 500;
     font-style: italic;
     color: var(--text-secondary);
   }
 
   .exercise-target {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
   }
 
   .exercise-actual {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
   }
 
   .exercise-duration {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
   }
 
@@ -1152,13 +1157,13 @@
 
   .notes-section h3 {
     margin: 0 0 var(--spacing-sm) 0;
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-xl);
     color: var(--text-primary);
   }
 
   .notes-section p {
     margin: 0;
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-lg);
     color: var(--text-secondary);
     line-height: 1.6;
   }
@@ -1198,7 +1203,7 @@
     }
 
     .page-header h1 {
-      font-size: var(--font-size-lg);
+      font-size: var(--font-size-xl);
     }
 
     .stats-section {
@@ -1212,7 +1217,7 @@
     }
 
     .stat-value {
-      font-size: var(--font-size-xl);
+      font-size: 1.5rem;
     }
 
     .sessions-section {

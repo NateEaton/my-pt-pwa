@@ -2182,7 +2182,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--spacing-md);
+    gap: clamp(0.25rem, 2vw, var(--spacing-md));
+    flex-wrap: wrap;
+    max-width: 100%;
+    padding: 0 var(--spacing-sm);
   }
 
   .vcr-btn {
@@ -2199,6 +2202,7 @@
     transition: all 0.2s ease;
     min-height: 70px;
     padding: var(--spacing-sm);
+    flex: 0 1 auto;
   }
 
   .vcr-btn:hover:not(:disabled) {
@@ -2216,7 +2220,7 @@
   }
 
   .vcr-btn .material-icons {
-    font-size: 2rem;
+    font-size: clamp(1.5rem, 4vw, 2rem);
   }
 
   .vcr-label {
@@ -2227,24 +2231,24 @@
   /* Exit and Finish buttons - wider with labels */
   .vcr-exit,
   .vcr-finish {
-    min-width: 80px;
+    min-width: clamp(60px, 15vw, 80px);
   }
 
   /* Back and Forward buttons - square */
   .vcr-back,
   .vcr-forward {
-    min-width: 60px;
+    min-width: clamp(50px, 12vw, 60px);
   }
 
   /* Play/Pause button - largest and most prominent */
   .vcr-play-pause {
-    min-width: 80px;
-    min-height: 80px;
+    min-width: clamp(70px, 16vw, 80px);
+    min-height: clamp(70px, 16vw, 80px);
     background-color: rgba(255, 255, 255, 0.3);
   }
 
   .vcr-play-pause .material-icons {
-    font-size: 3rem;
+    font-size: clamp(2rem, 6vw, 3rem);
   }
 
   .vcr-play-pause:hover {

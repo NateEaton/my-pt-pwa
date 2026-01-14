@@ -739,16 +739,17 @@
 
   .quick-setting-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     padding: var(--spacing-md);
     background-color: var(--surface-variant);
     border-radius: var(--border-radius);
-    gap: var(--spacing-md);
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
   }
 
   .setting-info {
-    flex: 1;
+    flex: 1 1 150px;
     min-width: 0;
   }
 
@@ -770,6 +771,8 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
+    flex: 0 0 auto;
+    min-width: fit-content;
   }
 
   /* Toggle Switch */
@@ -1020,6 +1023,12 @@
 
     .quick-setting-item {
       padding: var(--spacing-sm);
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .setting-controls {
+      width: 100%;
     }
 
     .volume-slider {
