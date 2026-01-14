@@ -465,15 +465,14 @@
         </div>
 
         <!-- Color Scheme Setting -->
-        <div class="quick-setting-item">
+        <div class="quick-setting-item color-scheme-layout">
           <div class="setting-info">
             <div class="setting-label">
               <span class="material-icons">palette</span>
               <span>Color Scheme</span>
             </div>
           </div>
-          <div class="setting-controls">
-            <div class="color-scheme-selector">
+          <div class="color-scheme-selector">
               <button
                 class="color-swatch"
                 class:active={colorScheme === 'blue'}
@@ -540,7 +539,6 @@
                   <span class="material-icons">check</span>
                 {/if}
               </button>
-            </div>
           </div>
         </div>
 
@@ -745,6 +743,23 @@
     background-color: var(--surface-variant);
     border-radius: var(--border-radius);
     gap: var(--spacing-md);
+  }
+
+  /* Two-row layout for color scheme to prevent overlap with large text */
+  .quick-setting-item.color-scheme-layout {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .quick-setting-item.color-scheme-layout .setting-info {
+    flex: none;
+    width: 100%;
+  }
+
+  .quick-setting-item.color-scheme-layout .color-scheme-selector {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .setting-info {
