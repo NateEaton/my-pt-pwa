@@ -2599,11 +2599,11 @@
 
     /* VCR controls - compact mode for extra small screens */
     .vcr-controls {
-      gap: var(--spacing-xs);
+      gap: var(--spacing-sm);
     }
 
     .vcr-btn {
-      min-height: 50px;
+      min-height: 54px;
       border-radius: 8px;
     }
 
@@ -2617,17 +2617,17 @@
 
     .vcr-exit,
     .vcr-finish {
-      min-width: 50px;
+      min-width: 56px;
     }
 
     .vcr-back,
     .vcr-forward {
-      min-width: 44px;
+      min-width: 50px;
     }
 
     .vcr-play-pause {
-      min-width: 60px;
-      min-height: 60px;
+      min-width: 64px;
+      min-height: 64px;
     }
 
     .vcr-play-pause .material-icons {
