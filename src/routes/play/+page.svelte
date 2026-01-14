@@ -311,6 +311,11 @@
       autoAdvanceSets = sessionDefinition.autoAdvanceSets;
     }
 
+    // Apply session override for Pause Between Exercises if defined
+    if (sessionDefinition.pauseBetweenExercises !== undefined) {
+      pauseBetweenExercises = sessionDefinition.pauseBetweenExercises;
+    }
+
     // CHECK FOR SPECIFIC INSTANCE ID FIRST (from Resume button)
     const instanceIdStr = localStorage.getItem('pt-active-session-instance-id');
     let existingSession: SessionInstance | null = null;
@@ -846,6 +851,10 @@
         if (sideMode === 'unilateral') {
           // For unilateral: end of phase is after one side completes (reps iterations)
           isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
+        } else if (sideMode === 'alternating') {
+          // For alternating: end of phase is after BOTH sides complete all reps
+          // Total reps = reps * 2 (each rep performed on both sides)
+          isEndOfPhase = (exerciseElapsedSeconds % (reps * 2 * repDuration) === 0);
         } else {
           // For bilateral: end of phase is end of set
           isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
@@ -899,10 +908,9 @@
               if (sideMode === 'unilateral' && currentSide) {
                 // Reset to starting side for next set
                 currentSide = startingSide;
-              } else if (sideMode === 'alternating' && currentSide && setStartingSide) {
-                // Alternate the starting side for next set
-                currentSide = getOppositeSide(setStartingSide);
-                setStartingSide = currentSide; // Remember this set's starting side
+              } else if (sideMode === 'alternating' && currentSide) {
+                // Reset to starting side for next set (alternating switches within set, not between sets)
+                currentSide = startingSide;
               }
               exerciseElapsedSeconds = 0;
               repElapsedSeconds = 0;
@@ -1028,6 +1036,10 @@
         if (sideMode === 'unilateral') {
           // For unilateral: end of phase is after one side completes
           isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
+        } else if (sideMode === 'alternating') {
+          // For alternating: end of phase is after BOTH sides complete all reps
+          // Total reps = reps * 2 (each rep performed on both sides)
+          isEndOfPhase = (exerciseElapsedSeconds % (reps * 2 * repDuration) === 0);
         } else {
           // For bilateral: end of phase is end of set
           isEndOfPhase = (exerciseElapsedSeconds % (reps * repDuration) === 0);
@@ -1080,10 +1092,9 @@
               if (sideMode === 'unilateral' && currentSide) {
                 // Reset to starting side for next set
                 currentSide = startingSide;
-              } else if (sideMode === 'alternating' && currentSide && setStartingSide) {
-                // Alternate the starting side for next set
-                currentSide = getOppositeSide(setStartingSide);
-                setStartingSide = currentSide; // Remember this set's starting side
+              } else if (sideMode === 'alternating' && currentSide) {
+                // Reset to starting side for next set (alternating switches within set, not between sets)
+                currentSide = startingSide;
               }
               exerciseElapsedSeconds = 0;
               repElapsedSeconds = 0;
@@ -2343,6 +2354,19 @@
 
   [data-theme="dark"] .exercise-item.completed {
     color: white;
+  }
+
+  /* Dark mode: Change blend mode for active exercise progress gradient */
+  @media (prefers-color-scheme: dark) {
+    .exercise-item.active::before {
+      mix-blend-mode: lighten; /* Lightens in dark mode so gradient is visible */
+      opacity: 0.3; /* Reduce opacity for better text readability */
+    }
+  }
+
+  [data-theme="dark"] .exercise-item.active::before {
+    mix-blend-mode: lighten; /* Lightens in dark mode so gradient is visible */
+    opacity: 0.3; /* Reduce opacity for better text readability */
   }
 
   [data-theme="light"] .exercise-item.completed {
