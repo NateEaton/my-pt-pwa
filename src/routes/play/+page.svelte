@@ -2353,6 +2353,19 @@
     color: white;
   }
 
+  /* Dark mode: Change blend mode for active exercise progress gradient */
+  @media (prefers-color-scheme: dark) {
+    .exercise-item.active::before {
+      mix-blend-mode: lighten; /* Lightens in dark mode so gradient is visible */
+      opacity: 0.3; /* Reduce opacity for better text readability */
+    }
+  }
+
+  [data-theme="dark"] .exercise-item.active::before {
+    mix-blend-mode: lighten; /* Lightens in dark mode so gradient is visible */
+    opacity: 0.3; /* Reduce opacity for better text readability */
+  }
+
   [data-theme="light"] .exercise-item.completed {
     color: var(--primary-color);
   }
