@@ -815,9 +815,25 @@
           sidePhase === 'first' &&
           currentRep === reps;
 
+        // Check if this rep completion would end the current phase
+        const nextElapsed = exerciseElapsedSeconds + 1;
+        let wouldEndPhase = false;
+        if (sideMode === 'alternating') {
+          wouldEndPhase = (nextElapsed % (reps * 2 * repDuration) === 0);
+        } else {
+          wouldEndPhase = (nextElapsed % (reps * repDuration) === 0);
+        }
+
+        // Last rep of a non-final set: play set-complete chime instead of rep beep
+        const isLastRepOfNonFinalSet = wouldEndPhase && currentSet < sets &&
+          !(sideMode === 'unilateral' && sidePhase === 'first');
+
         if (isLastRepOfFirstSide) {
           // Play distinctive Gong INSTEAD of standard rep beep
           audioService.onSwitchSides();
+        } else if (isLastRepOfNonFinalSet) {
+          // Play set-complete chime INSTEAD of standard rep beep
+          audioService.onSetComplete();
         } else {
           // Play standard high beep
           audioService.onRepEnd();
@@ -903,10 +919,7 @@
               completeCurrentExercise();
             } else {
               // Set complete, more sets to go
-              // Play set-complete audio cue (non-final sets only)
-              if (shouldPlayAudio()) {
-                audioService.onSetComplete();
-              }
+              // (set-complete audio cue already played at last rep end)
               currentSet++;
               sidePhase = 'first'; // Reset to first side for next set
               if (sideMode === 'unilateral' && currentSide) {
@@ -1006,9 +1019,25 @@
           sidePhase === 'first' &&
           currentRep === reps;
 
+        // Check if this rep completion would end the current phase
+        const nextElapsed = exerciseElapsedSeconds + 1;
+        let wouldEndPhase = false;
+        if (sideMode === 'alternating') {
+          wouldEndPhase = (nextElapsed % (reps * 2 * repDuration) === 0);
+        } else {
+          wouldEndPhase = (nextElapsed % (reps * repDuration) === 0);
+        }
+
+        // Last rep of a non-final set: play set-complete chime instead of rep beep
+        const isLastRepOfNonFinalSet = wouldEndPhase && currentSet < sets &&
+          !(sideMode === 'unilateral' && sidePhase === 'first');
+
         if (isLastRepOfFirstSide) {
           // Play distinctive Gong INSTEAD of standard rep beep
           audioService.onSwitchSides();
+        } else if (isLastRepOfNonFinalSet) {
+          // Play set-complete chime INSTEAD of standard rep beep
+          audioService.onSetComplete();
         } else {
           // Play standard high beep
           audioService.onRepEnd();
@@ -1091,10 +1120,7 @@
               completeCurrentExercise();
             } else {
               // Set complete, more sets to go
-              // Play set-complete audio cue (non-final sets only)
-              if (shouldPlayAudio()) {
-                audioService.onSetComplete();
-              }
+              // (set-complete audio cue already played at last rep end)
               currentSet++;
               sidePhase = 'first'; // Reset to first side for next set
               if (sideMode === 'unilateral' && currentSide) {
