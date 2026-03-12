@@ -903,6 +903,10 @@
               completeCurrentExercise();
             } else {
               // Set complete, more sets to go
+              // Play set-complete audio cue (non-final sets only)
+              if (shouldPlayAudio()) {
+                audioService.onSetComplete();
+              }
               currentSet++;
               sidePhase = 'first'; // Reset to first side for next set
               if (sideMode === 'unilateral' && currentSide) {
@@ -1087,6 +1091,10 @@
               completeCurrentExercise();
             } else {
               // Set complete, more sets to go
+              // Play set-complete audio cue (non-final sets only)
+              if (shouldPlayAudio()) {
+                audioService.onSetComplete();
+              }
               currentSet++;
               sidePhase = 'first'; // Reset to first side for next set
               if (sideMode === 'unilateral' && currentSide) {

@@ -216,6 +216,24 @@ export class AudioService {
   }
 
   /**
+   * Called when a set is completed (non-final sets only)
+   * Plays a descending two-note chime: G5 → D5
+   */
+  public onSetComplete(): void {
+    if (!this.audioContext) return;
+
+    const now = this.audioContext.currentTime;
+
+    // Descending perfect fourth: G5 → D5
+    this.playToneAtTime(783.99, now, 0.15);         // G5
+    this.playToneAtTime(587.33, now + 0.12, 0.15);  // D5 (slight overlap)
+
+    // Two-pulse haptic pattern
+    this.triggerHaptic(60);
+    setTimeout(() => this.triggerHaptic(60), 140);
+  }
+
+  /**
    * @deprecated Use onDurationStart() or onRepStart() instead
    */
   public onExerciseStart(): void {
