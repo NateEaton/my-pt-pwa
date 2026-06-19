@@ -216,21 +216,22 @@ export class AudioService {
   }
 
   /**
-   * Called when a set is completed (non-final sets only)
-   * Plays a descending two-note chime: G5 → D5
+   * Called when a set is completed (all sets, including the final set)
+   * Warm resonant gong at G4 — lower and warmer than the C5 side-switch gong
    */
   public onSetComplete(): void {
-    if (!this.audioContext) return;
+    // G4 root with 2-second exponential decay
+    this.playChime(392);
 
-    const now = this.audioContext.currentTime;
+    // Quiet D5 overtone (perfect fifth above G4) for warmth
+    const savedVolume = this.masterVolume;
+    this.masterVolume = savedVolume * 0.3;
+    this.playChime(587.33);
+    this.masterVolume = savedVolume;
 
-    // Descending perfect fourth: G5 → D5
-    this.playToneAtTime(783.99, now, 0.15);         // G5
-    this.playToneAtTime(587.33, now + 0.12, 0.15);  // D5 (slight overlap)
-
-    // Two-pulse haptic pattern
-    this.triggerHaptic(60);
-    setTimeout(() => this.triggerHaptic(60), 140);
+    // Two gentle pulses, distinct from side-switch's long-short pattern
+    this.triggerHaptic(50);
+    setTimeout(() => this.triggerHaptic(50), 250);
   }
 
   /**

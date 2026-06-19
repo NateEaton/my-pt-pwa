@@ -352,7 +352,9 @@
           The app plays audio cues when sound is enabled:
           <ul>
             <li>Exercise start and completion</li>
-            <li>Set completion (multi-set exercises)</li>
+            <li>Rep start and end</li>
+            <li>Side switch (unilateral exercises)</li>
+            <li>Set completion</li>
             <li>Rest period start and end</li>
             <li>Session completion</li>
           </ul>

@@ -63,6 +63,9 @@
   let setupRemainingSeconds = 0; // Countdown for setup time
   let setupInterval: number | undefined;
 
+  const SET_COMPLETE_CUE_DELAY_MS = 700;
+  let pendingSetCompleteCueId: ReturnType<typeof setTimeout> | undefined;
+
   // Time-based progress tracking for smooth visual feedback
   let exerciseStartTimeMs = 0; // Timestamp when current exercise started (milliseconds)
   let progressUpdateInterval: number | undefined; // High-frequency interval for smooth progress updates
@@ -501,7 +504,15 @@
     toastStore.show(`Resuming from exercise #${resumeIndex + 1}`, 'info');
   }
 
+  function clearPendingSetCompleteCue() {
+    if (pendingSetCompleteCueId !== undefined) {
+      clearTimeout(pendingSetCompleteCueId);
+      pendingSetCompleteCueId = undefined;
+    }
+  }
+
   function clearTimers() {
+    clearPendingSetCompleteCue();
     if (totalTimerInterval) clearInterval(totalTimerInterval);
     if (exerciseTimerInterval) clearInterval(exerciseTimerInterval);
     if (preparingInterval) clearInterval(preparingInterval);
@@ -642,7 +653,7 @@
     if (!currentExercise) return;
 
     const totalDuration = currentExercise.defaultDuration || 60;
-    const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
+    const aboutToEndEnabled = $ptState.settings?.audioExerciseAboutToEndEnabled ?? true;
 
     // Reset elapsed time when starting fresh
     exerciseElapsedSeconds = 0;
@@ -661,7 +672,7 @@
       const remaining = totalDuration - exerciseElapsedSeconds;
 
       // Audio cues during exercise
-      if (shouldPlayAudio() && leadInEnabled && remaining >= 1 && remaining <= 3) {
+      if (shouldPlayAudio() && aboutToEndEnabled && remaining >= 1 && remaining <= 3) {
         // Play subtle 3-2-1 countdown at end of duration
         audioService.onCountdownEnd(remaining);
       }
@@ -670,7 +681,7 @@
         clearInterval(exerciseTimerInterval);
 
         // Play end tone if countdown wasn't used
-        if (shouldPlayAudio() && !leadInEnabled) {
+        if (shouldPlayAudio() && !aboutToEndEnabled) {
           audioService.onDurationEnd();
         }
 
@@ -683,7 +694,7 @@
     if (!currentExercise) return;
 
     const totalDuration = currentExercise.defaultDuration || 60;
-    const leadInEnabled = $ptState.settings?.audioLeadInEnabled ?? false;
+    const aboutToEndEnabled = $ptState.settings?.audioExerciseAboutToEndEnabled ?? true;
 
     // Don't reset exerciseElapsedSeconds - continue from where we paused
 
@@ -696,7 +707,7 @@
       const remaining = totalDuration - exerciseElapsedSeconds;
 
       // Audio cues during exercise
-      if (shouldPlayAudio() && leadInEnabled && remaining >= 1 && remaining <= 3) {
+      if (shouldPlayAudio() && aboutToEndEnabled && remaining >= 1 && remaining <= 3) {
         // Play subtle 3-2-1 countdown at end of duration
         audioService.onCountdownEnd(remaining);
       }
@@ -705,7 +716,7 @@
         clearInterval(exerciseTimerInterval);
 
         // Play end tone if countdown wasn't used
-        if (shouldPlayAudio() && !leadInEnabled) {
+        if (shouldPlayAudio() && !aboutToEndEnabled) {
           audioService.onDurationEnd();
         }
 
@@ -809,33 +820,15 @@
 
       // Play end tone when counter shows "1" (last count of rep)
       if (repElapsedSeconds === repDuration - 1 && shouldPlayAudio()) {
-        // Check if this is the very last rep of the first side in a unilateral exercise
         const isLastRepOfFirstSide =
           sideMode === 'unilateral' &&
           sidePhase === 'first' &&
           currentRep === reps;
 
-        // Check if this rep completion would end the current phase
-        const nextElapsed = exerciseElapsedSeconds + 1;
-        let wouldEndPhase = false;
-        if (sideMode === 'alternating') {
-          wouldEndPhase = (nextElapsed % (reps * 2 * repDuration) === 0);
-        } else {
-          wouldEndPhase = (nextElapsed % (reps * repDuration) === 0);
-        }
-
-        // Last rep of a non-final set: play set-complete chime instead of rep beep
-        const isLastRepOfNonFinalSet = wouldEndPhase && currentSet < sets &&
-          !(sideMode === 'unilateral' && sidePhase === 'first');
-
         if (isLastRepOfFirstSide) {
-          // Play distinctive Gong INSTEAD of standard rep beep
           audioService.onSwitchSides();
-        } else if (isLastRepOfNonFinalSet) {
-          // Play set-complete chime INSTEAD of standard rep beep
-          audioService.onSetComplete();
         } else {
-          // Play standard high beep
+          // Rep-end cue plays for all reps, including the final rep of any set
           audioService.onRepEnd();
         }
       }
@@ -892,18 +885,14 @@
             isPausingBetweenReps = false;
             currentRep = 1;
 
-            // Get rest duration
             const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
 
-            // Automatically start rest timer if there's a non-zero rest time
             if (restDuration > 0) {
               setTimeout(() => {
-                // Pass FALSE to skip the standard "Rest Start" beep
-                // because the Gong just played
+                // Suppress rest-start cue: side-switch gong already played
                 startRestTimer(false);
               }, 300);
             } else {
-              // No rest configured, either auto-advance to second side or pause
               if (autoAdvanceActive || autoAdvanceSets) {
                 startRepsExercise();
               } else {
@@ -912,21 +901,26 @@
               }
             }
           } else {
-            // Either bilateral/alternating completed, or unilateral second side completed
-            // Check if all sets are done
+            // Bilateral/alternating completed, or unilateral second side completed
+            // Schedule delayed set-complete gong (plays after rep-end cue, not instead of it)
+            if (shouldPlayAudio()) {
+              clearPendingSetCompleteCue();
+              pendingSetCompleteCueId = setTimeout(() => {
+                pendingSetCompleteCueId = undefined;
+                audioService.onSetComplete();
+              }, SET_COMPLETE_CUE_DELAY_MS);
+            }
+
             if (currentSet >= sets) {
-              // Exercise complete - all sets done
+              // Final set: completeSession's 2s delay provides spacing before session-complete cue
               completeCurrentExercise();
             } else {
-              // Set complete, more sets to go
-              // (set-complete audio cue already played at last rep end)
+              // Non-final set
               currentSet++;
-              sidePhase = 'first'; // Reset to first side for next set
+              sidePhase = 'first';
               if (sideMode === 'unilateral' && currentSide) {
-                // Reset to starting side for next set
                 currentSide = startingSide;
               } else if (sideMode === 'alternating' && currentSide) {
-                // Reset to starting side for next set (alternating switches within set, not between sets)
                 currentSide = startingSide;
               }
               exerciseElapsedSeconds = 0;
@@ -934,23 +928,23 @@
               isPausingBetweenReps = false;
               currentRep = 1;
 
-              // Get rest duration
               const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
 
-              // Automatically start rest timer if there's a non-zero rest time
               if (restDuration > 0) {
                 setTimeout(() => {
-                  // Pass TRUE (default) to play standard rest beep
-                  startRestTimer(true);
+                  // Suppress rest-start cue: set-complete gong plays inside the rest window
+                  startRestTimer(false);
                 }, 300);
               } else {
-                // No rest configured, either auto-advance to next set or pause
-                if (autoAdvanceActive) {
-                  startRepsExercise();
-                } else {
-                  isAwaitingSetContinuation = true;
-                  timerState = 'paused';
-                }
+                // Zero rest: delay next set start so gong doesn't collide with first rep-start cue
+                setTimeout(() => {
+                  if (autoAdvanceActive || autoAdvanceSets) {
+                    startRepsExercise();
+                  } else {
+                    isAwaitingSetContinuation = true;
+                    timerState = 'paused';
+                  }
+                }, SET_COMPLETE_CUE_DELAY_MS + 300);
               }
             }
           }
@@ -1013,33 +1007,15 @@
 
       // Play end tone when counter shows "1" (last count of rep)
       if (repElapsedSeconds === repDuration - 1 && shouldPlayAudio()) {
-        // Check if this is the very last rep of the first side in a unilateral exercise
         const isLastRepOfFirstSide =
           sideMode === 'unilateral' &&
           sidePhase === 'first' &&
           currentRep === reps;
 
-        // Check if this rep completion would end the current phase
-        const nextElapsed = exerciseElapsedSeconds + 1;
-        let wouldEndPhase = false;
-        if (sideMode === 'alternating') {
-          wouldEndPhase = (nextElapsed % (reps * 2 * repDuration) === 0);
-        } else {
-          wouldEndPhase = (nextElapsed % (reps * repDuration) === 0);
-        }
-
-        // Last rep of a non-final set: play set-complete chime instead of rep beep
-        const isLastRepOfNonFinalSet = wouldEndPhase && currentSet < sets &&
-          !(sideMode === 'unilateral' && sidePhase === 'first');
-
         if (isLastRepOfFirstSide) {
-          // Play distinctive Gong INSTEAD of standard rep beep
           audioService.onSwitchSides();
-        } else if (isLastRepOfNonFinalSet) {
-          // Play set-complete chime INSTEAD of standard rep beep
-          audioService.onSetComplete();
         } else {
-          // Play standard high beep
+          // Rep-end cue plays for all reps, including the final rep of any set
           audioService.onRepEnd();
         }
       }
@@ -1094,18 +1070,14 @@
             isPausingBetweenReps = false;
             currentRep = 1;
 
-            // Get rest duration
             const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
 
-            // Automatically start rest timer if there's a non-zero rest time
             if (restDuration > 0) {
               setTimeout(() => {
-                // Pass FALSE to skip the standard "Rest Start" beep
-                // because the Gong just played
+                // Suppress rest-start cue: side-switch gong already played
                 startRestTimer(false);
               }, 300);
             } else {
-              // No rest configured, either auto-advance to second side or pause
               if (autoAdvanceActive || autoAdvanceSets) {
                 startRepsExercise();
               } else {
@@ -1114,20 +1086,26 @@
               }
             }
           } else {
-            // Either bilateral/alternating completed, or unilateral second side completed
+            // Bilateral/alternating completed, or unilateral second side completed
+            // Schedule delayed set-complete gong (plays after rep-end cue, not instead of it)
+            if (shouldPlayAudio()) {
+              clearPendingSetCompleteCue();
+              pendingSetCompleteCueId = setTimeout(() => {
+                pendingSetCompleteCueId = undefined;
+                audioService.onSetComplete();
+              }, SET_COMPLETE_CUE_DELAY_MS);
+            }
+
             if (currentSet >= sets) {
-              // Exercise complete - all sets done
+              // Final set: completeSession's 2s delay provides spacing before session-complete cue
               completeCurrentExercise();
             } else {
-              // Set complete, more sets to go
-              // (set-complete audio cue already played at last rep end)
+              // Non-final set
               currentSet++;
-              sidePhase = 'first'; // Reset to first side for next set
+              sidePhase = 'first';
               if (sideMode === 'unilateral' && currentSide) {
-                // Reset to starting side for next set
                 currentSide = startingSide;
               } else if (sideMode === 'alternating' && currentSide) {
-                // Reset to starting side for next set (alternating switches within set, not between sets)
                 currentSide = startingSide;
               }
               exerciseElapsedSeconds = 0;
@@ -1135,23 +1113,23 @@
               isPausingBetweenReps = false;
               currentRep = 1;
 
-              // Get rest duration
               const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
 
-              // Automatically start rest timer if there's a non-zero rest time
               if (restDuration > 0) {
                 setTimeout(() => {
-                  // Pass TRUE (default) to play standard rest beep
-                  startRestTimer(true);
+                  // Suppress rest-start cue: set-complete gong plays inside the rest window
+                  startRestTimer(false);
                 }, 300);
               } else {
-                // No rest configured, either auto-advance to next set or pause
-                if (autoAdvanceActive || autoAdvanceSets) {
-                  startRepsExercise();
-                } else {
-                  isAwaitingSetContinuation = true;
-                  timerState = 'paused';
-                }
+                // Zero rest: delay next set start so gong doesn't collide with first rep-start cue
+                setTimeout(() => {
+                  if (autoAdvanceActive || autoAdvanceSets) {
+                    startRepsExercise();
+                  } else {
+                    isAwaitingSetContinuation = true;
+                    timerState = 'paused';
+                  }
+                }, SET_COMPLETE_CUE_DELAY_MS + 300);
               }
             }
           }
@@ -1474,6 +1452,7 @@
 
   async function goToPreviousExercise() {
     if (timerState !== 'paused' || currentExerciseIndex === 0) return;
+    clearPendingSetCompleteCue();
 
     // Move to previous exercise
     currentExerciseIndex--;
@@ -1504,6 +1483,7 @@
   async function goToNextExercise() {
     if (timerState !== 'paused') return;
     if (!sessionInstance || !currentExercise) return;
+    clearPendingSetCompleteCue();
 
     // Mark current exercise as skipped
     const completed = sessionInstance.completedExercises.find(
@@ -1597,6 +1577,7 @@
 
     // Don't jump to the same exercise
     if (index === currentExerciseIndex) return;
+    clearPendingSetCompleteCue();
 
     // Mark any exercises between current and target as skipped if jumping forward
     if (index > currentExerciseIndex && sessionInstance) {
