@@ -1,7 +1,8 @@
 # Audio Cue Logic Spec: Delayed End-of-Set Gong and Cue Cleanup
 
-**Status:** Draft  
+**Status:** Implemented (see §18 for deviations and deferred items)  
 **Created:** 2026-06-06  
+**Implemented:** 2026-06-19  
 **Scope:** Session player audio/haptic cue behavior for reps, sets, exercises, rests, side switches, and session completion.
 
 ---
@@ -618,12 +619,40 @@ const MIN_SESSION_COMPLETE_AFTER_SET_CUE_MS = 1000;
 
 ## 16. Open Questions
 
+Questions 1, 3, 4, and 5 were resolved during implementation. Questions 2 and 6 remain
+open and are deferred; both were already flagged as optional/future work in §10.2 and §7.6.
+
 1. Should the rest-start cue be suppressed whenever a set-complete gong is scheduled?
+   - **Resolved: yes.** On set completion the rest timer is started with the rest-start cue
+     suppressed (`startRestTimer(false)`), because the gong plays at +700ms *inside* the rest
+     window and a rest-start cue near `T=0` would compete with it. Rest *timing* is unaffected
+     — only the cue is dropped. The rest-end cue is unchanged.
+
 2. Should users eventually be able to disable set-complete cues independently of all sound?
-3. Should the set-complete gong use the same family of sound as the unilateral side-switch gong, or should it be lower/warmer to signal closure?
-4. Should a zero-rest next set be delayed enough to allow the set-complete gong, or should the set-complete gong be suppressed for zero-rest sets?
-5. Should a separate reps exercise-end cue ever exist, or should final set-complete always serve that role?
-6. Should the session-complete cue be redesigned if the final set-complete gong already feels like completion?
+   - **Open — deferred.** No new setting was added. The cue is gated by `soundEnabled` only,
+     as specified in §10.2.
+
+3. Should the set-complete gong use the same family of sound as the unilateral side-switch
+   gong, or should it be lower/warmer to signal closure?
+   - **Resolved: lower and warmer.** It reuses the same `playChime()` family as the side-switch
+     cue but is rooted at G4 (392Hz) against the side-switch's C5 (523.25Hz), with a quiet D5
+     overtone (587.33Hz at 30% volume) and a 2-second exponential decay.
+
+4. Should a zero-rest next set be delayed enough to allow the set-complete gong, or should the
+   set-complete gong be suppressed for zero-rest sets?
+   - **Resolved: delay the next set.** When `restBetweenSets` is 0, the next set's start is
+     deferred by `SET_COMPLETE_CUE_DELAY_MS + 300` (1000ms) so the gong does not collide with
+     the first rep-start cue of the next set. The gong is never suppressed.
+
+5. Should a separate reps exercise-end cue ever exist, or should final set-complete always
+   serve that role?
+   - **Resolved: no separate cue.** The final set-complete gong serves as the exercise-end cue
+     for reps exercises, per the policy in §7.6.
+
+6. Should the session-complete cue be redesigned if the final set-complete gong already feels
+   like completion?
+   - **Open — deferred.** The session-complete cue is unchanged. The pre-existing 2-second
+     delay in `completeSession()` supplies the separation required by §7.5.
 
 ---
 
@@ -638,3 +667,62 @@ This work is successful when a user performing a reps-based exercise can clearly
 5. exercise/session completion without confusing overlap.
 
 Most importantly, a 10-second rest should still feel like a 10-second rest measured from the final rep, while the end-of-set gong plays inside that rest window as a non-blocking cue.
+
+---
+
+## 18. Implementation Status
+
+Implemented on `claude/review-cue-logic-end-set-ybwdtx`, targeting `main`.
+
+### 18.1 Delivered
+
+1. **Warm set-complete gong** (§8.1) — `AudioService.onSetComplete()` plays a G4 (392Hz)
+   root via `playChime()` with a quiet D5 overtone at 30% volume and a 2-second exponential
+   decay, replacing the previous short G5→D5 two-note chime.
+2. **Two gentle haptic pulses** 250ms apart (§8.2), distinct from the side-switch cue's
+   long-short pattern and from the session-complete triple pulse.
+3. **Rep-end cue is no longer replaced** (§7.1, §7.2). It fires on every rep, including the
+   final rep of every set. The gong is scheduled separately at
+   `SET_COMPLETE_CUE_DELAY_MS = 700`ms after it.
+4. **Gong fires for all sets** — non-final sets, final set of an exercise, and the final set
+   of the final exercise (§7.1 items 1-6).
+5. **Rest anchored to set completion, not to the gong** (§7.3). The delayed cue never gates
+   the rest timer.
+6. **Rest-start cue suppressed** when a gong is scheduled (§7.4, resolves §16.1).
+7. **Zero-rest sets** defer the next set by 1000ms so the gong cannot collide with the next
+   set's first rep-start cue (resolves §16.4).
+8. **Pending-cue cleanup** (§9.2) — the scheduled gong is cancelled on skip, jump, previous,
+   exit, manual finish, and component destroy via `clearPendingSetCompleteCue()`, which
+   `clearTimers()` also calls. It is deliberately allowed to fire through a pause, per the
+   recommended first-pass behavior in §9.2.
+9. **Duration about-to-end gating fixed** (§11) — both the fresh-start and resume paths now
+   gate on `audioExerciseAboutToEndEnabled` instead of the incorrect `audioLeadInEnabled`.
+10. **Demo player kept in sync** (§12) — identical changes applied to
+    `src/routes/demo/play/+page.svelte`.
+11. **Settings modal cue list updated** (§10.3) to name rep start/end and side switch, and to
+    drop the now-inaccurate "multi-set exercises" qualifier from set completion.
+
+### 18.2 Deferred — not implemented
+
+1. **Cue orchestration layer (§9.1, §15.1 item 8).** The cue decisions remain inline in the
+   timer loops and are duplicated in four places: the start and resume paths of the production
+   player, and the same two paths in the demo player. The recommended
+   `handleRepCompletionCue()` / `scheduleDelayedCue()` / `clearScheduledCues()` extraction was
+   not done. Behavior is correct, but any future cue change must be made in all four sites.
+2. **Automated tests (§14.1, §14.2).** The repository has no test infrastructure at all — no
+   test script in `package.json`, no vitest or playwright config. Adding the specified unit and
+   component tests requires standing up a harness first. Verification to date is the manual
+   audio QA in §14.3 against the branch preview deployment.
+3. **Ad hoc 300ms delays (§9.3).** The pre-existing 300ms delay before `startRestTimer()` was
+   left in place rather than folded into a documented cue-spacing rule. It predates this work
+   and is small relative to any configured rest, but it does mean rest starts ~300ms after the
+   final rep rather than exactly at it.
+
+### 18.3 Known minor edge case
+
+§7.4 item 4 anticipated suppressing the gong when rest is shorter than the cue delay. Because
+`restBetweenSets` is expressed in whole seconds, any non-zero rest is at least 1000ms, which
+already exceeds the 700ms delay — so the gong always starts before rest ends and no suppression
+rule was needed. With a 1-second rest, however, the gong's 2-second decay will still be
+sounding when the rest-end cue fires. This is audible but not disruptive, and was judged not
+worth a special case.
