@@ -902,8 +902,15 @@
             }
           } else {
             // Bilateral/alternating completed, or unilateral second side completed
-            // Schedule delayed set-complete gong (plays after rep-end cue, not instead of it)
-            if (shouldPlayAudio()) {
+            // Set-complete gong plays after the rep-end cue, not instead of it (spec 7.1, 7.2).
+            // It is suppressed on a zero-rest non-final set: per spec 7.4 item 4 the cue
+            // yields rather than pushing the next set out, so a configured zero rest keeps
+            // its timing (spec 9.3). Final sets always get the gong - nothing follows them
+            // inside the exercise for it to interfere with.
+            const isFinalSet = currentSet >= sets;
+            const setRestDuration = currentExercise.restBetweenSets ?? restBetweenSets;
+
+            if (shouldPlayAudio() && (isFinalSet || setRestDuration > 0)) {
               clearPendingSetCompleteCue();
               pendingSetCompleteCueId = setTimeout(() => {
                 pendingSetCompleteCueId = undefined;
@@ -911,7 +918,7 @@
               }, SET_COMPLETE_CUE_DELAY_MS);
             }
 
-            if (currentSet >= sets) {
+            if (isFinalSet) {
               // Final set: completeSession's 2s delay provides spacing before session-complete cue
               completeCurrentExercise();
             } else {
@@ -928,23 +935,20 @@
               isPausingBetweenReps = false;
               currentRep = 1;
 
-              const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
-
-              if (restDuration > 0) {
+              if (setRestDuration > 0) {
                 setTimeout(() => {
                   // Suppress rest-start cue: set-complete gong plays inside the rest window
                   startRestTimer(false);
                 }, 300);
               } else {
-                // Zero rest: delay next set start so gong doesn't collide with first rep-start cue
-                setTimeout(() => {
-                  if (autoAdvanceActive || autoAdvanceSets) {
-                    startRepsExercise();
-                  } else {
-                    isAwaitingSetContinuation = true;
-                    timerState = 'paused';
-                  }
-                }, SET_COMPLETE_CUE_DELAY_MS + 300);
+                // Zero rest: next set starts immediately. The gong was suppressed above, so
+                // the configured zero-rest transition keeps its timing (spec 7.4 item 4, 9.3).
+                if (autoAdvanceActive || autoAdvanceSets) {
+                  startRepsExercise();
+                } else {
+                  isAwaitingSetContinuation = true;
+                  timerState = 'paused';
+                }
               }
             }
           }
@@ -1087,8 +1091,15 @@
             }
           } else {
             // Bilateral/alternating completed, or unilateral second side completed
-            // Schedule delayed set-complete gong (plays after rep-end cue, not instead of it)
-            if (shouldPlayAudio()) {
+            // Set-complete gong plays after the rep-end cue, not instead of it (spec 7.1, 7.2).
+            // It is suppressed on a zero-rest non-final set: per spec 7.4 item 4 the cue
+            // yields rather than pushing the next set out, so a configured zero rest keeps
+            // its timing (spec 9.3). Final sets always get the gong - nothing follows them
+            // inside the exercise for it to interfere with.
+            const isFinalSet = currentSet >= sets;
+            const setRestDuration = currentExercise.restBetweenSets ?? restBetweenSets;
+
+            if (shouldPlayAudio() && (isFinalSet || setRestDuration > 0)) {
               clearPendingSetCompleteCue();
               pendingSetCompleteCueId = setTimeout(() => {
                 pendingSetCompleteCueId = undefined;
@@ -1096,7 +1107,7 @@
               }, SET_COMPLETE_CUE_DELAY_MS);
             }
 
-            if (currentSet >= sets) {
+            if (isFinalSet) {
               // Final set: completeSession's 2s delay provides spacing before session-complete cue
               completeCurrentExercise();
             } else {
@@ -1113,23 +1124,20 @@
               isPausingBetweenReps = false;
               currentRep = 1;
 
-              const restDuration = currentExercise.restBetweenSets ?? restBetweenSets;
-
-              if (restDuration > 0) {
+              if (setRestDuration > 0) {
                 setTimeout(() => {
                   // Suppress rest-start cue: set-complete gong plays inside the rest window
                   startRestTimer(false);
                 }, 300);
               } else {
-                // Zero rest: delay next set start so gong doesn't collide with first rep-start cue
-                setTimeout(() => {
-                  if (autoAdvanceActive || autoAdvanceSets) {
-                    startRepsExercise();
-                  } else {
-                    isAwaitingSetContinuation = true;
-                    timerState = 'paused';
-                  }
-                }, SET_COMPLETE_CUE_DELAY_MS + 300);
+                // Zero rest: next set starts immediately. The gong was suppressed above, so
+                // the configured zero-rest transition keeps its timing (spec 7.4 item 4, 9.3).
+                if (autoAdvanceActive || autoAdvanceSets) {
+                  startRepsExercise();
+                } else {
+                  isAwaitingSetContinuation = true;
+                  timerState = 'paused';
+                }
               }
             }
           }

@@ -640,9 +640,15 @@ open and are deferred; both were already flagged as optional/future work in §10
 
 4. Should a zero-rest next set be delayed enough to allow the set-complete gong, or should the
    set-complete gong be suppressed for zero-rest sets?
-   - **Resolved: delay the next set.** When `restBetweenSets` is 0, the next set's start is
-     deferred by `SET_COMPLETE_CUE_DELAY_MS + 300` (1000ms) so the gong does not collide with
-     the first rep-start cue of the next set. The gong is never suppressed.
+   - **Resolved: suppress the gong**, per the policy already stated in §7.4 item 4. When
+     `restBetweenSets` is 0 on a **non-final** set, the gong is not scheduled and the next set
+     begins immediately, so a configured zero-rest transition keeps its timing (§9.3). Final
+     sets always play the gong regardless of the rest setting, because nothing follows them
+     inside the exercise for it to interfere with.
+   - An earlier implementation delayed the next set by 1000ms to make room for the gong. That
+     inverted §7.4 item 4 — it interfered with the next set instead of yielding — and silently
+     turned a deliberate zero-rest exercise into a ~1s rest after every set. Corrected before
+     merge.
 
 5. Should a separate reps exercise-end cue ever exist, or should final set-complete always
    serve that role?
@@ -689,8 +695,9 @@ Implemented on `claude/review-cue-logic-end-set-ybwdtx`, targeting `main`.
 5. **Rest anchored to set completion, not to the gong** (§7.3). The delayed cue never gates
    the rest timer.
 6. **Rest-start cue suppressed** when a gong is scheduled (§7.4, resolves §16.1).
-7. **Zero-rest sets** defer the next set by 1000ms so the gong cannot collide with the next
-   set's first rep-start cue (resolves §16.4).
+7. **Zero-rest non-final sets suppress the gong** rather than delaying the next set, so the
+   configured zero-rest timing is preserved (§7.4 item 4, §9.3; resolves §16.4). Final sets
+   keep the gong regardless of the rest setting.
 8. **Pending-cue cleanup** (§9.2) — the scheduled gong is cancelled on skip, jump, previous,
    exit, manual finish, and component destroy via `clearPendingSetCompleteCue()`, which
    `clearTimers()` also calls. It is deliberately allowed to fire through a pause, per the
@@ -720,9 +727,12 @@ Implemented on `claude/review-cue-logic-end-set-ybwdtx`, targeting `main`.
 
 ### 18.3 Known minor edge case
 
-§7.4 item 4 anticipated suppressing the gong when rest is shorter than the cue delay. Because
-`restBetweenSets` is expressed in whole seconds, any non-zero rest is at least 1000ms, which
-already exceeds the 700ms delay — so the gong always starts before rest ends and no suppression
-rule was needed. With a 1-second rest, however, the gong's 2-second decay will still be
-sounding when the rest-end cue fires. This is audible but not disruptive, and was judged not
-worth a special case.
+§7.4 item 4 covers rests shorter than the cue delay. Two cases arise in practice:
+
+- **Zero rest** on a non-final set: the gong is suppressed and the next set starts immediately,
+  per §16.4. This is the case §7.4 item 4 was written for.
+- **One-second rest**: because `restBetweenSets` is expressed in whole seconds, the shortest
+  non-zero rest is 1000ms, which already exceeds the 700ms cue delay — so the gong starts well
+  before rest ends and is not suppressed. Its 2-second decay will still be sounding when the
+  rest-end cue fires. This is audible but not disruptive, and was judged not worth a special
+  case.
