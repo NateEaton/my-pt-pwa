@@ -216,6 +216,25 @@ export class AudioService {
   }
 
   /**
+   * Called when a set is completed (all sets, including the final set)
+   * Warm resonant gong at G4 — lower and warmer than the C5 side-switch gong
+   */
+  public onSetComplete(): void {
+    // G4 root with 2-second exponential decay
+    this.playChime(392);
+
+    // Quiet D5 overtone (perfect fifth above G4) for warmth
+    const savedVolume = this.masterVolume;
+    this.masterVolume = savedVolume * 0.3;
+    this.playChime(587.33);
+    this.masterVolume = savedVolume;
+
+    // Two gentle pulses, distinct from side-switch's long-short pattern
+    this.triggerHaptic(50);
+    setTimeout(() => this.triggerHaptic(50), 250);
+  }
+
+  /**
    * @deprecated Use onDurationStart() or onRepStart() instead
    */
   public onExerciseStart(): void {

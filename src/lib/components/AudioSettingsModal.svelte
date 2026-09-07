@@ -127,6 +127,12 @@
     audioService.onRepEnd();
   }
 
+  function previewSetComplete() {
+    audioService.setMasterVolume(soundVolume);
+    audioService.setHapticsEnabled(hapticsEnabled);
+    audioService.onSetComplete();
+  }
+
   function previewRestStart() {
     audioService.setMasterVolume(soundVolume);
     audioService.setHapticsEnabled(hapticsEnabled);
@@ -346,6 +352,9 @@
           The app plays audio cues when sound is enabled:
           <ul>
             <li>Exercise start and completion</li>
+            <li>Rep start and end</li>
+            <li>Side switch (unilateral exercises)</li>
+            <li>Set completion</li>
             <li>Rest period start and end</li>
             <li>Session completion</li>
           </ul>
@@ -387,6 +396,14 @@
           >
             <span class="material-icons">fitness_center</span>
             Rep End
+          </button>
+          <button
+            class="btn-preview"
+            on:click={previewSetComplete}
+            disabled={!soundEnabled}
+          >
+            <span class="material-icons">done_all</span>
+            Set Complete
           </button>
           <button
             class="btn-preview"
