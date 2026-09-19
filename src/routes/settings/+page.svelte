@@ -18,6 +18,7 @@
 
 <script lang="ts">
   import { ptState, ptService } from '$lib/stores/pt';
+  import { storageHealth } from '$lib/stores/storage';
   import { toastStore } from '$lib/stores/toast';
   import { isDevelopment } from '$lib/utils/buildInfo';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
@@ -27,6 +28,7 @@
   import AudioSettingsModal from '$lib/components/AudioSettingsModal.svelte';
   import BackupModal from '$lib/components/BackupModal.svelte';
   import RestoreModal from '$lib/components/RestoreModal.svelte';
+  import StorageHealthModal from '$lib/components/StorageHealthModal.svelte';
   import ExportExercisesModal from '$lib/components/ExportExercisesModal.svelte';
   import ImportExercisesModal from '$lib/components/ImportExercisesModal.svelte';
   import GuideDialog from '$lib/components/GuideDialog.svelte';
@@ -43,6 +45,7 @@
   let showAudioSettings = false;
   let showBackupModal = false;
   let showRestoreModal = false;
+  let showStorageHealth = false;
   let showExportExercises = false;
   let showImportExercises = false;
   let showGuide = false;
@@ -56,6 +59,22 @@
   $: theme = $ptState.settings?.theme ?? 'auto';
   $: colorScheme = $ptState.settings?.colorScheme ?? 'blue';
   $: fullscreenEnabled = $ptState.settings?.fullscreenEnabled ?? false;
+
+  // Storage health summary for the Data section card
+  $: storageAtRisk =
+    $storageHealth.persistence === 'not-persisted' || $storageHealth.persistence === 'unsupported';
+  $: storageSummary = (() => {
+    switch ($storageHealth.persistence) {
+      case 'persisted':
+        return 'Protected';
+      case 'not-persisted':
+        return 'Not protected';
+      case 'unsupported':
+        return 'Protection not available';
+      default:
+        return 'Checking';
+    }
+  })();
 
   // Install/update the service worker alert system
   if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
@@ -372,6 +391,35 @@
       <h2 class="section-title">Data</h2>
 
       <div class="settings-cards">
+        <!-- Storage Health Card -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div
+          class="settings-card {storageAtRisk ? 'storage-at-risk' : ''}"
+          on:click={() => (showStorageHealth = true)}
+        >
+          <div class="card-icon">
+            <span class="material-icons">{storageAtRisk ? 'warning' : 'storage'}</span>
+          </div>
+          <div class="card-content">
+            <h3>Storage</h3>
+            <p>
+              {storageAtRisk
+                ? 'The browser may clear your data to free up space'
+                : 'How your data is kept on this device'}
+            </p>
+            <div class="card-meta">
+              <span class="material-icons">
+                {$storageHealth.persistence === 'persisted' ? 'verified_user' : 'info'}
+              </span>
+              <span>{storageSummary}</span>
+            </div>
+          </div>
+          <div class="card-arrow">
+            <span class="material-icons">chevron_right</span>
+          </div>
+        </div>
+
         <!-- Backup Card -->
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -658,6 +706,10 @@
 
 {#if showRestoreModal}
   <RestoreModal on:close={() => (showRestoreModal = false)} />
+{/if}
+
+{#if showStorageHealth}
+  <StorageHealthModal on:close={() => (showStorageHealth = false)} />
 {/if}
 
 {#if showExportExercises}
@@ -966,6 +1018,14 @@
 
   .settings-card.update-available:hover {
     background-color: var(--primary-alpha-20);
+  }
+
+  .settings-card.storage-at-risk {
+    border-color: var(--warning-color);
+  }
+
+  .settings-card.storage-at-risk .card-icon .material-icons {
+    color: var(--warning-color);
   }
 
   .card-icon {

@@ -83,6 +83,17 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
+      // Record when the last backup was taken so Settings can show it.
+      // Best-effort: a failure here must not turn a successful download into an error.
+      try {
+        await ptService.saveMetadata({
+          ...(metadata ?? { version: 1, installDate: backupData.exportDate }),
+          lastBackupDate: backupData.exportDate
+        });
+      } catch (metaError) {
+        console.warn('Failed to record last backup date:', metaError);
+      }
+
       toastStore.show('Backup downloaded successfully', 'success');
       handleClose();
     } catch (error) {

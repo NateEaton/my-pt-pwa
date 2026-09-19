@@ -23,6 +23,7 @@
   import { page } from "$app/stores";
   import { ptState, ptService } from "$lib/stores/pt";
   import { pwaJustUpdated, pwaOfflineReady } from "$lib/stores/pwa";
+  import { initStorageHealth } from "$lib/stores/storage";
   import Toast from "$lib/components/Toast.svelte";
   import { toastStore } from "$lib/stores/toast";
   import "../app.css";
@@ -80,6 +81,10 @@
 
     // Load initial data into store
     await loadInitialData();
+
+    // Ask the browser to keep IndexedDB out of the evictable bucket and
+    // record the outcome for Settings. Best-effort; never blocks startup.
+    void initStorageHealth();
 
     initializeTheme();
 
