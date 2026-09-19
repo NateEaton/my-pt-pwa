@@ -25,6 +25,8 @@
   import ExerciseCard from '$lib/components/ExerciseCard.svelte';
   import Modal from '$lib/components/Modal.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import BackupReminderBanner from '$lib/components/BackupReminderBanner.svelte';
+  import BackupModal from '$lib/components/BackupModal.svelte';
   import type { Exercise, SessionDefinition, SessionInstance, CompletedExercise } from '$lib/types/pt';
 
   // Format today's date
@@ -40,6 +42,9 @@
   // Modal states
   let showSessionSelectModal = false;
   let showManualLogConfirm = false;
+  let showBackupModal = false;
+  // Bumped when the backup modal closes so the reminder re-reads metadata
+  let reminderKey = 0;
 
   // Selected session for today (defaults to default session)
   let selectedSession: SessionDefinition | null = null;
@@ -476,6 +481,10 @@
       <h1 class="date-display">{formattedDate}</h1>
     </header>
 
+    {#key reminderKey}
+      <BackupReminderBanner on:backup={() => (showBackupModal = true)} />
+    {/key}
+
     <!-- Session overview section -->
     <section class="session-section">
       {#if $ptState.initialized}
@@ -643,6 +652,15 @@
 </div>
 
 <!-- Manual Log Confirmation Dialog -->
+{#if showBackupModal}
+  <BackupModal
+    on:close={() => {
+      showBackupModal = false;
+      reminderKey += 1;
+    }}
+  />
+{/if}
+
 {#if showManualLogConfirm}
   <ConfirmDialog
     title="Log Workout"

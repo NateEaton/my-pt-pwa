@@ -58,9 +58,18 @@ export interface AppSettings {
   audioExerciseAboutToEndEnabled: boolean; // Exercise about-to-end: 3-2-1 countdown with descending tones during final seconds
   audioRestCuesEnabled: boolean; // Play audio cues at start and end of rest periods
 
+  // Data safety
+  backupReminderInterval: BackupReminderInterval; // How often to nag for a backup when there are unsaved changes
+
   // Feature flags (for future use)
   enableNotifications?: boolean;
 }
+
+/**
+ * How often the app reminds the user to take a backup.
+ * 'off' is deliberate opt-out; it can only be set from Settings.
+ */
+export type BackupReminderInterval = 'off' | 'weekly' | 'biweekly' | 'monthly';
 
 /**
  * Database version and migration tracking
@@ -69,5 +78,7 @@ export interface DBMetadata {
   version: number;
   lastMigration?: string; // ISO date string
   installDate: string; // ISO date string
-  lastBackupDate?: string; // ISO date string of the last successful backup download
+  lastBackupDate?: string; // ISO date string of the last successful backup download or share
+  changesSinceBackup?: number; // User-data writes since the last successful backup
+  backupReminderSnoozedUntil?: string; // ISO date string; reminder is hidden until then
 }

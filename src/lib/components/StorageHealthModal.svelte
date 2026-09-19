@@ -26,12 +26,14 @@
   const dispatch = createEventDispatcher();
 
   let lastBackupDate: string | null = null;
+  let changesSinceBackup = 0;
   let rechecking = false;
 
   onMount(async () => {
     try {
       const metadata = await ptService.getMetadata();
       lastBackupDate = metadata?.lastBackupDate ?? null;
+      changesSinceBackup = metadata?.changesSinceBackup ?? 0;
     } catch (error) {
       console.error('Failed to load last backup date:', error);
     }
@@ -176,6 +178,12 @@
       <p class="detail-value">{formatDate(lastBackupDate)}</p>
       {#if !lastBackupDate}
         <p class="detail-muted">No backup has been taken from this device yet.</p>
+      {:else if changesSinceBackup > 0}
+        <p class="detail-muted">
+          {changesSinceBackup} {changesSinceBackup === 1 ? 'change' : 'changes'} since then
+        </p>
+      {:else}
+        <p class="detail-muted">No changes since then</p>
       {/if}
     </div>
 

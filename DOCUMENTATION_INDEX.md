@@ -21,6 +21,11 @@ This index provides a comprehensive guide to all documentation in the My PT PWA 
   - Common git issues and solutions
   - Best practices for feature branches
 
+- **[_notes/DATA_DURABILITY.md](_notes/DATA_DURABILITY.md)** - How user data is kept safe
+  - Persistent storage request and what it does not cover
+  - Backup reminders, share-sheet export, automatic backup folder
+  - Backup file format and the atomic restore
+
 - **[_notes/ARCHITECTURE_REVIEW.md](_notes/ARCHITECTURE_REVIEW.md)** - Professional architecture assessment
   - Architecture scores and evaluation (9/10 overall)
   - Critical fixes completed

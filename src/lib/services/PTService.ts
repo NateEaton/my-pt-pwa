@@ -38,6 +38,9 @@ import { getDbName } from '$lib/utils/demoMode';
 
 const DB_VERSION = 1;
 
+// Metadata store key holding the automatic-backup directory handle
+const AUTO_BACKUP_KEY = 'autoBackupDir';
+
 // Object store names
 const STORES = {
   EXERCISES: 'exercises',
@@ -72,8 +75,22 @@ const DEFAULT_SETTINGS: AppSettings = {
   audioLeadInEnabled: true, // Exercise about-to-start countdown (enabled by default)
   audioExerciseAboutToEndEnabled: true, // Exercise about-to-end countdown (enabled by default)
   audioRestCuesEnabled: false, // Rest period cues enabled by default
+  backupReminderInterval: 'biweekly', // Remind for a backup every two weeks when there are changes
   enableNotifications: false
 };
+
+/**
+ * Everything a restore replaces, in the shape the object stores hold it.
+ * IDs are kept as-is (the stores are emptied first, so nothing can collide)
+ * which is what keeps session -> exercise references valid without remapping.
+ */
+export interface RestoreSnapshot {
+  exercises: Exercise[];
+  sessionDefinitions: SessionDefinition[];
+  sessionInstances: SessionInstance[];
+  settings?: AppSettings | null;
+  metadata?: DBMetadata | null;
+}
 
 /**
  * PTService - Manages all data operations for the PT application
@@ -243,7 +260,9 @@ export class PTService {
       dateAdded: exercise.dateAdded || new Date().toISOString()
     };
 
-    return this._add<Exercise>(STORES.EXERCISES, exerciseToAdd);
+    const id = await this._add<Exercise>(STORES.EXERCISES, exerciseToAdd);
+    this.noteDataChange();
+    return id;
   }
 
   /**
@@ -251,7 +270,8 @@ export class PTService {
    */
   async updateExercise(exercise: Exercise): Promise<void> {
     this.ensureInitialized();
-    return this._put<Exercise>(STORES.EXERCISES, exercise);
+    await this._put<Exercise>(STORES.EXERCISES, exercise);
+    this.noteDataChange();
   }
 
   /**
@@ -259,7 +279,8 @@ export class PTService {
    */
   async deleteExercise(id: number): Promise<void> {
     this.ensureInitialized();
-    return this._delete(STORES.EXERCISES, id);
+    await this._delete(STORES.EXERCISES, id);
+    this.noteDataChange();
   }
 
   // ==================== Session Definition Operations ====================
@@ -311,7 +332,9 @@ export class PTService {
       await this.clearDefaultSessionDefinition();
     }
 
-    return this._add<SessionDefinition>(STORES.SESSION_DEFINITIONS, sessionToAdd);
+    const id = await this._add<SessionDefinition>(STORES.SESSION_DEFINITIONS, sessionToAdd);
+    this.noteDataChange();
+    return id;
   }
 
   /**
@@ -325,7 +348,8 @@ export class PTService {
       await this.clearDefaultSessionDefinition(sessionDef.id);
     }
 
-    return this._put<SessionDefinition>(STORES.SESSION_DEFINITIONS, sessionDef);
+    await this._put<SessionDefinition>(STORES.SESSION_DEFINITIONS, sessionDef);
+    this.noteDataChange();
   }
 
   /**
@@ -333,7 +357,8 @@ export class PTService {
    */
   async deleteSessionDefinition(id: number): Promise<void> {
     this.ensureInitialized();
-    return this._delete(STORES.SESSION_DEFINITIONS, id);
+    await this._delete(STORES.SESSION_DEFINITIONS, id);
+    this.noteDataChange();
   }
 
   /**
@@ -402,7 +427,9 @@ export class PTService {
     instance: Omit<SessionInstance, 'id'>
   ): Promise<number> {
     this.ensureInitialized();
-    return this._add<SessionInstance>(STORES.SESSION_INSTANCES, instance);
+    const id = await this._add<SessionInstance>(STORES.SESSION_INSTANCES, instance);
+    this.noteDataChange();
+    return id;
   }
 
   /**
@@ -410,7 +437,8 @@ export class PTService {
    */
   async updateSessionInstance(instance: SessionInstance): Promise<void> {
     this.ensureInitialized();
-    return this._put<SessionInstance>(STORES.SESSION_INSTANCES, instance);
+    await this._put<SessionInstance>(STORES.SESSION_INSTANCES, instance);
+    this.noteDataChange();
   }
 
   /**
@@ -418,7 +446,8 @@ export class PTService {
    */
   async deleteSessionInstance(id: number): Promise<void> {
     this.ensureInitialized();
-    return this._delete(STORES.SESSION_INSTANCES, id);
+    await this._delete(STORES.SESSION_INSTANCES, id);
+    this.noteDataChange();
   }
 
   // ==================== Settings Operations ====================
@@ -463,6 +492,115 @@ export class PTService {
   async saveMetadata(metadata: DBMetadata): Promise<void> {
     this.ensureInitialized();
     return this._put(STORES.METADATA, { key: 'dbMetadata', ...metadata });
+  }
+
+  private dataChangeListeners = new Set<() => void>();
+
+  /**
+   * Be told after any user-data write (exercises, sessions, journal).
+   * Used by the automatic backup to schedule a write. Returns an unsubscribe.
+   */
+  onDataChange(listener: () => void): () => void {
+    this.dataChangeListeners.add(listener);
+    return () => this.dataChangeListeners.delete(listener);
+  }
+
+  // ==================== Automatic Backup Folder ====================
+  // The directory handle lives in the metadata store under its own key so it
+  // is never part of a backup file (which only carries 'dbMetadata') and can
+  // survive a restore.
+
+  async getAutoBackupHandle(): Promise<FileSystemDirectoryHandle | null> {
+    this.ensureInitialized();
+    const record = await this._getByKey<{ handle: FileSystemDirectoryHandle }>(
+      STORES.METADATA,
+      AUTO_BACKUP_KEY
+    );
+    return record?.handle ?? null;
+  }
+
+  async saveAutoBackupHandle(handle: FileSystemDirectoryHandle): Promise<void> {
+    this.ensureInitialized();
+    return this._put(STORES.METADATA, {
+      key: AUTO_BACKUP_KEY,
+      handle,
+      chosenAt: new Date().toISOString()
+    });
+  }
+
+  async clearAutoBackupHandle(): Promise<void> {
+    this.ensureInitialized();
+    return this._delete(STORES.METADATA, AUTO_BACKUP_KEY);
+  }
+
+  /**
+   * Count a user-data write towards the backup reminder.
+   *
+   * Fire-and-forget: callers don't await it, so a failure here can never
+   * turn a successful save into an error. The read and write happen inside
+   * one transaction so concurrent saves can't lose increments.
+   */
+  private noteDataChange(): void {
+    if (!this.db) return;
+    try {
+      const transaction = this.db.transaction([STORES.METADATA], 'readwrite');
+      const store = transaction.objectStore(STORES.METADATA);
+      const request = store.get('dbMetadata');
+      request.onsuccess = () => {
+        const current = (request.result ?? {
+          key: 'dbMetadata',
+          version: DB_VERSION,
+          installDate: new Date().toISOString()
+        }) as DBMetadata & { key: string };
+        store.put({
+          ...current,
+          changesSinceBackup: (current.changesSinceBackup ?? 0) + 1
+        });
+      };
+      transaction.onerror = () => {
+        console.warn('Failed to count data change for backup reminder:', transaction.error);
+      };
+    } catch (error) {
+      console.warn('Failed to count data change for backup reminder:', error);
+    }
+
+    for (const listener of this.dataChangeListeners) {
+      try {
+        listener();
+      } catch (error) {
+        console.warn('Data change listener failed:', error);
+      }
+    }
+  }
+
+  /**
+   * Record a successful backup: stamps the date, resets the change counter
+   * and clears any reminder snooze.
+   */
+  async recordBackupTaken(date: string = new Date().toISOString()): Promise<void> {
+    this.ensureInitialized();
+    const current = (await this.getMetadata()) ?? {
+      version: DB_VERSION,
+      installDate: date
+    };
+    const { backupReminderSnoozedUntil, ...rest } = current;
+    await this.saveMetadata({
+      ...rest,
+      lastBackupDate: date,
+      changesSinceBackup: 0
+    });
+  }
+
+  /**
+   * Hide the backup reminder until the given time
+   */
+  async snoozeBackupReminder(until: string): Promise<void> {
+    this.ensureInitialized();
+    const current = (await this.getMetadata()) ?? {
+      version: DB_VERSION,
+      installDate: new Date().toISOString()
+    };
+    await this.saveMetadata({ ...current, backupReminderSnoozedUntil: until });
   }
 
   // ==================== Generic IndexedDB Operations ====================
@@ -577,6 +715,116 @@ export class PTService {
       this.db = null;
       this.initPromise = null;
     }
+  }
+
+  /**
+   * Replace every store's contents with the given snapshot, atomically.
+   *
+   * Runs as a single readwrite transaction across all stores: clear, then
+   * add every record. If any request fails (a duplicate ID, a value that
+   * can't be cloned, a quota error) IndexedDB aborts the whole transaction
+   * and the previous data is left exactly as it was. Nothing is awaited
+   * outside the request callbacks, so the transaction can't auto-commit
+   * part-way through.
+   *
+   * Missing settings/metadata in the snapshot are replaced with defaults so
+   * the app never comes back up with those stores empty.
+   */
+  async restoreAllData(snapshot: RestoreSnapshot): Promise<void> {
+    this.ensureInitialized();
+
+    const stores = [
+      STORES.EXERCISES,
+      STORES.SESSION_DEFINITIONS,
+      STORES.SESSION_INSTANCES,
+      STORES.SETTINGS,
+      STORES.METADATA
+    ];
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(stores, 'readwrite');
+      let settled = false;
+
+      const fail = (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        reject(error instanceof Error ? error : new Error('Restore failed'));
+      };
+
+      transaction.oncomplete = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      transaction.onerror = () => fail(transaction.error ?? new Error('Restore transaction failed'));
+      transaction.onabort = () => fail(transaction.error ?? new Error('Restore was aborted'));
+
+      const abortWith = (error: unknown) => {
+        // A synchronous throw (e.g. DataCloneError from add()) doesn't abort
+        // the transaction by itself; do it explicitly so nothing partial commits.
+        try {
+          transaction.abort();
+        } catch {
+          // already aborted
+        }
+        fail(error);
+      };
+
+      const writeSnapshot = () => {
+        // add() rather than put(): a duplicate ID in the file is a corrupt
+        // backup and should abort the restore, not overwrite silently.
+        const exerciseStore = transaction.objectStore(STORES.EXERCISES);
+        for (const exercise of snapshot.exercises) {
+          exerciseStore.add(exercise);
+        }
+
+        const sessionDefStore = transaction.objectStore(STORES.SESSION_DEFINITIONS);
+        for (const sessionDef of snapshot.sessionDefinitions) {
+          sessionDefStore.add(sessionDef);
+        }
+
+        const sessionInstanceStore = transaction.objectStore(STORES.SESSION_INSTANCES);
+        for (const instance of snapshot.sessionInstances) {
+          sessionInstanceStore.add(instance);
+        }
+
+        transaction.objectStore(STORES.SETTINGS).put({
+          key: 'appSettings',
+          ...(snapshot.settings ?? DEFAULT_SETTINGS)
+        });
+
+        transaction.objectStore(STORES.METADATA).put({
+          key: 'dbMetadata',
+          ...(snapshot.metadata ?? {
+            version: DB_VERSION,
+            installDate: new Date().toISOString()
+          })
+        });
+      };
+
+      // The automatic-backup folder handle is device state, not user data:
+      // read it before clearing so it can be written back in the same
+      // transaction.
+      const metadataStore = transaction.objectStore(STORES.METADATA);
+      const handleRequest = metadataStore.get(AUTO_BACKUP_KEY);
+
+      handleRequest.onsuccess = () => {
+        const autoBackupRecord = handleRequest.result;
+        try {
+          for (const storeName of stores) {
+            transaction.objectStore(storeName).clear();
+          }
+
+          if (autoBackupRecord) {
+            metadataStore.put(autoBackupRecord);
+          }
+
+          writeSnapshot();
+        } catch (error) {
+          abortWith(error);
+        }
+      };
+    });
   }
 
   /**
