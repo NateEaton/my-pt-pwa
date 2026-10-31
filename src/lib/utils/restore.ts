@@ -98,6 +98,11 @@ export function validateBackupData(input: unknown): BackupData {
     if (!isRecord(item) || typeof item.name !== 'string') {
       throw new Error(`Invalid backup file: exercise entry ${index + 1} is malformed`);
     }
+    // Early versions of the app stored 'rep'; a backup the app itself wrote
+    // must always restore, so normalize rather than reject
+    if (item.type === 'rep') {
+      return { ...item, type: 'reps' };
+    }
     if (item.type !== 'duration' && item.type !== 'reps') {
       throw new Error(`Invalid backup file: exercise "${item.name}" has no valid type`);
     }

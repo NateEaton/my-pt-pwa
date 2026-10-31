@@ -28,8 +28,12 @@ import type { AppSettings, DBMetadata, BackupReminderInterval } from '$lib/types
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Changes that trigger a reminder regardless of how recent the last backup was */
-export const CHANGE_THRESHOLD = 25;
+/**
+ * Changes that trigger a reminder regardless of how recent the last backup was.
+ * A change is a journal entry added or deleted, or an exercise or session
+ * edit (see PTService.noteDataChange), so this is roughly ten sessions.
+ */
+export const CHANGE_THRESHOLD = 10;
 
 /** How long "Later" hides the reminder. Sessions are near-daily, so a day is enough. */
 export const SNOOZE_DAYS = 1;
@@ -55,7 +59,7 @@ export interface BackupReminderInput {
  * either:
  * - enough time has passed since the last backup (or since install, if there
  *   has never been one) and something has changed since, or
- * - CHANGE_THRESHOLD writes have piled up regardless of time.
+ * - CHANGE_THRESHOLD changes have piled up regardless of time.
  *
  * "Something has changed" is assumed when there has never been a backup, since
  * the counter only started with this feature and existing data predates it.

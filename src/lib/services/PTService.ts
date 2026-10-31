@@ -438,7 +438,9 @@ export class PTService {
   async updateSessionInstance(instance: SessionInstance): Promise<void> {
     this.ensureInitialized();
     await this._put<SessionInstance>(STORES.SESSION_INSTANCES, instance);
-    this.noteDataChange();
+    // The player saves after every exercise; one session is one journal
+    // entry for the reminder (counted on add), so updates don't count
+    this.noteDataChange(false);
   }
 
   /**
@@ -534,13 +536,29 @@ export class PTService {
   }
 
   /**
-   * Count a user-data write towards the backup reminder.
+   * Record a user-data write: notify listeners (automatic backup) and, when
+   * countsTowardReminder is set, count it towards the backup reminder.
+   * Counted: journal entries added or deleted, and exercise or session
+   * edits. Not counted: the player's per-exercise journal updates.
    *
    * Fire-and-forget: callers don't await it, so a failure here can never
    * turn a successful save into an error. The read and write happen inside
    * one transaction so concurrent saves can't lose increments.
    */
-  private noteDataChange(): void {
+  private noteDataChange(countsTowardReminder = true): void {
+    if (!this.db) return;
+    if (countsTowardReminder) this.countChangeForReminder();
+
+    for (const listener of this.dataChangeListeners) {
+      try {
+        listener();
+      } catch (error) {
+        console.warn('Data change listener failed:', error);
+      }
+    }
+  }
+
+  private countChangeForReminder(): void {
     if (!this.db) return;
     try {
       const transaction = this.db.transaction([STORES.METADATA], 'readwrite');
@@ -562,14 +580,6 @@ export class PTService {
       };
     } catch (error) {
       console.warn('Failed to count data change for backup reminder:', error);
-    }
-
-    for (const listener of this.dataChangeListeners) {
-      try {
-        listener();
-      } catch (error) {
-        console.warn('Data change listener failed:', error);
-      }
     }
   }
 

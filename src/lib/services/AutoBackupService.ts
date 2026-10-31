@@ -154,11 +154,11 @@ class AutoBackupService {
     this.attachListeners();
 
     // Catch up on anything that changed while the folder wasn't reachable
+    // or a page-hide flush didn't finish. Unconditional: the reminder counter
+    // skips the player's per-exercise saves, so it can't tell us whether the
+    // last write is current. One file write per launch is cheap.
     if (permission === 'granted') {
-      const metadata = await ptService.getMetadata().catch(() => null);
-      if ((metadata?.changesSinceBackup ?? 0) > 0) {
-        void this.runBackup();
-      }
+      void this.runBackup();
     }
   }
 

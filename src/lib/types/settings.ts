@@ -79,6 +79,6 @@ export interface DBMetadata {
   lastMigration?: string; // ISO date string
   installDate: string; // ISO date string
   lastBackupDate?: string; // ISO date string of the last successful backup download or share
-  changesSinceBackup?: number; // User-data writes since the last successful backup
+  changesSinceBackup?: number; // Journal entries added/deleted and exercise/session edits since the last successful backup
   backupReminderSnoozedUntil?: string; // ISO date string; reminder is hidden until then
 }
