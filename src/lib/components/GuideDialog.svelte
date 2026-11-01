@@ -353,19 +353,11 @@
           <li><strong>Preview Sounds:</strong> Test all audio cues (duration, rep, rest, countdown, completion)</li>
         </ul>
 
-        <h4>Data Management</h4>
-        <p>In Settings > Data:</p>
+        <h4>Exercise Library Files</h4>
+        <p>In Settings > Library:</p>
         <ul>
           <li>
-            <strong>Create Backup:</strong> Download a JSON file containing all your
-            exercises, sessions, journal entries, and settings. Keep this file safe!
-          </li>
-          <li>
-            <strong>Restore Backup:</strong> Upload a backup file to restore your data.
-            This will replace all current data, so make a backup first if needed.
-          </li>
-          <li>
-            <strong>Export Exercises:</strong> Save your library as a CSV file to edit 
+            <strong>Export Exercises:</strong> Save your library as a CSV file to edit
             in Excel/Google Sheets, or as JSON to share with other devices.
           </li>
           <li>
@@ -374,6 +366,52 @@
             them or import them as copies.
           </li>
         </ul>
+
+        <h4>Keeping Your Data Safe</h4>
+        <p>
+          Everything you enter is stored only on this device, inside the browser. Nothing is
+          sent anywhere, which also means there is no other copy unless you make one. A backup
+          file is the only thing that survives if the browser clears its storage, the app is
+          removed, or the device is lost.
+        </p>
+        <p>In Settings > Data:</p>
+        <ul>
+          <li>
+            <strong>Storage:</strong> Shows whether the browser has agreed to protect your data
+            from being cleared, how much space is used, and when you last backed up. If it says
+            "Not protected", installing the app to your home screen usually fixes it. On iPhone
+            and iPad, always open My PT from the home screen icon rather than a Safari tab, and
+            don't delete the icon: that deletes the data too.
+          </li>
+          <li>
+            <strong>Backup:</strong> Saves a JSON file containing all your exercises, sessions,
+            journal entries, and settings. On a phone, use <strong>Share</strong> to send it
+            straight to Files, iCloud Drive, or Google Drive; elsewhere, <strong>Download</strong>
+            saves it to your computer. Keep it somewhere other than this device.
+          </li>
+          <li>
+            <strong>Automatic Backup:</strong> On a Chromebook or desktop Chrome/Edge, choose a
+            folder once and My PT writes a backup there by itself: at most every 15 minutes while
+            you use the app, plus when you close it. It keeps a current copy and one file per day
+            for the last five days. Pick a folder that syncs to a cloud drive and the copy leaves
+            your device too. Not available on phones.
+          </li>
+          <li>
+            <strong>Backup reminders:</strong> A banner appears on Today when it has been a while
+            since your last backup and you have unsaved changes (every 2 weeks by default; change
+            it or turn it off here). "Later" hides it until tomorrow. The reminder stays quiet
+            while automatic backup is running.
+          </li>
+          <li>
+            <strong>Restore:</strong> Load a backup file to put your data back. The file is
+            checked first and your current data is only replaced if the whole restore succeeds,
+            but it does replace everything, so take a backup first if you're unsure.
+          </li>
+        </ul>
+        <p>
+          Always open My PT from the same address it was installed from. Your data belongs to
+          that address; a different one starts empty.
+        </p>
 
         <h4>Display</h4>
         <p>In Settings > Display, you can adjust:</p>

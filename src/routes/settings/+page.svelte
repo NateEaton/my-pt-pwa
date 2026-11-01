@@ -18,6 +18,7 @@
 
 <script lang="ts">
   import { ptState, ptService } from '$lib/stores/pt';
+  import { storageHealth } from '$lib/stores/storage';
   import { toastStore } from '$lib/stores/toast';
   import { isDevelopment } from '$lib/utils/buildInfo';
   import BottomTabs from '$lib/components/BottomTabs.svelte';
@@ -27,11 +28,14 @@
   import AudioSettingsModal from '$lib/components/AudioSettingsModal.svelte';
   import BackupModal from '$lib/components/BackupModal.svelte';
   import RestoreModal from '$lib/components/RestoreModal.svelte';
+  import StorageHealthModal from '$lib/components/StorageHealthModal.svelte';
+  import AutoBackupModal from '$lib/components/AutoBackupModal.svelte';
+  import { autoBackupState } from '$lib/services/AutoBackupService';
   import ExportExercisesModal from '$lib/components/ExportExercisesModal.svelte';
   import ImportExercisesModal from '$lib/components/ImportExercisesModal.svelte';
   import GuideDialog from '$lib/components/GuideDialog.svelte';
   import AboutDialog from '$lib/components/AboutDialog.svelte';
-  import type { AppSettings } from '$lib/types/pt';
+  import type { AppSettings, BackupReminderInterval } from '$lib/types';
 
   // Check if running in development mode
   const showDevFeatures = isDevelopment();
@@ -43,6 +47,8 @@
   let showAudioSettings = false;
   let showBackupModal = false;
   let showRestoreModal = false;
+  let showStorageHealth = false;
+  let showAutoBackup = false;
   let showExportExercises = false;
   let showImportExercises = false;
   let showGuide = false;
@@ -56,6 +62,38 @@
   $: theme = $ptState.settings?.theme ?? 'auto';
   $: colorScheme = $ptState.settings?.colorScheme ?? 'blue';
   $: fullscreenEnabled = $ptState.settings?.fullscreenEnabled ?? false;
+  $: backupReminderInterval = $ptState.settings?.backupReminderInterval ?? 'biweekly';
+
+  // Automatic backup card (desktop Chromium / Chrome OS only)
+  // Reminders are redundant while a folder is being backed up to automatically
+  $: autoBackupActive =
+    $autoBackupState.configured && $autoBackupState.permission === 'granted' && !$autoBackupState.lastError;
+  $: autoBackupAttention =
+    $autoBackupState.configured &&
+    ($autoBackupState.permission !== 'granted' || $autoBackupState.lastError !== null);
+  $: autoBackupSummary = !$autoBackupState.configured
+    ? 'Save backups to a folder without thinking about it'
+    : $autoBackupState.permission !== 'granted'
+      ? `Access to "${$autoBackupState.folderName}" needs to be re-enabled`
+      : $autoBackupState.lastError
+        ? $autoBackupState.lastError
+        : `Backing up to "${$autoBackupState.folderName}"`;
+
+  // Storage health summary for the Data section card
+  $: storageAtRisk =
+    $storageHealth.persistence === 'not-persisted' || $storageHealth.persistence === 'unsupported';
+  $: storageSummary = (() => {
+    switch ($storageHealth.persistence) {
+      case 'persisted':
+        return 'Protected';
+      case 'not-persisted':
+        return 'Not protected';
+      case 'unsupported':
+        return 'Protection not available';
+      default:
+        return 'Checking';
+    }
+  })();
 
   // Install/update the service worker alert system
   if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
@@ -161,6 +199,27 @@
     } catch (error) {
       console.error('Error updating theme:', error);
       toastStore.show('Failed to update theme', 'error');
+    }
+  }
+
+  // Update backup reminder frequency
+  async function updateBackupReminder(event: Event) {
+    if (!$ptState.settings) return;
+
+    const target = event.target as HTMLSelectElement;
+    const newSettings: AppSettings = {
+      ...$ptState.settings,
+      backupReminderInterval: target.value as BackupReminderInterval
+    };
+
+    try {
+      await ptService.saveSettings(newSettings);
+      const settings = await ptService.getSettings();
+      ptState.update((state) => ({ ...state, settings }));
+      toastStore.show('Backup reminder updated', 'success');
+    } catch (error) {
+      console.error('Error updating backup reminder:', error);
+      toastStore.show('Failed to update backup reminder', 'error');
     }
   }
 
@@ -317,6 +376,42 @@
             <span class="material-icons">chevron_right</span>
           </div>
         </div>
+
+        <!-- Export Exercises Card -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="settings-card" on:click={() => (showExportExercises = true)}>
+          <div class="card-icon">
+            <span class="material-icons">file_upload</span>
+          </div>
+          <div class="card-content">
+            <h3>Export Exercises</h3>
+            <p>Share your exercise library as CSV or JSON</p>
+            <div class="card-meta">
+              <span class="material-icons">fitness_center</span>
+              <span>{$ptState.exercises.length} {$ptState.exercises.length === 1 ? 'exercise' : 'exercises'}</span>
+            </div>
+          </div>
+          <div class="card-arrow">
+            <span class="material-icons">chevron_right</span>
+          </div>
+        </div>
+
+        <!-- Import Exercises Card -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="settings-card" on:click={() => (showImportExercises = true)}>
+          <div class="card-icon">
+            <span class="material-icons">file_download</span>
+          </div>
+          <div class="card-content">
+            <h3>Import Exercises</h3>
+            <p>Add exercises from CSV or JSON file</p>
+          </div>
+          <div class="card-arrow">
+            <span class="material-icons">chevron_right</span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -372,6 +467,35 @@
       <h2 class="section-title">Data</h2>
 
       <div class="settings-cards">
+        <!-- Storage Health Card -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div
+          class="settings-card {storageAtRisk ? 'storage-at-risk' : ''}"
+          on:click={() => (showStorageHealth = true)}
+        >
+          <div class="card-icon">
+            <span class="material-icons">{storageAtRisk ? 'warning' : 'storage'}</span>
+          </div>
+          <div class="card-content">
+            <h3>Storage</h3>
+            <p>
+              {storageAtRisk
+                ? 'The browser may clear your data to free up space'
+                : 'How your data is kept on this device'}
+            </p>
+            <div class="card-meta">
+              <span class="material-icons">
+                {$storageHealth.persistence === 'persisted' ? 'verified_user' : 'info'}
+              </span>
+              <span>{storageSummary}</span>
+            </div>
+          </div>
+          <div class="card-arrow">
+            <span class="material-icons">chevron_right</span>
+          </div>
+        </div>
+
         <!-- Backup Card -->
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -388,6 +512,33 @@
           </div>
         </div>
 
+        {#if $autoBackupState.supported}
+          <!-- Automatic Backup Card -->
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <div
+            class="settings-card {autoBackupAttention ? 'storage-at-risk' : ''}"
+            on:click={() => (showAutoBackup = true)}
+          >
+            <div class="card-icon">
+              <span class="material-icons">{autoBackupAttention ? 'warning' : 'folder'}</span>
+            </div>
+            <div class="card-content">
+              <h3>Automatic Backup</h3>
+              <p>{autoBackupSummary}</p>
+              {#if $autoBackupState.configured && !autoBackupAttention}
+                <div class="card-meta">
+                  <span class="material-icons">check_circle</span>
+                  <span>On</span>
+                </div>
+              {/if}
+            </div>
+            <div class="card-arrow">
+              <span class="material-icons">chevron_right</span>
+            </div>
+          </div>
+        {/if}
+
         <!-- Restore Card -->
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -403,43 +554,32 @@
             <span class="material-icons">chevron_right</span>
           </div>
         </div>
+      </div>
 
-        <!-- Export Exercises Card -->
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div class="settings-card" on:click={() => (showExportExercises = true)}>
-          <div class="card-icon">
-            <span class="material-icons">file_upload</span>
-          </div>
-          <div class="card-content">
-            <h3>Export Exercises</h3>
-            <p>Share your exercise library as CSV or JSON</p>
-            <div class="card-meta">
-              <span class="material-icons">fitness_center</span>
-              <span>{$ptState.exercises.length} {$ptState.exercises.length === 1 ? 'exercise' : 'exercises'}</span>
+      {#if !autoBackupActive}
+      <div class="quick-settings data-quick-settings">
+        <!-- Backup Reminder Setting -->
+        <div class="quick-setting-item">
+          <div class="setting-info">
+            <div class="setting-label">
+              <span class="material-icons">notification_important</span>
+              <span>Backup reminders</span>
+            </div>
+            <div class="setting-description">
+              Shown on Today when there are changes since your last backup
             </div>
           </div>
-          <div class="card-arrow">
-            <span class="material-icons">chevron_right</span>
-          </div>
-        </div>
-
-        <!-- Import Exercises Card -->
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div class="settings-card" on:click={() => (showImportExercises = true)}>
-          <div class="card-icon">
-            <span class="material-icons">file_download</span>
-          </div>
-          <div class="card-content">
-            <h3>Import Exercises</h3>
-            <p>Add exercises from CSV or JSON file</p>
-          </div>
-          <div class="card-arrow">
-            <span class="material-icons">chevron_right</span>
+          <div class="setting-controls">
+            <select value={backupReminderInterval} on:change={updateBackupReminder} class="theme-select">
+              <option value="weekly">Weekly</option>
+              <option value="biweekly">Every 2 weeks</option>
+              <option value="monthly">Monthly</option>
+              <option value="off">Off</option>
+            </select>
           </div>
         </div>
       </div>
+      {/if}
     </section>
 
     <!-- Display Section -->
@@ -660,6 +800,14 @@
   <RestoreModal on:close={() => (showRestoreModal = false)} />
 {/if}
 
+{#if showStorageHealth}
+  <StorageHealthModal on:close={() => (showStorageHealth = false)} />
+{/if}
+
+{#if showAutoBackup}
+  <AutoBackupModal on:close={() => (showAutoBackup = false)} />
+{/if}
+
 {#if showExportExercises}
   <ExportExercisesModal on:close={() => (showExportExercises = false)} />
 {/if}
@@ -735,12 +883,17 @@
     gap: var(--spacing-md);
   }
 
+  .data-quick-settings {
+    margin-top: var(--spacing-lg);
+  }
+
   .quick-setting-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: var(--spacing-md);
-    background-color: var(--surface-variant);
+    background-color: var(--surface);
+    border: 1px solid var(--divider);
     border-radius: var(--border-radius);
     gap: var(--spacing-md);
   }
@@ -966,6 +1119,14 @@
 
   .settings-card.update-available:hover {
     background-color: var(--primary-alpha-20);
+  }
+
+  .settings-card.storage-at-risk {
+    border-color: var(--warning-color);
+  }
+
+  .settings-card.storage-at-risk .card-icon .material-icons {
+    color: var(--warning-color);
   }
 
   .card-icon {

@@ -20,7 +20,7 @@
   import { createEventDispatcher } from 'svelte';
   import Modal from './Modal.svelte';
   import { toastStore } from '$lib/stores/toast';
-  import { restoreBackupData, type BackupData } from '$lib/utils/restore';
+  import { restoreBackupData, validateBackupData, type BackupData } from '$lib/utils/restore';
 
   const dispatch = createEventDispatcher();
 
@@ -95,12 +95,9 @@
       const fileContent = await file.text();
       const parsedBackupData = JSON.parse(fileContent);
 
-      // Validate backup structure
-      if (!parsedBackupData.version || !parsedBackupData.data || !parsedBackupData.data.exercises) {
-        throw new Error('Invalid backup file format');
-      }
-
-      backupData = parsedBackupData;
+      // Full structural validation before anything can be written;
+      // throws with a readable message describing the first problem found
+      backupData = validateBackupData(parsedBackupData);
       previewStats = calculateStats(backupData);
       showPreview = true;
     } catch (error) {

@@ -21,12 +21,26 @@
   import Modal from './Modal.svelte';
   import { ptService } from '$lib/stores/pt';
   import { toastStore } from '$lib/stores/toast';
+  import { buildBackup } from '$lib/utils/backup';
 
   const dispatch = createEventDispatcher();
 
   let exercisesCount = 0;
   let sessionsCount = 0;
   let journalEntriesCount = 0;
+  let busy = false;
+
+  // Web Share with files: the reliable route on iOS home-screen apps, where
+  // <a download> often does nothing. Checked with a placeholder JSON file.
+  const canShareFiles = (() => {
+    if (typeof navigator === 'undefined' || typeof navigator.canShare !== 'function') return false;
+    try {
+      const probe = new File(['{}'], 'probe.json', { type: 'application/json' });
+      return navigator.canShare({ files: [probe] });
+    } catch {
+      return false;
+    }
+  })();
 
   onMount(async () => {
     try {
@@ -46,48 +60,70 @@
     dispatch('close');
   }
 
-  async function handleBackup() {
+  // Record when the last backup was taken so Settings and the reminder can use it.
+  // Best-effort: a failure here must not turn a successful backup into an error.
+  async function markBackupTaken(exportDate: string) {
     try {
-      // Gather all data from IndexedDB
-      const exercises = await ptService.getExercises();
-      const sessionDefinitions = await ptService.getSessionDefinitions();
-      const sessionInstances = await ptService.getSessionInstances();
-      const settings = await ptService.getSettings();
-      const metadata = await ptService.getMetadata();
+      await ptService.recordBackupTaken(exportDate);
+    } catch (metaError) {
+      console.warn('Failed to record last backup date:', metaError);
+    }
+  }
 
-      const backupData = {
-        version: 1,
-        exportDate: new Date().toISOString(),
-        data: {
-          exercises,
-          sessionDefinitions,
-          sessionInstances,
-          settings,
-          metadata
-        }
-      };
+  async function handleBackup() {
+    if (busy) return;
+    busy = true;
+    try {
+      const { json, filename, exportDate } = await buildBackup();
 
       // Create blob and download
-      const json = JSON.stringify(backupData, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-
-      // Generate filename with timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-      a.download = `my-pt-backup-${timestamp}.json`;
+      a.download = filename;
 
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
+      await markBackupTaken(exportDate);
+
       toastStore.show('Backup downloaded successfully', 'success');
       handleClose();
     } catch (error) {
       console.error('Failed to export backup:', error);
       toastStore.show('Failed to create backup', 'error');
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function handleShare() {
+    if (busy) return;
+    busy = true;
+    try {
+      const { json, filename, exportDate } = await buildBackup();
+      const file = new File([json], filename, { type: 'application/json' });
+
+      // Resolves only once the share target has accepted the file; the user
+      // cancelling the sheet rejects with AbortError and is not a backup.
+      await navigator.share({ files: [file], title: 'My PT backup' });
+
+      await markBackupTaken(exportDate);
+
+      toastStore.show('Backup shared successfully', 'success');
+      handleClose();
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        // User dismissed the share sheet; nothing to report
+        return;
+      }
+      console.error('Failed to share backup:', error);
+      toastStore.show('Failed to share backup', 'error');
+    } finally {
+      busy = false;
     }
   }
 </script>
@@ -124,18 +160,32 @@
 
     <div class="info-box">
       <span class="material-icons">info</span>
-      <p>The backup file will include all your data. Keep it safe!</p>
+      <p>
+        The backup file will include all your data. Keep it somewhere outside this device,
+        such as a cloud drive or email, so it survives if the browser clears its storage.
+      </p>
     </div>
   </div>
 
   <div slot="footer" class="modal-actions">
-    <button class="btn btn-secondary" on:click={handleClose} type="button">
+    <button class="btn btn-secondary" on:click={handleClose} type="button" disabled={busy}>
       Cancel
     </button>
-    <button class="btn btn-primary" on:click={handleBackup} type="button">
-      <span class="material-icons">download</span>
-      Download
-    </button>
+    {#if canShareFiles}
+      <button class="btn btn-secondary" on:click={handleBackup} type="button" disabled={busy}>
+        <span class="material-icons">download</span>
+        Download
+      </button>
+      <button class="btn btn-primary" on:click={handleShare} type="button" disabled={busy}>
+        <span class="material-icons">ios_share</span>
+        Share
+      </button>
+    {:else}
+      <button class="btn btn-primary" on:click={handleBackup} type="button" disabled={busy}>
+        <span class="material-icons">download</span>
+        Download
+      </button>
+    {/if}
   </div>
 </Modal>
 
