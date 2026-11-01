@@ -25,6 +25,7 @@
 
 import { ptService, ptState } from '$lib/stores/pt';
 import type { RestoreSnapshot } from '$lib/services/PTService';
+import { autoBackupService } from '$lib/services/AutoBackupService';
 
 /**
  * Backup data structure
@@ -229,4 +230,10 @@ export async function restoreBackupData(backupData: BackupData): Promise<void> {
     settings,
     metadata
   }));
+
+  // restoreAllData writes the stores directly, so the automatic backup's
+  // change listener never fires. Write the folder now so it matches the
+  // device instead of holding pre-restore data until the next edit or
+  // launch. No-op when no folder is configured; never throws.
+  void autoBackupService.runBackup();
 }
