@@ -24,7 +24,8 @@
  */
 
 import { ptService, ptState } from '$lib/stores/pt';
-import type { SessionExercise, CompletedExercise } from '$lib/types/pt';
+import type { RestoreSnapshot } from '$lib/services/PTService';
+import { autoBackupService } from '$lib/services/AutoBackupService';
 
 /**
  * Backup data structure
@@ -41,87 +42,177 @@ export interface BackupData {
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function checkArray(value: unknown, label: string): unknown[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) {
+    throw new Error(`Invalid backup file: "${label}" is not a list`);
+  }
+  return value;
+}
+
+function checkIds(items: Record<string, unknown>[], label: string): void {
+  const seen = new Set<number>();
+  items.forEach((item, index) => {
+    const id = item.id;
+    if (typeof id !== 'number' || !Number.isInteger(id)) {
+      throw new Error(`Invalid backup file: ${label} entry ${index + 1} has no numeric id`);
+    }
+    if (seen.has(id)) {
+      throw new Error(`Invalid backup file: duplicate ${label} id ${id}`);
+    }
+    seen.add(id);
+  });
+}
+
+/**
+ * Validate a parsed backup file before anything is written.
+ *
+ * Checks the shape every store depends on (ids, names, the reference fields
+ * used by sessions and journal entries) and rejects duplicate ids up front
+ * with a readable message. Anything this misses is still caught by the
+ * atomic write in PTService.restoreAllData, which leaves existing data
+ * untouched on failure.
+ *
+ * @throws Error with a user-readable message describing the first problem found
+ */
+export function validateBackupData(input: unknown): BackupData {
+  if (!isRecord(input)) {
+    throw new Error('Invalid backup file: not a backup object');
+  }
+  if (typeof input.version !== 'number') {
+    throw new Error('Invalid backup file: missing version');
+  }
+  if (!isRecord(input.data)) {
+    throw new Error('Invalid backup file: missing data section');
+  }
+
+  const data = input.data;
+
+  if (!Array.isArray(data.exercises)) {
+    throw new Error('Invalid backup file: missing exercises list');
+  }
+  const exercises = data.exercises.map((item, index) => {
+    if (!isRecord(item) || typeof item.name !== 'string') {
+      throw new Error(`Invalid backup file: exercise entry ${index + 1} is malformed`);
+    }
+    // Early versions of the app stored 'rep'; a backup the app itself wrote
+    // must always restore, so normalize rather than reject
+    if (item.type === 'rep') {
+      return { ...item, type: 'reps' };
+    }
+    if (item.type !== 'duration' && item.type !== 'reps') {
+      throw new Error(`Invalid backup file: exercise "${item.name}" has no valid type`);
+    }
+    return item;
+  });
+  checkIds(exercises, 'exercise');
+
+  const sessionDefinitions = checkArray(data.sessionDefinitions, 'sessionDefinitions').map(
+    (item, index) => {
+      if (!isRecord(item) || typeof item.name !== 'string' || !Array.isArray(item.exercises)) {
+        throw new Error(`Invalid backup file: session entry ${index + 1} is malformed`);
+      }
+      item.exercises.forEach((se, seIndex) => {
+        if (!isRecord(se) || typeof se.exerciseId !== 'number') {
+          throw new Error(
+            `Invalid backup file: session "${item.name}" exercise ${seIndex + 1} has no exerciseId`
+          );
+        }
+      });
+      return item;
+    }
+  );
+  checkIds(sessionDefinitions, 'session');
+
+  const sessionInstances = checkArray(data.sessionInstances, 'sessionInstances').map(
+    (item, index) => {
+      const dateLabel = isRecord(item) && typeof item.date === 'string' ? ` (${item.date})` : '';
+      if (
+        !isRecord(item) ||
+        typeof item.date !== 'string' ||
+        typeof item.sessionDefinitionId !== 'number' ||
+        typeof item.sessionName !== 'string' ||
+        typeof item.status !== 'string' ||
+        !Array.isArray(item.completedExercises)
+      ) {
+        throw new Error(
+          `Invalid backup file: journal entry ${index + 1}${dateLabel} is missing a required field`
+        );
+      }
+      item.completedExercises.forEach((ce, ceIndex) => {
+        if (!isRecord(ce) || typeof ce.exerciseId !== 'number') {
+          throw new Error(
+            `Invalid backup file: journal entry ${index + 1} (${item.date}) exercise ${ceIndex + 1} has no exerciseId`
+          );
+        }
+      });
+      return item;
+    }
+  );
+  checkIds(sessionInstances, 'journal');
+
+  if (data.settings !== undefined && data.settings !== null && !isRecord(data.settings)) {
+    throw new Error('Invalid backup file: settings section is malformed');
+  }
+  if (data.metadata !== undefined && data.metadata !== null && !isRecord(data.metadata)) {
+    throw new Error('Invalid backup file: metadata section is malformed');
+  }
+
+  return {
+    version: input.version,
+    exportDate: typeof input.exportDate === 'string' ? input.exportDate : '',
+    data: {
+      exercises,
+      sessionDefinitions,
+      sessionInstances,
+      settings: data.settings ?? undefined,
+      metadata: data.metadata ?? undefined
+    }
+  };
+}
+
 /**
  * Restores backup data into the current database
  *
  * This function:
- * 1. Clears all existing data
- * 2. Restores exercises with ID remapping
- * 3. Restores session definitions with remapped exercise IDs
- * 4. Restores session instances with remapped IDs
- * 5. Restores settings and metadata
- * 6. Reloads state
+ * 1. Validates the backup (throws before anything is touched if it is malformed)
+ * 2. Replaces all stores in a single atomic transaction, keeping the backup's
+ *    ids so session and journal references stay intact without remapping
+ * 3. Reloads state
  *
- * @param backupData - The backup data to restore
- * @throws Error if restore fails
+ * If the write fails for any reason the transaction is rolled back by
+ * IndexedDB and the existing data is left as it was.
+ *
+ * @param backupData - The backup data to restore (validated again here; callers
+ *   may pass raw parsed JSON)
+ * @throws Error if validation or the restore fails
  */
 export async function restoreBackupData(backupData: BackupData): Promise<void> {
-  // Clear all existing data
-  await ptService.clearAllData();
+  const validated = validateBackupData(backupData);
 
-  // Create ID mapping for exercises (old ID -> new ID)
-  const exerciseIdMap = new Map<number, number>();
+  const snapshot: RestoreSnapshot = {
+    exercises: validated.data.exercises,
+    sessionDefinitions: validated.data.sessionDefinitions,
+    sessionInstances: validated.data.sessionInstances,
+    settings: validated.data.settings ?? null,
+    metadata: validated.data.metadata ?? null
+  };
 
-  // Restore exercises and build mapping
-  for (const exercise of backupData.data.exercises) {
-    const oldId = exercise.id;
-    const { id, ...exerciseData } = exercise;
-    const newId = await ptService.addExercise(exerciseData);
-    exerciseIdMap.set(oldId, newId);
-  }
+  await ptService.restoreAllData(snapshot);
 
-  // Create ID mapping for session definitions (old ID -> new ID)
-  const sessionDefIdMap = new Map<number, number>();
-
-  // Restore session definitions with remapped exercise IDs
-  for (const session of backupData.data.sessionDefinitions) {
-    const oldId = session.id;
-    const { id, ...sessionData } = session;
-
-    // Remap exercise IDs in the exercises array
-    const remappedExercises = sessionData.exercises.map((se: SessionExercise) => ({
-      ...se,
-      exerciseId: exerciseIdMap.get(se.exerciseId) ?? se.exerciseId
-    }));
-
-    const newId = await ptService.addSessionDefinition({
-      ...sessionData,
-      exercises: remappedExercises
-    });
-    sessionDefIdMap.set(oldId, newId);
-  }
-
-  // Restore session instances with remapped IDs
-  for (const instance of backupData.data.sessionInstances) {
-    const { id, ...instanceData } = instance;
-
-    // Remap session definition ID
-    const remappedSessionDefId =
-      sessionDefIdMap.get(instanceData.sessionDefinitionId) ?? instanceData.sessionDefinitionId;
-
-    // Remap exercise IDs in completed exercises
-    const remappedCompletedExercises = instanceData.completedExercises.map(
-      (ce: CompletedExercise) => ({
-        ...ce,
-        exerciseId: exerciseIdMap.get(ce.exerciseId) ?? ce.exerciseId
-      })
-    );
-
-    await ptService.addSessionInstance({
-      ...instanceData,
-      sessionDefinitionId: remappedSessionDefId,
-      completedExercises: remappedCompletedExercises
-    });
-  }
-
-  // Restore settings
-  if (backupData.data.settings) {
-    await ptService.saveSettings(backupData.data.settings);
-  }
-
-  // Restore metadata
-  if (backupData.data.metadata) {
-    await ptService.saveMetadata(backupData.data.metadata);
+  // The device now holds exactly what the file holds, so that file is the
+  // current backup: stamp its date and reset the change counter so the
+  // reminder doesn't fire straight after a restore.
+  if (validated.exportDate && !Number.isNaN(new Date(validated.exportDate).getTime())) {
+    try {
+      await ptService.recordBackupTaken(validated.exportDate);
+    } catch (error) {
+      console.warn('Failed to record restore as last backup:', error);
+    }
   }
 
   // Reload all data into state
@@ -139,4 +230,10 @@ export async function restoreBackupData(backupData: BackupData): Promise<void> {
     settings,
     metadata
   }));
+
+  // restoreAllData writes the stores directly, so the automatic backup's
+  // change listener never fires. Write the folder now so it matches the
+  // device instead of holding pre-restore data until the next edit or
+  // launch. No-op when no folder is configured; never throws.
+  void autoBackupService.runBackup();
 }

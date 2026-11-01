@@ -194,7 +194,7 @@ metadata            (key)
 ⚠️ No migration strategy for schema changes
 ⚠️ No data validation on retrieval
 ⚠️ No cross-tab storage event handling
-⚠️ Backup doesn't use transactions (potential data loss if restore fails)
+~~Backup doesn't use transactions (potential data loss if restore fails)~~ Resolved 2026-09-19: restore validates the file first and writes in a single transaction (see DATA_DURABILITY.md)
 
 ---
 

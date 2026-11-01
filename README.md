@@ -53,7 +53,7 @@ This app is intended as an additional aid beyond those provided by medical profe
 - **Timing Preferences**: Configure countdown delays, rest periods, and auto-rest behavior
 - **Audio Settings**: Master volume, countdown tones, and preview sounds
 - **Theme Options**: Light, dark, or auto (follows system preference)
-- **Data Management**: Export/import for backups and device transfers
+- **Data Safety**: Backup by download or share sheet, backup reminders, automatic backup folder on desktop and Chrome OS, validated atomic restore, exercise library export/import
 
 ### Privacy & Offline
 - **Local-First**: All data stored on device using IndexedDB
@@ -116,6 +116,8 @@ firebase deploy
 ### Installing as PWA
 
 Once deployed via HTTPS, browsers will prompt to install as a standalone app.
+
+**Always use the same address.** Browser storage is tied to the origin (scheme, host and port), so the app's data only exists at the address it was first used from. Install and open it from one stable production URL and never from a preview or per-build hostname; a different address is a different, empty database. See `_notes/DATA_DURABILITY.md` for how the app keeps data safe and how to back up and restore.
 
 ---
 
@@ -199,8 +201,9 @@ my-pt-pwa/
 - **Data Portability**: Move data between devices
 
 ### Recommendations
-- **Regular Backups**: Export your data regularly via Settings → Data Management
-- **Secure Storage**: Store backup files securely
+- **Regular Backups**: Use Backup in Settings → Data (download, or share to a cloud drive on phones); the app reminds you when changes are unsaved
+- **Automatic Backup**: On desktop Chrome, Edge or Chrome OS, pick a backup folder once under Settings → Data → Automatic Backup
+- **Secure Storage**: Store backup files securely, and outside the device where possible
 - **HTTPS Only**: Access via HTTPS (enforced in production)
 - **Private Browsing**: Note that data will be cleared when private session ends
 

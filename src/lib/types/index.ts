@@ -26,4 +26,4 @@
 
 export type { Exercise, SessionExercise } from './exercise';
 export type { SessionDefinition, SessionInstance, CompletedExercise } from './session';
-export type { AppSettings, DBMetadata } from './settings';
+export type { AppSettings, DBMetadata, BackupReminderInterval } from './settings';
