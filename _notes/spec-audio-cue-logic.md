@@ -296,13 +296,16 @@ Session-complete cue policy:
 
 ### 8.1 Set-complete gong
 
-The set-complete sound should be warm, pleasant, and less urgent than rep cues.
+The set-complete sound should be warm and pleasant, and clearly audible on a phone speaker from
+across the room. It must not be quieter than the rep cues.
 
 Preferred characteristics:
 
-1. Resonant decay of approximately 1.5-2.5 seconds.
+1. Resonant decay of approximately 1.5-2.5 seconds, with a short hold at full level first so the
+   loud part is long enough to notice.
 2. Soft attack to avoid clicks but still be noticeable.
-3. Lower-mid pitch range than rep cues.
+3. Lower-mid pitch than rep cues, with most of its energy in overtones between one and four times
+   the root, where small phone speakers are loud.
 4. No harsh square/sawtooth timbres.
 5. Clearly different from the existing session-complete ascending chime.
 6. Clearly different from the existing unilateral side-switch chime.
@@ -320,6 +323,42 @@ Suggested initial tone:
 - optional quiet octave or fifth overtone,
 - 2-second exponential decay,
 - master-volume-scaled peak below the rep cue peak if needed.
+
+**Revised after device testing.** The initial tone above (G4 sine, D5 overtone at 30%, 2-second
+decay from a 20ms attack) was too quiet on a phone: a 392Hz sine sits below the range small
+speakers reproduce well, and the decay halves the level roughly every 0.2 seconds. Several
+variants were compared by ear on the phone speaker against the rep-end beep. The chosen sound is a
+struck bell at G4: five sine partials at 1x, 2x, 2.4x, 3x and 4x the root, with relative levels
+1.0, 0.8, 0.45, 0.4 and 0.25, each holding at peak for 120ms and then decaying over 2.6, 2.0, 1.4,
+1.1 and 0.8 seconds respectively. Levels sum to 1.2x full scale; the partials never peak
+together (the summed waveform peaks at about 0.8 of the sum), so the bell peaks just under full
+scale without clipping. Implemented as
+`AudioService.playBell()`; `playChime()` is unchanged and still used for the side-switch cue.
+
+### 8.1a Start and end cue scheme
+
+Added after device testing, alongside the set-complete bell. Single sine beeps below about 500Hz
+were hard to hear on a phone speaker, and a lone low tone was the only thing marking an end. Start
+and end cues are now two-note pairs whose direction carries the meaning: **starts rise, ends
+fall**, consistent with the rising about-to-start and falling about-to-end countdowns. All notes
+sit between D5 and C6, where small speakers are loud. Implemented as `AudioService.playPair()`
+(notes scheduled on the audio clock, 20ms apart).
+
+| Cue | Notes | Note lengths |
+|---|---|---|
+| Duration start | E5 → A5 (659 → 880Hz) | 120ms, 180ms |
+| Duration end | A5 → E5 (880 → 659Hz) | 120ms, 180ms |
+| Rep start | G5 → C6 (784 → 1047Hz) | 70ms, 100ms |
+| Rep end | C6 → G5 (1047 → 784Hz) | 70ms, 100ms |
+| Rest start | G5 → D5 (784 → 587Hz), 40ms soft attack | 150ms, 220ms |
+| Rest end | D5 → G5 (587 → 784Hz) | 120ms, 180ms |
+
+Rep pairs are higher and shorter than duration pairs because they repeat every rep; a rep-end cue
+and the next rep-start are always at least about a second apart (rep end fires one second before
+the rep finishes, then the pause between reps runs). The about-to-start countdown is unchanged
+(500/650/800Hz at full level). The about-to-end countdown keeps 800/650/500Hz but its levels rose
+from 30/50/70% to 60/80/100% so its first beep is audible. Side switch, set complete and session
+complete are unchanged by this section.
 
 ### 8.2 Haptics
 
@@ -401,7 +440,9 @@ Required outcome:
 Use existing settings for the first implementation:
 
 1. `soundEnabled` gates all audio.
-2. `soundVolume` controls master volume.
+2. ~~`soundVolume` controls master volume.~~ Removed: cues play at full scale and the device's
+   media volume sets loudness (§18.1). A web app cannot read or set media volume, so a second,
+   in-app level only made cues quieter than the user expected.
 3. `hapticsEnabled` gates haptics.
 4. `audioLeadInEnabled` gates about-to-start countdown.
 5. `audioExerciseAboutToEndEnabled` gates about-to-end countdown.
@@ -634,9 +675,10 @@ open and are deferred; both were already flagged as optional/future work in §10
 
 3. Should the set-complete gong use the same family of sound as the unilateral side-switch
    gong, or should it be lower/warmer to signal closure?
-   - **Resolved: lower and warmer.** It reuses the same `playChime()` family as the side-switch
-     cue but is rooted at G4 (392Hz) against the side-switch's C5 (523.25Hz), with a quiet D5
-     overtone (587.33Hz at 30% volume) and a 2-second exponential decay.
+   - **Resolved: lower and warmer.** It is rooted at G4 (392Hz) against the side-switch's C5
+     (523.25Hz). It was first built on `playChime()` with a quiet D5 overtone; after device
+     testing it became a separate struck-bell sound (`playBell()`, §8.1) so it is loud enough on
+     a phone speaker.
 
 4. Should a zero-rest next set be delayed enough to allow the set-complete gong, or should the
    set-complete gong be suppressed for zero-rest sets?
@@ -682,9 +724,10 @@ Implemented on `claude/review-cue-logic-end-set-ybwdtx`, targeting `main`.
 
 ### 18.1 Delivered
 
-1. **Warm set-complete gong** (§8.1) — `AudioService.onSetComplete()` plays a G4 (392Hz)
-   root via `playChime()` with a quiet D5 overtone at 30% volume and a 2-second exponential
-   decay, replacing the previous short G5→D5 two-note chime.
+1. **Set-complete bell** (§8.1) — `AudioService.onSetComplete()` plays a struck bell rooted at
+   G4 (392Hz) via `playBell()`: five partials, a 120ms hold, and decays of 0.8-2.6 seconds,
+   replacing the previous short G5→D5 two-note chime. An earlier single-sine gong on this branch
+   proved too quiet on a phone speaker.
 2. **Two gentle haptic pulses** 250ms apart (§8.2), distinct from the side-switch cue's
    long-short pattern and from the session-complete triple pulse.
 3. **Rep-end cue is no longer replaced** (§7.1, §7.2). It fires on every rep, including the
@@ -708,6 +751,13 @@ Implemented on `claude/review-cue-logic-end-set-ybwdtx`, targeting `main`.
     `src/routes/demo/play/+page.svelte`.
 11. **Settings modal cue list updated** (§10.3) to name rep start/end and side switch, and to
     drop the now-inaccurate "multi-set exercises" qualifier from set completion.
+12. **Volume setting removed.** The Master Volume slider and `soundVolume` are gone; every cue
+    plays at full scale (`CUE_LEVEL` in `AudioService.ts`) and the device's media volume sets
+    loudness. The about-to-end countdown keeps its relative 30/50/70% ramp. Unused legacy
+    `play*(volume)` methods were removed with it. Stored settings from earlier versions may still
+    carry `soundVolume`; it is ignored.
+13. **Directional start/end cues** (§8.1a). Duration, rep and rest start/end cues are rising and
+    falling two-note pairs; the about-to-end countdown is louder (60/80/100%).
 
 ### 18.2 Deferred — not implemented
 
@@ -733,6 +783,6 @@ Implemented on `claude/review-cue-logic-end-set-ybwdtx`, targeting `main`.
   per §16.4. This is the case §7.4 item 4 was written for.
 - **One-second rest**: because `restBetweenSets` is expressed in whole seconds, the shortest
   non-zero rest is 1000ms, which already exceeds the 700ms cue delay — so the gong starts well
-  before rest ends and is not suppressed. Its 2-second decay will still be sounding when the
-  rest-end cue fires. This is audible but not disruptive, and was judged not worth a special
-  case.
+  before rest ends and is not suppressed. Its decay (about 2.7 seconds) will still be sounding
+  when the rest-end cue fires. This is audible but not disruptive, and was judged not worth a
+  special case.

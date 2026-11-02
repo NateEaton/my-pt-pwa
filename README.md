@@ -51,7 +51,7 @@ This app is intended as an additional aid beyond those provided by medical profe
 
 ### Customization
 - **Timing Preferences**: Configure countdown delays, rest periods, and auto-rest behavior
-- **Audio Settings**: Master volume, countdown tones, and preview sounds
+- **Audio Settings**: Sound on/off, countdown tones, and preview sounds (loudness follows the device's media volume)
 - **Theme Options**: Light, dark, or auto (follows system preference)
 - **Data Safety**: Backup by download or share sheet, backup reminders, automatic backup folder on desktop and Chrome OS, validated atomic restore, exercise library export/import
 

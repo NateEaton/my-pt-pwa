@@ -16,12 +16,42 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+/**
+ * Peak level of every cue. Cues always play at full scale; loudness is set
+ * by the device's media volume, which a web app cannot read or change.
+ */
+const CUE_LEVEL = 1.0;
+
+/** Silence between the two notes of a start/end pair, in seconds */
+const PAIR_GAP = 0.02;
+
+/**
+ * Partials of the set-complete bell, as multiples of the root frequency,
+ * with relative level and decay time in seconds. Chosen by ear on a phone
+ * speaker against the rep-end beep (see spec-audio-cue-logic.md section 8.1).
+ */
+const BELL_PARTIALS = [
+  { ratio: 1.0, level: 1.0, decay: 2.6 },
+  { ratio: 2.0, level: 0.8, decay: 2.0 },
+  { ratio: 2.4, level: 0.45, decay: 1.4 },
+  { ratio: 3.0, level: 0.4, decay: 1.1 },
+  { ratio: 4.0, level: 0.25, decay: 0.8 }
+] as const;
+
+const BELL_LEVEL_SUM = BELL_PARTIALS.reduce((sum, partial) => sum + partial.level, 0);
+
+/**
+ * Partial levels add up to this multiple of CUE_LEVEL. The partials never
+ * peak at the same instant: the summed waveform peaks at about 0.8 of the
+ * sum, so 1.2 puts the bell's peak just under full scale without clipping.
+ */
+const BELL_HEADROOM = 1.2;
+
 export class AudioService {
   private audioContext: AudioContext | null = null;
   private unlocked = false;
 
   // Audio settings (injected from settings store)
-  private masterVolume = 0.7;
   private leadInEnabled = true; // Exercise about-to-start countdown
   private exerciseAboutToEndEnabled = true; // Exercise about-to-end countdown
   private continuousTicksEnabled = false;
@@ -56,8 +86,9 @@ export class AudioService {
    * Play a tone with smooth envelope to prevent clicks
    * @param frequency - Frequency in Hz
    * @param duration - Duration in seconds
+   * @param level - Peak as a fraction of CUE_LEVEL (default full)
    */
-  private playBeep(frequency: number, duration: number): void {
+  private playBeep(frequency: number, duration: number, level: number = 1): void {
     if (!this.unlocked || !this.audioContext) return;
 
     const now = this.audioContext.currentTime;
@@ -67,7 +98,7 @@ export class AudioService {
     // Smooth envelope to prevent clicks
     const attack = 0.015;  // 15ms attack
     const release = 0.030; // 30ms release
-    const volume = this.masterVolume ?? 0.7;
+    const volume = CUE_LEVEL * level;
 
     osc.frequency.value = frequency;
     osc.type = 'sine';
@@ -94,16 +125,21 @@ export class AudioService {
   /**
    * Internal helper to play a tone at a specific time
    */
-  private playToneAtTime(frequency: number, startTime: number, duration: number, type: OscillatorType = 'sine'): void {
+  private playToneAtTime(
+    frequency: number,
+    startTime: number,
+    duration: number,
+    type: OscillatorType = 'sine',
+    attack: number = 0.015
+  ): void {
     if (!this.unlocked || !this.audioContext) return;
 
     const osc = this.audioContext.createOscillator();
     const gain = this.audioContext.createGain();
 
     // Smooth envelope
-    const attack = 0.015;
     const release = 0.030;
-    const volume = this.masterVolume ?? 0.7;
+    const volume = CUE_LEVEL;
 
     osc.frequency.value = frequency;
     osc.type = type;
@@ -127,6 +163,27 @@ export class AudioService {
   }
 
   /**
+   * Play two tones back to back. Starts rise and ends fall: every start cue
+   * is a rising pair and every end cue a falling pair, matching the rising
+   * about-to-start and falling about-to-end countdowns. Both notes are
+   * scheduled on the audio clock, so the gap stays exact under load.
+   * @param attack - Attack in seconds; longer is softer (rest start)
+   */
+  private playPair(
+    first: number,
+    second: number,
+    firstDuration: number,
+    secondDuration: number,
+    attack: number = 0.015
+  ): void {
+    if (!this.unlocked || !this.audioContext) return;
+
+    const now = this.audioContext.currentTime;
+    this.playToneAtTime(first, now, firstDuration, 'sine', attack);
+    this.playToneAtTime(second, now + firstDuration + PAIR_GAP, secondDuration, 'sine', attack);
+  }
+
+  /**
    * Play a resonating chime/gong sound (Exponential decay)
    */
   private playChime(frequency: number): void {
@@ -136,7 +193,7 @@ export class AudioService {
     const osc = this.audioContext.createOscillator();
     const gain = this.audioContext.createGain();
 
-    const volume = this.masterVolume ?? 0.7;
+    const volume = CUE_LEVEL;
 
     osc.frequency.value = frequency;
     osc.type = 'sine'; // Sine is best for "wind chime" purity
@@ -157,6 +214,51 @@ export class AudioService {
       osc.disconnect();
       gain.disconnect();
     };
+  }
+
+  /**
+   * Play a struck-bell sound rooted at the given frequency
+   *
+   * Sums sine partials at bell-like ratios (prime, octave, minor third above
+   * it, twelfth, double octave). Most of the energy sits from one to four
+   * times the root, the band small phone speakers reproduce loudly, so the
+   * bell carries on a phone where a lone low sine barely registers. Each
+   * partial holds briefly at its peak and then decays exponentially, upper
+   * partials first, which is what makes it read as a bell rather than a chord.
+   */
+  private playBell(rootFrequency: number): void {
+    if (!this.unlocked || !this.audioContext) return;
+
+    const now = this.audioContext.currentTime;
+    const volume = CUE_LEVEL;
+    const attack = 0.01;
+    const hold = 0.12;
+
+    for (const partial of BELL_PARTIALS) {
+      const osc = this.audioContext.createOscillator();
+      const gain = this.audioContext.createGain();
+      const peak = (volume * partial.level * BELL_HEADROOM) / BELL_LEVEL_SUM;
+      const end = now + attack + hold + partial.decay;
+
+      osc.type = 'sine';
+      osc.frequency.value = rootFrequency * partial.ratio;
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(peak, now + attack);
+      gain.gain.setValueAtTime(peak, now + attack + hold);
+      gain.gain.exponentialRampToValueAtTime(0.001, end);
+
+      osc.connect(gain);
+      gain.connect(this.audioContext.destination);
+
+      osc.start(now);
+      osc.stop(end + 0.01);
+
+      osc.onended = () => {
+        osc.disconnect();
+        gain.disconnect();
+      };
+    }
   }
 
   /**
@@ -187,7 +289,7 @@ export class AudioService {
    * Called when a duration exercise starts
    */
   public onDurationStart(): void {
-    this.playBeep(880, 0.20); // A5 - bright start tone
+    this.playPair(659.25, 880, 0.12, 0.18); // E5 -> A5, rising
     this.triggerHaptic(50);
   }
 
@@ -195,7 +297,7 @@ export class AudioService {
    * Called when a duration exercise ends
    */
   public onDurationEnd(): void {
-    this.playBeep(440, 0.20); // A4 - lower end tone
+    this.playPair(880, 659.25, 0.12, 0.18); // A5 -> E5, falling
     this.triggerHaptic(50);
   }
 
@@ -203,7 +305,9 @@ export class AudioService {
    * Called when a rep starts (for rep-based exercises)
    */
   public onRepStart(): void {
-    this.playBeep(1046.50, 0.12); // C6 - crisp, quick start for each rep
+    // G5 -> C6, rising; higher and quicker than the duration pair because
+    // it repeats every rep
+    this.playPair(783.99, 1046.5, 0.07, 0.10);
     this.triggerHaptic(30); // Shorter vibration for quick rep cue
   }
 
@@ -211,23 +315,17 @@ export class AudioService {
    * Called when a rep ends (for rep-based exercises)
    */
   public onRepEnd(): void {
-    this.playBeep(698.46, 0.12); // F5 - medium-high completion for each rep
+    this.playPair(1046.5, 783.99, 0.07, 0.10); // C6 -> G5, falling
     this.triggerHaptic(30); // Shorter vibration for quick rep cue
   }
 
   /**
    * Called when a set is completed (all sets, including the final set)
-   * Warm resonant gong at G4 — lower and warmer than the C5 side-switch gong
+   * Struck bell at G4: lower than the C5 side-switch chime, and loud enough
+   * to hear on a phone speaker across the room
    */
   public onSetComplete(): void {
-    // G4 root with 2-second exponential decay
-    this.playChime(392);
-
-    // Quiet D5 overtone (perfect fifth above G4) for warmth
-    const savedVolume = this.masterVolume;
-    this.masterVolume = savedVolume * 0.3;
-    this.playChime(587.33);
-    this.masterVolume = savedVolume;
+    this.playBell(392); // G4
 
     // Two gentle pulses, distinct from side-switch's long-short pattern
     this.triggerHaptic(50);
@@ -252,7 +350,7 @@ export class AudioService {
    * Called when a rest period starts
    */
   public onRestStart(): void {
-    this.playBeep(350, 0.20); // Calming low tone
+    this.playPair(783.99, 587.33, 0.15, 0.22, 0.04); // G5 -> D5, falling, soft attack
     this.triggerHaptic(50);
   }
 
@@ -260,7 +358,7 @@ export class AudioService {
    * Called when a rest period ends
    */
   public onRestEnd(): void {
-    this.playBeep(500, 0.20); // Medium tone - end of rest
+    this.playPair(587.33, 783.99, 0.12, 0.18); // D5 -> G5, rising: next set is coming
     this.triggerHaptic(50);
   }
 
@@ -302,9 +400,9 @@ export class AudioService {
     };
 
     const volumeMap: Record<number, number> = {
-      3: 0.3,  // Quietest
-      2: 0.5,  // Medium
-      1: 0.7   // Still not full volume
+      3: 0.6,  // Quietest, still clear on a phone speaker
+      2: 0.8,  // Medium
+      1: 1.0   // Full
     };
 
     const hapticMap: Record<number, number> = {
@@ -317,11 +415,7 @@ export class AudioService {
     const relativeVolume = volumeMap[step] ?? 0.5;
     const duration = 0.15; // Shorter, more subtle
 
-    // Temporarily adjust volume for this beep
-    const originalVolume = this.masterVolume;
-    this.masterVolume = originalVolume * relativeVolume;
-    this.playBeep(freq, duration);
-    this.masterVolume = originalVolume;
+    this.playBeep(freq, duration, relativeVolume);
 
     // Subtle haptic feedback for end countdown
     this.triggerHaptic(hapticMap[step] ?? 30);
@@ -380,7 +474,7 @@ export class AudioService {
 
       const attack = 0.01;
       const release = 0.05;
-      const volume = this.masterVolume ?? 0.7;
+      const volume = CUE_LEVEL;
 
       gain.gain.setValueAtTime(0, startTime);
       gain.gain.linearRampToValueAtTime(volume, startTime + attack);
@@ -405,66 +499,7 @@ export class AudioService {
     setTimeout(() => this.triggerHaptic(50), 300);
   }
 
-  // === Legacy methods for backward compatibility ===
-
-  /**
-   * @deprecated Use onCountdown(step) instead
-   */
-  playCountdownTick(volume: number = 0.3): void {
-    const prevVolume = this.masterVolume;
-    this.masterVolume = volume;
-    this.onCountdown(3); // Use middle frequency as default
-    this.masterVolume = prevVolume;
-  }
-
-  /**
-   * @deprecated Use onTick() instead
-   */
-  playDurationTick(volume: number = 0.3): void {
-    const prevVolume = this.masterVolume;
-    this.masterVolume = volume;
-    this.onTick();
-    this.masterVolume = prevVolume;
-  }
-
-  /**
-   * @deprecated Use onRepComplete() instead
-   */
-  playRepBeep(volume: number = 0.3): void {
-    const prevVolume = this.masterVolume;
-    this.masterVolume = volume;
-    this.onRepComplete();
-    this.masterVolume = prevVolume;
-  }
-
-  /**
-   * @deprecated Use onRestStart() instead
-   */
-  playRestTick(volume: number = 0.3): void {
-    const prevVolume = this.masterVolume;
-    this.masterVolume = volume;
-    this.onRestStart();
-    this.masterVolume = prevVolume;
-  }
-
-  /**
-   * @deprecated Use onSessionComplete() instead
-   */
-  playComplete(volume: number = 0.3): void {
-    const prevVolume = this.masterVolume;
-    this.masterVolume = volume;
-    this.onSessionComplete();
-    this.masterVolume = prevVolume;
-  }
-
   // === Configuration methods ===
-
-  /**
-   * Set master volume (0.0 to 1.0)
-   */
-  public setMasterVolume(value: number): void {
-    this.masterVolume = Math.max(0, Math.min(1, value));
-  }
 
   /**
    * Enable/disable exercise about-to-start countdown (3-2-1 with rising tones)

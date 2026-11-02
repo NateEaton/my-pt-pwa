@@ -36,13 +36,14 @@ My PT is a local-first Progressive Web App for tracking home physical therapy: a
 
 ## Verification
 
-- `npm run check` (svelte-check) and `npm run build`. There is no test suite.
-- `npm run check` currently reports errors that predate most work, chiefly the `$lib/types/pt` imports. Compare against that baseline rather than expecting zero, and call out any error in a file you changed.
+- The maintainer verifies with `./deploy.sh dev`, which builds with the dev base path and publishes to the dev site for testing on a device (`test` serves a LAN preview instead; `prod` publishes to production). It needs the deployment paths in `.env`, so in a fresh clone use `npm run build` instead. There is no test suite.
+- Neither `deploy.sh` nor `npm run build` type-checks. When a change touches types, `npm run check` (svelte-check) is the extra step. It currently reports errors that predate most work, chiefly the `$lib/types/pt` imports; compare against that baseline rather than expecting zero, and call out any error in a file you changed.
+- When handing work back, name `./deploy.sh dev` as the build-and-test step, followed by what to try on the dev site.
 - Report what was actually run. If a check was not run, say so.
 
 ## Working agreement
 
 - Stay inside the task. Describe adjacent problems instead of fixing them; if the maintainer wants one kept, it goes in `_notes/TODO.md`.
 - Never add, remove or upgrade a dependency without approval.
-- `deploy.sh` and the `.env*` files are the maintainer's deployment setup. Do not run the script or commit the files.
+- Agents do not run `deploy.sh`: it deletes and replaces the contents of a live web root. Do not commit the `.env*` files.
 - User-visible changes update the in-app guide (`src/lib/components/GuideDialog.svelte`) and, where relevant, the `_notes/` spec, in the same change.

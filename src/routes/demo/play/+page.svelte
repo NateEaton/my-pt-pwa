@@ -156,7 +156,6 @@
 
   // Update audio service when settings change
   $: if ($ptState.settings) {
-    audioService.setMasterVolume($ptState.settings.soundVolume);
     audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
     audioService.setExerciseAboutToEndEnabled($ptState.settings.audioExerciseAboutToEndEnabled);
     audioService.setHapticsEnabled($ptState.settings.hapticsEnabled);
@@ -255,7 +254,6 @@
 
     // Configure audio service with user settings
     if ($ptState.settings) {
-      audioService.setMasterVolume($ptState.settings.soundVolume);
       audioService.setLeadInEnabled($ptState.settings.audioLeadInEnabled);
       audioService.setExerciseAboutToEndEnabled($ptState.settings.audioExerciseAboutToEndEnabled);
       audioService.setHapticsEnabled($ptState.settings.hapticsEnabled);

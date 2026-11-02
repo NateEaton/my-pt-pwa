@@ -347,7 +347,8 @@
         <h4>Cue Settings</h4>
         <p>Customize audio and haptic feedback in Settings > Player > Cues:</p>
         <ul>
-          <li><strong>Sound & Volume:</strong> Master audio toggle and volume control</li>
+          <li><strong>Sound:</strong> Turns all audio cues on or off. Cues always play at full strength, so set loudness with your device's media volume</li>
+          <li><strong>How cues sound:</strong> Starts rise and ends fall. Each start (exercise, rep, end of rest) is two notes going up; each end is two notes going down. Rep cues are higher and quicker. A bell marks the end of a set</li>
           <li><strong>Countdown Tones:</strong> Enable 3-2-1 audio before exercises</li>
           <li><strong>Haptic Feedback:</strong> Vibration for audio cues (device-dependent)</li>
           <li><strong>Preview Sounds:</strong> Test all audio cues (duration, rep, rest, countdown, completion)</li>
