@@ -818,36 +818,6 @@
     transform: translateX(1.25rem);
   }
 
-  /* Volume Slider */
-  .volume-slider {
-    width: 6rem;
-    height: 0.25rem;
-    border-radius: 0.125rem;
-    background: var(--divider);
-    outline: none;
-    -webkit-appearance: none;
-    appearance: none;
-  }
-
-  .volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 1rem;
-    height: 1rem;
-    border-radius: 50%;
-    background: var(--primary-color);
-    cursor: pointer;
-  }
-
-  .volume-slider::-moz-range-thumb {
-    width: 1rem;
-    height: 1rem;
-    border-radius: 50%;
-    background: var(--primary-color);
-    cursor: pointer;
-    border: none;
-  }
-
   /* Theme Select */
   .theme-select {
     padding: var(--spacing-sm) var(--spacing-md);
@@ -1020,10 +990,6 @@
 
     .quick-setting-item {
       padding: var(--spacing-sm);
-    }
-
-    .volume-slider {
-      width: 4rem;
     }
 
     /* Smaller color swatches on mobile */

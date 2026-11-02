@@ -28,7 +28,6 @@
 
   // Form state
   let soundEnabled = true;
-  let soundVolume = 0.7;
   let audioLeadInEnabled = true;
   let audioExerciseAboutToEndEnabled = true;
   let audioRestCuesEnabled = true;
@@ -42,7 +41,6 @@
   onMount(() => {
     if ($ptState.settings) {
       soundEnabled = $ptState.settings.soundEnabled;
-      soundVolume = $ptState.settings.soundVolume;
       audioLeadInEnabled = $ptState.settings.audioLeadInEnabled;
       audioExerciseAboutToEndEnabled = $ptState.settings.audioExerciseAboutToEndEnabled;
       audioRestCuesEnabled = $ptState.settings.audioRestCuesEnabled;
@@ -74,7 +72,6 @@
     const newSettings: AppSettings = {
       ...$ptState.settings,
       soundEnabled,
-      soundVolume,
       audioLeadInEnabled,
       audioExerciseAboutToEndEnabled,
       audioRestCuesEnabled,
@@ -89,7 +86,6 @@
       ptState.update((state) => ({ ...state, settings }));
 
       // Update audio service with new settings
-      audioService.setMasterVolume(soundVolume);
       audioService.setLeadInEnabled(audioLeadInEnabled);
       audioService.setExerciseAboutToEndEnabled(audioExerciseAboutToEndEnabled);
       audioService.setHapticsEnabled(hapticsEnabled);
@@ -104,43 +100,41 @@
 
   // Preview sound functions
   function previewDurationStart() {
-    audioService.setMasterVolume(soundVolume);
     audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onDurationStart();
   }
 
   function previewDurationEnd() {
-    audioService.setMasterVolume(soundVolume);
     audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onDurationEnd();
   }
 
   function previewRepStart() {
-    audioService.setMasterVolume(soundVolume);
     audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onRepStart();
   }
 
   function previewRepEnd() {
-    audioService.setMasterVolume(soundVolume);
     audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onRepEnd();
   }
 
+  function previewSetComplete() {
+    audioService.setHapticsEnabled(hapticsEnabled);
+    audioService.onSetComplete();
+  }
+
   function previewRestStart() {
-    audioService.setMasterVolume(soundVolume);
     audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onRestStart();
   }
 
   function previewRestEnd() {
-    audioService.setMasterVolume(soundVolume);
     audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onRestEnd();
   }
 
   function previewCountdown() {
-    audioService.setMasterVolume(soundVolume);
     audioService.setLeadInEnabled(true); // Temporarily enable for preview
     audioService.setHapticsEnabled(hapticsEnabled);
 
@@ -151,7 +145,6 @@
   }
 
   function previewCountdownEnd() {
-    audioService.setMasterVolume(soundVolume);
     audioService.setExerciseAboutToEndEnabled(true); // Temporarily enable for preview
     audioService.setHapticsEnabled(hapticsEnabled);
 
@@ -162,13 +155,11 @@
   }
 
   function previewSwitchSides() {
-    audioService.setMasterVolume(soundVolume);
     audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onSwitchSides();
   }
 
   function previewSessionComplete() {
-    audioService.setMasterVolume(soundVolume);
     audioService.setHapticsEnabled(hapticsEnabled);
     audioService.onSessionComplete();
   }
@@ -186,9 +177,6 @@
       toastStore.show('Vibration not supported', 'error');
     }
   }
-
-  // Convert 0-1 to percentage for display
-  $: volumePercentage = Math.round(soundVolume * 100);
 </script>
 
 <Modal fullScreen={true} title="Audio & Haptic Settings" iosStyle={true} on:close={handleClose}>
@@ -210,26 +198,6 @@
             <input type="checkbox" bind:checked={soundEnabled} />
             <span class="toggle-slider"></span>
           </label>
-        </div>
-      </div>
-
-      <!-- Master Volume -->
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-label">Master Volume</span>
-          <span class="setting-description">Overall volume for all audio cues</span>
-        </div>
-        <div class="setting-control volume-control">
-          <input
-            type="range"
-            bind:value={soundVolume}
-            min="0"
-            max="1"
-            step="0.05"
-            class="volume-slider"
-            disabled={!soundEnabled}
-          />
-          <span class="volume-value">{volumePercentage}%</span>
         </div>
       </div>
 
@@ -346,6 +314,9 @@
           The app plays audio cues when sound is enabled:
           <ul>
             <li>Exercise start and completion</li>
+            <li>Rep start and end</li>
+            <li>Side switch (unilateral exercises)</li>
+            <li>Set completion</li>
             <li>Rest period start and end</li>
             <li>Session completion</li>
           </ul>
@@ -387,6 +358,14 @@
           >
             <span class="material-icons">fitness_center</span>
             Rep End
+          </button>
+          <button
+            class="btn-preview"
+            on:click={previewSetComplete}
+            disabled={!soundEnabled}
+          >
+            <span class="material-icons">done_all</span>
+            Set Complete
           </button>
           <button
             class="btn-preview"
@@ -523,53 +502,6 @@
     gap: var(--spacing-sm);
   }
 
-  .volume-control {
-    flex-direction: column;
-    align-items: flex-end;
-    gap: var(--spacing-xs);
-    min-width: 140px;
-  }
-
-  .volume-slider {
-    width: 100%;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--divider);
-    outline: none;
-    -webkit-appearance: none;
-  }
-
-  .volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--primary-color);
-    cursor: pointer;
-  }
-
-  .volume-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--primary-color);
-    cursor: pointer;
-    border: none;
-  }
-
-  .volume-slider:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .volume-value {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    min-width: 3rem;
-    text-align: right;
-  }
-
   /* Component-specific info box styling (blue theme) */
   .info-box {
     background-color: var(--primary-alpha-10);
@@ -692,11 +624,6 @@
 
     .setting-control {
       align-self: flex-end;
-    }
-
-    .volume-control {
-      align-self: stretch;
-      align-items: stretch;
     }
 
     .preview-buttons {

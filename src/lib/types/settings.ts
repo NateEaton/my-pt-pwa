@@ -50,7 +50,9 @@ export interface AppSettings {
 
   // Sound preferences
   soundEnabled: boolean;
-  soundVolume: number; // 0.0 to 1.0 (master volume)
+  // No volume setting: cues play at full scale and the device's media volume
+  // sets loudness. Older stored settings may still carry a soundVolume key;
+  // it is ignored.
   hapticsEnabled: boolean; // Enable vibration feedback
 
   // Audio cue preferences
